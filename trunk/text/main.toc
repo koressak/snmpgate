@@ -1,0 +1,17 @@
+\select@language {english}
+\select@language {czech}
+\contentsline {chapter}{\numberline {1}\IeC {\'U}vod}{1}
+\contentsline {chapter}{\numberline {2}SNMP}{3}
+\contentsline {section}{\numberline {2.1}Spr\IeC {\'a}vn\IeC {\'\i } struktura}{3}
+\contentsline {section}{\numberline {2.2}SMI, MIB standardy}{5}
+\contentsline {section}{\numberline {2.3}Verze SNMP protokolu}{6}
+\contentsline {chapter}{\numberline {3}XML protokol}{11}
+\contentsline {section}{\numberline {3.1}Trasformace SNMP do XML}{11}
+\contentsline {section}{\numberline {3.2}Struktura protokolu}{11}
+\contentsline {section}{\numberline {3.3}Zpr\IeC {\'a}vy}{11}
+\contentsline {chapter}{\numberline {4}N\IeC {\'a}vrh syst\IeC {\'e}mu}{13}
+\contentsline {section}{\numberline {4.1}Teoretick\IeC {\'e} po\IeC {\v z}adavky}{13}
+\contentsline {subsection}{\numberline {4.1.1}XML}{14}
+\contentsline {subsection}{\numberline {4.1.2}SNMP}{14}
+\contentsline {section}{\numberline {4.2}Struktura programu}{14}
+\contentsline {chapter}{Literatura}{15}

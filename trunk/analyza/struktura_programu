@@ -1,0 +1,88 @@
+TODO:
+	- adresace sama sebe a jak je to se SNMP / XML spravou sama sebe.
+	- vyzkouset jak moc zabiraji mib v xml v pameti - jestli je nutno sdilet stromy nebo ne
+	- vyzkouset vytvoreni mib stromu - vzdyt samotne jedno mib je usazeno treba az v mgmt/mib2/if. ale my potrebujeme zacit od iso/org. TUdiz nacist nejake zakladni mib by to chtelo.(asi??)
+	!!!!!!!!!!!!!!!! MIB - RFC1155-SMI , RFC1213-MIB - zakladni polozky stromu.!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	- vytvorit xml strom, jaky bude v te gate v pameti - ve kterem se bude vyhledavat
+		- adresace polozek v tabulkach (nutno vymyslet to odseparovani cisel od zbytku, vyhledani a pak doplneni do hledane polozky)
+
+	- Access control - nutne vymyslet
+	- Komunikace mezi SNMP a XML tridou
+
+	- vyuziti HTTP protokolu
+	- Specifikovat handlovani jednotlivych messages!!!!!!!!!!!!!!!!!!!!!!!!!
+		Presne si rici, co a jak se kde vytvori!!!
+		
+		Notification/subscription -> jeden thread na handle vsech. bude spat a kdyz neco prijde, tak jej probudi 
+			a on si sam spocita, kdy se ma probouzet, aby zasilal jednotlive informace.
+
+	- Gate pobezi jako demon - bude se moci restartovat, startovat, zabijet!!!!!!
+
+
+Krok po kroku:
+---------------
+	1. Parsing config file
+
+	2. Building xml tree
+		- transform MIB to XSD
+		- build XML from XSD
+
+	3. Check if all devices are operational
+		- if not throw error, remove device from xml tree and proceed further
+
+	4. Start threads for listening 
+		- nejasnosti v poctu threadu. Vynoruji se dalsi problemy, ktere budou chtit vlastni thread
+	
+	5. Until program terminated
+		a. receive xml message
+			1. check access control
+			2. parse individual simple messages 
+			3. execute messages in exact order
+			4. respond - close thread
+
+		b. receive snmp message (notification/trap)
+			- v configu jest definovano u dane device, komu se ma zasilat zprava o trapu a notofication
+			- muze existovat vice hostu, kterym se to ma rozesilat.
+			- je to natvrdo dane v configu
+		
+		c. SUBSCRIPTION - DISTRIBUTION messages 
+			- vlastni handle na tyhle veci. Nutno poresit, jak to bude s vytvarenim novych subscripitionu a deletovani.
+			!!! muze asi existovat vice subscriptionu pro jeden device
+			- seznam techto zprav v device/notifications
+
+		d. Ostatni messages
+			GET, SET, RESPONSE, DISCOVERY, PUBLICATION
+
+			CO GET-BULK???
+
+		e. Specialni sekce
+			Adresace a sprava sama sebe!!
+	
+
+
+
+Access Control:
+----------------
+
+
+Zpracovani Messages - mapovani XML -> SNMP a obracene
+------------------------------------------------------
+
+Je problem s tabulkama - nutno vyseparovat jednotlive cisla na konci identifikacniho retezce pryc, najit to v XML stromu
+a pak teprve do snmp tyto cisla pridat. To same pak nazpet.
+
+
+
+Thread pooling
+--------------------------
+Zde budeme pouzivat knihovnu threadpool, abychom zajistili dobre chovani programu
+
+Socket handling
+----------------------------
+Pro odesilani budeme pouzivat predavani si socktey - Nutno THREAD SAFE
+
+Prijimaci thread bude zpracovavat zpravy a davat je do struktury
+
+
+
+

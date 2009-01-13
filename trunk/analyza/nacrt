@@ -1,0 +1,55 @@
+Osnova:
+
+1. SNMP a XML
+	* Vytvoreni MIB stromu - ziskani informaci, co nabizi
+	* Zaroven nutne vytvorit strom tak, aby se v nem dalo vyhledavat (takze nejake XML)
+
+2. Pakety
+	* nutno zjistit, jak vypadaji pakety a vytvorit moduly na jejich vytvareni. SNMP
+	* poradne proprat navrzeny XML komunikacni model a vymlatit z nej pakety, ktere budeme potrebovat
+			Zajistit identifikaci zarizeni a pak parsovat jednotlive prvky.
+
+3. Zakladni organizace GATE
+	* konfigurace
+	* sprava snmp, xml modulu - umoznit nekoliko verzi
+	* jake funkce to bude umoznovat krom preposilani
+
+4. Komunikace
+	* nutno definovat pripadnou komunikaci mezi Gate a Managerem
+		Je mozne, ze bude potreba predavat i nejake dalsi informace nez jenom odpovedi od snmp agentu.
+
+5. C++ nastroje
+	* Najit nejakej MIB parser a zaroven XML parser, kterej bude umet i xpath/xquery
+	(Knihovna NET-SNMP pro praci se snmp)
+
+6. Vytvorit strukturu systemu, jak to bude spolu vsechno komunikovat a jak se budou predavat data
+
+Poznamky:
+		* Implementujeme pouze SNMP v1 a v2 (nicmene navrh by mel byt obecny)
+		* nainstalovat libsnmp-dev (C library pro net-snmp)
+
+
+----------------------------------------------------------------------------------------------------------
+TODO:
+	1. Navrhnout strukturu programu - jednotlive moduly
+	2. Navrhnout presnou xml komunikaci
+	3. Naucit se s net-snmp pracovat !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		Jak parsovat MIB file
+		Vubec jak a co vsechno nabizi tato library
+		Nasledna konverze do XML
+	4. Nainstlai snmp agenta - vyzkouset getnext, co to vraci a jak z toho dostaneme ten strom
+----------------------------------------------------------------------------------------------------------
+
+Co navrhnout Macejkovi:
+	* Jak vyvtvaret strom? (pouzivat getnext, nebo jak se resi to mergovani vyrobcem dodavanych stromu - kde ty stromy vubec ziskat????)
+
+	* Jak tvoril to XML schema z MIB filu
+		Co na to pouzival, nebo napsal si vlastni vec, ktera to dle nejakych pravidel predelavala???
+		Muzu pouzit stejnou technologii mapovani mib na xml a vubec tu stejnou strukturu?
+
+	* na praci se SNMP mame NET-SNMP library
+	* Prodiskutovat komunikaci
+		Co to discovery, publication; a pak hlavne subscription, publish
+		Zaroven nutno pridat do komunikace identifikaci jednotlivych zarizeni
+		Nutno rozsirit XML protokol i o vsechny ostatni zpravy pro vsechny verze snmp
+		Komunikace mezi gate-xmlclient - stateless, nebo nejaka stavova komunikace
