@@ -1,0 +1,11 @@
+\select@language {english}
+\select@language {czech}
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {2.1}{\ignorespaces Z\IeC {\'a}kladn\IeC {\'\i } princip fungov\IeC {\'a}n\IeC {\'\i } SNMP spravovan\IeC {\'e} s\IeC {\'\i }t\IeC {\v e}}}{3}
+\contentsline {figure}{\numberline {2.2}{\ignorespaces Komunikace mezi SNMP mana\IeC {\v z}erem a agentem}}{4}
+\contentsline {figure}{\numberline {2.3}{\ignorespaces Sch\IeC {\'e}ma datov\IeC {\'y}ch paket\IeC {\r u} protokolu SNMPv1 a v2}}{7}
+\contentsline {figure}{\numberline {2.4}{\ignorespaces Sch\IeC {\'e}ma datov\IeC {\'e}ho paketu protokolu SNMPv3}}{9}
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Sch\IeC {\'e}ma navrhovah\IeC {\'e}ho syst\IeC {\'e}mu}}{13}

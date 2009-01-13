@@ -1,0 +1,23 @@
+XML komunikace: (dle Macejkova navrhu)
+--------------------------------------
+
+Mozne zpravy:
+	DISCOVERY
+	PUBLICATION
+
+	GET
+	SET
+	RESPONSE
+
+	EVENT (snmp trap)
+
+	SUBSCRIBE
+	PUBLISH
+
+
+Kazde GET SET se deje pomoci xpath/xquery vyhledani:
+	device/interface/status
+ Toto je nutne pak vyparsovat a najit v danem stromu. Validovat a pak poslat SNMP zpravu.
+
+TODO:
+	Nutno navrhnout komunikaci pro GET-NEXT, GET-BULK (v ramci vsech moznych typu paketu pro SNMP v1, v2)!!!!!

@@ -1,0 +1,20 @@
+Struktura analyzy - samotne psaci diplomky
+---------------------------------------------
+
+1. uvod
+
+2. snmp
+	a. co je snmp
+	b. struktura, funkcnost SMI, MIB, agent manager
+	c. verze snmp
+		- 1 - pdu, zpravy, pouziti
+		- 2 - to same
+		- 3 - to same
+
+3. xml od macejka
+
+4. analyza struktury programu
+
+5. implementace
+
+

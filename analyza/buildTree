@@ -1,0 +1,31 @@
+Budovani SNMP a XML stromu:
+----------------------------
+
+Navrzene pristupy: 
+	1. GETNEXT - postupne najit vsechno a to si ulozit (casove narocne)
+	2. ziskat vyrobcem dodavany MIB strom. (DOTAZAT se na toto Macejka)
+
+
+Evidentne se da ziskat MIB file s danou definici casti stromu, ktera je podporovana.
+Tu je pak nutno rozparsovat a utvorit z toho xml schema.
+
+Umoznit tedy bud nahrat MIB file, nebo, kdyz neni pritomen, zacit s GETNEXT dotazama.
+
+
+-----------
+
+1.Prozkoumat jeho transformaci MIB do XSD
+2.Udelat vlastni transformaci - vytvorit xsd files
+
+
+
+----------
+
+
+
+
+Macejkovo reseni:
+	MIB schema transformovano do XML stromu.
+	Kazdy list stromu - ukazuje na snmp handler.
+
+	Paklize dojde dotaz na tu danou cast stromu - handler vezme rekurzivne vsechny listy, posle na nedotaz na device a pak naplni hodnotama celou tuto cast. Zpet uzivateli odesle dana data.
