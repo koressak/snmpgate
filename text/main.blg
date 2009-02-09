@@ -4,6 +4,7 @@ A level-1 auxiliary file: 01_uvod.aux
 A level-1 auxiliary file: 02_snmp.aux
 A level-1 auxiliary file: 03_xml.aux
 A level-1 auxiliary file: 04_analyza.aux
+A level-1 auxiliary file: 05_implementace.aux
 The style file: abbrv.bst
 Database file #1: reference.bib.bib
 Warning--I didn't find a database entry for "RFC1155"
@@ -11,7 +12,7 @@ Warning--I didn't find a database entry for "RFC1157"
 Warning--I didn't find a database entry for "RFC2570"
 You've used 1 entry,
             2118 wiz_defined-function locations,
-            514 strings with 3877 characters,
+            515 strings with 3896 characters,
 and the built_in function-call counts, 258 in all, are:
 = -- 23
 > -- 7
