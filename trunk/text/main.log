@@ -1,4 +1,4 @@
-This is pdfTeXk, Version 3.141592-1.40.3 (Web2C 7.5.6) (format=pdflatex 2008.12.10)  9 FEB 2009 17:35
+This is pdfTeXk, Version 3.141592-1.40.3 (Web2C 7.5.6) (format=pdflatex 2008.12.10)  11 FEB 2009 14:22
 entering extended mode
  file:line:error style messages enabled.
  %&-line parsing enabled.
@@ -467,54 +467,56 @@ Overfull \hbox (9.88583pt too wide) in paragraph at lines 14--15
  []
 
 [13 <./obrazky/04_obecne_schema.png>]
-<obrazky/04_schema_dokumentu.png, id=121, 261.97874pt x 168.63pt>
+<obrazky/04_schema_dokumentu.png, id=121, 252.945pt x 282.30469pt>
 File: obrazky/04_schema_dokumentu.png Graphic file (type png)
 
 <use obrazky/04_schema_dokumentu.png>
+<obrazky/04_schema_device.png, id=122, 253.69781pt x 213.79875pt>
+File: obrazky/04_schema_device.png Graphic file (type png)
 
-LaTeX Warning: Reference `obr_an_device_struktura' on page 14 undefined on inpu
-t line 60.
+<use obrazky/04_schema_device.png> [14] [15 <./obrazky/04_schema_dokumentu.png>
+ <./obrazky/04_schema_device.png>]
+<obrazky/04_element_info.png, id=131, 216.05719pt x 124.21407pt>
+File: obrazky/04_element_info.png Graphic file (type png)
 
-[14]
-
-LaTeX Warning: Reference `obr_an_info_element' on page 15 undefined on input li
-ne 79.
-
+<use obrazky/04_element_info.png>
 LaTeX Font Info:    Try loading font information for T1+cmtt on input line 100.
+
 
 (/usr/share/texmf-texlive/tex/latex/base/t1cmtt.fd
 File: t1cmtt.fd 1999/05/25 v2.5h Standard LaTeX font definitions
-) [15 <./obrazky/04_schema_dokumentu.png>]
+) [16 <./obrazky/04_element_info.png>] <obrazky/04_http_post.png, id=137, 189.7
+0876pt x 312.41719pt>
+File: obrazky/04_http_post.png Graphic file (type png)
 
-LaTeX Warning: Reference `obr_an_post_zprava' on page 16 undefined on input lin
-e 131.
+<use obrazky/04_http_post.png> [17] [18 <./obrazky/04_http_post.png>] [19]
+<obrazky/04_beh_programu.png, id=149, 390.70969pt x 155.83218pt>
+File: obrazky/04_beh_programu.png Graphic file (type png)
 
-
-LaTeX Warning: Reference `kap_analyza' on page 16 undefined on input line 147.
-
-[16]) [17]
+<use obrazky/04_beh_programu.png> [20 <./obrazky/04_beh_programu.png>] [21])
+[22]
 \openout2 = `05_implementace.aux'.
 
- (./05_implementace.tex [18
-
-
-
-]
+ (./05_implementace.tex
 Kapitola 5.
-) [19] (./main.bbl [20
+) [23
 
 
-]) [21] (./main.aux (./01_uvod.aux) (./02_snmp.aux)
+
+] (./main.bbl [24
+
+
+]) [25] (./main.aux (./01_uvod.aux) (./02_snmp.aux)
 (./03_xml.aux) (./04_analyza.aux) (./05_implementace.aux))
 
 LaTeX Warning: There were undefined references.
 
  ) 
 Here is how much of TeX's memory you used:
- 1555 strings out of 95025
- 17836 string characters out of 1181938
- 68592 words of memory out of 1500000
- 4699 multiletter control sequences out of 10000+50000
+ 1575 strings out of 95025
+ 18416 string characters out of 1181938
+ 68636 words of memory out of 1500000
+ 4715 multiletter control sequences out of 10000+50000
  17392 words of font info for 38 fonts, out of 1200000 for 2000
  37 hyphenation exceptions out of 8191
  25i,5n,20p,324b,254s stack positions out of 5000i,500n,6000p,200000b,5000s
@@ -531,9 +533,9 @@ s/pk/ljfour/jknappen/ec/ecbx1440.600pk> </home/hippi/.texmf-var/fonts/pk/ljfour
 /jknappen/ec/ecrm1200.600pk></usr/share/texmf-texlive/fonts/type1/bluesky/cm/cm
 r10.pfb></usr/share/texmf-texlive/fonts/type1/bluesky/cm/cmr8.pfb></usr/share/t
 exmf-texlive/fonts/type1/bluesky/cm/cmsy10.pfb>
-Output written on main.pdf (35 pages, 540061 bytes).
+Output written on main.pdf (39 pages, 633442 bytes).
 PDF statistics:
- 606 PDF objects out of 1000 (max. 8388607)
+ 651 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 131072)
- 36 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 56 words of extra memory for PDF output out of 10000 (max. 10000000)
 
