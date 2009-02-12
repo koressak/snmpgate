@@ -128,13 +128,21 @@ Přesná struktura a popis funkce jednotlivých zpráv byla popsána v předchoz
 Od protokolu SNMP se XML část komunikace liší taky tím, že bude probíhat na spolehlivém a potvrzovaném protokolu - HTTP. Každá zpráva, která
 je poslána, musí mít potvrzeno doručení, což tento aplikační protokol, využívající transportního protokolu TCP, nabízí. 
 
-Informace budou posílány ve formátu HTTP POST zprávy. Strukturu dotazu a odpovědi zobrazuje obrázek \ref{obr_an_http_post}.
+Informace budou posílány ve formátu HTTP POST zprávy. Strukturu dotazu a odpovědi zobrazuje obrázek \ref{obr_an_http_post} a komunikaci obrázek \ref{obr_an_http_request}.
 
 \begin{figure}[htp]
 	\begin{center}
 		\includegraphics{obrazky/04_http_post.png}
 		\caption{HTTP zprávy předávané mezi manažerem a bránou}
 		\label{obr_an_http_post}
+	\end{center}
+\end{figure}
+
+\begin{figure}[htp]
+	\begin{center}
+		\includegraphics{obrazky/04_http_request.png}
+		\caption{HTTP komunikace mezi manažerem a agentem/bránou}
+		\label{obr_an_http_request}
 	\end{center}
 \end{figure}
 
@@ -163,9 +171,6 @@ Je tedy zřejmé, že ponecháváme bezpečnost takovou, jak je standardizována
 
 \section{Struktura programu}
 \label{sec_an_struktura_programu}
-%TODO
-%DISKUSE embedded http server/ outsource http server
-%diskuse nad vlastni spravou
 Před samotným návrhem jednotlivých funkčních elementů je nutno zvolit, jak bude program fungovat a jevit se globálně. Vzhledem k
 nabízeným službám a komunikaci, je možné zvolit koncepci podobnou webovým službám (založených na principu SOAP). Druhým možným přístupem je zvolit
 na pozadí běžící aplikaci - démona, který bude po celou dobu svého běhu monitorovat a zpracovávat příchozí požadavky.

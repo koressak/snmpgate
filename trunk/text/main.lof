@@ -5,7 +5,7 @@
 \contentsline {figure}{\numberline {2.1}{\ignorespaces Z\IeC {\'a}kladn\IeC {\'\i } princip fungov\IeC {\'a}n\IeC {\'\i } SNMP spravovan\IeC {\'e} s\IeC {\'\i }t\IeC {\v e}}}{3}
 \contentsline {figure}{\numberline {2.2}{\ignorespaces Komunikace mezi SNMP mana\IeC {\v z}erem a agentem}}{4}
 \contentsline {figure}{\numberline {2.3}{\ignorespaces Sch\IeC {\'e}ma datov\IeC {\'y}ch paket\IeC {\r u} protokolu SNMPv1 a v2}}{7}
-\contentsline {figure}{\numberline {2.4}{\ignorespaces Sch\IeC {\'e}ma datov\IeC {\'e}ho paketu protokolu SNMPv3}}{9}
+\contentsline {figure}{\numberline {2.4}{\ignorespaces Sch\IeC {\'e}ma datov\IeC {\'e}ho paketu protokolu SNMPv3}}{10}
 \addvspace {10\p@ }
 \addvspace {10\p@ }
 \contentsline {figure}{\numberline {4.1}{\ignorespaces Sch\IeC {\'e}ma navrhovah\IeC {\'e}ho syst\IeC {\'e}mu}}{13}
@@ -13,5 +13,6 @@
 \contentsline {figure}{\numberline {4.3}{\ignorespaces Struktura elementu device}}{15}
 \contentsline {figure}{\numberline {4.4}{\ignorespaces Struktura elementu info}}{16}
 \contentsline {figure}{\numberline {4.5}{\ignorespaces HTTP zpr\IeC {\'a}vy p\IeC {\v r}ed\IeC {\'a}van\IeC {\'e} mezi mana\IeC {\v z}erem a br\IeC {\'a}nou}}{18}
-\contentsline {figure}{\numberline {4.6}{\ignorespaces F\IeC {\'a}ze b\IeC {\v e}hu programu}}{20}
+\contentsline {figure}{\numberline {4.6}{\ignorespaces HTTP komunikace mezi mana\IeC {\v z}erem a agentem/br\IeC {\'a}nou}}{18}
+\contentsline {figure}{\numberline {4.7}{\ignorespaces F\IeC {\'a}ze b\IeC {\v e}hu programu}}{20}
 \addvspace {10\p@ }

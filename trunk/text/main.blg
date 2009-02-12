@@ -8,11 +8,10 @@ A level-1 auxiliary file: 05_implementace.aux
 The style file: abbrv.bst
 Database file #1: reference.bib.bib
 Warning--I didn't find a database entry for "RFC1155"
-Warning--I didn't find a database entry for "RFC1157"
 Warning--I didn't find a database entry for "RFC2570"
 You've used 1 entry,
             2118 wiz_defined-function locations,
-            515 strings with 3896 characters,
+            513 strings with 3882 characters,
 and the built_in function-call counts, 258 in all, are:
 = -- 23
 > -- 7
@@ -51,4 +50,4 @@ warning$ -- 0
 while$ -- 2
 width$ -- 2
 write$ -- 15
-(There were 3 warnings)
+(There were 2 warnings)
