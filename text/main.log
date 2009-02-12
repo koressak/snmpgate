@@ -1,4 +1,4 @@
-This is pdfTeXk, Version 3.141592-1.40.3 (Web2C 7.5.6) (format=pdflatex 2008.12.10)  11 FEB 2009 14:22
+This is pdfTeXk, Version 3.141592-1.40.3 (Web2C 7.5.6) (format=pdflatex 2008.12.10)  12 FEB 2009 13:58
 entering extended mode
  file:line:error style messages enabled.
  %&-line parsing enabled.
@@ -414,32 +414,27 @@ Overfull \hbox (3.69484pt too wide) in paragraph at lines 88--89
 d-not-li-vých ob-jekt· v rámci normy ASN.1 
  []
 
-[6]
-
-LaTeX Warning: Citation `RFC1157' on page 7 undefined on input line 112.
-
-<obrazky/02_snmp_pdu.pdf, id=89, 434.62375pt x 171.64125pt>
+[6] <obrazky/02_snmp_pdu.pdf, id=89, 434.62375pt x 171.64125pt>
 File: obrazky/02_snmp_pdu.pdf Graphic file (type pdf)
 
 <use obrazky/02_snmp_pdu.pdf>
-Overfull \hbox (17.71718pt too wide) in paragraph at lines 118--119
+Overfull \hbox (17.71718pt too wide) in paragraph at lines 116--117
  [] 
  []
 
-
-Overfull \hbox (4.52902pt too wide) in paragraph at lines 130--132
+[7 <./obrazky/02_snmp_pdu.pdf>]
+Overfull \hbox (4.52902pt too wide) in paragraph at lines 148--150
 \T1/cmr/m/n/10.95 hu-ºel bylo vy-dáno n¥-ko-lik sou-pe-°í-cích spe-ci-fi-kací, 
 ozna-£o-vané ná-zvy SNMPv2c, SNMPv2u,
  []
 
-[7 <./obrazky/02_snmp_pdu.pdf>]
 
-LaTeX Warning: Citation `RFC2570' on page 8 undefined on input line 146.
+LaTeX Warning: Citation `RFC2570' on page 8 undefined on input line 164.
 
-<obrazky/02_snmpv3_pdu.pdf, id=96, 323.2075pt x 327.2225pt>
+[8] <obrazky/02_snmpv3_pdu.pdf, id=99, 323.2075pt x 327.2225pt>
 File: obrazky/02_snmpv3_pdu.pdf Graphic file (type pdf)
 
-<use obrazky/02_snmpv3_pdu.pdf> [8] [9 <./obrazky/02_snmpv3_pdu.pdf>]) [10]
+<use obrazky/02_snmpv3_pdu.pdf>) [9] [10 <./obrazky/02_snmpv3_pdu.pdf>]
 \openout2 = `03_xml.aux'.
 
 
@@ -489,8 +484,13 @@ File: t1cmtt.fd 1999/05/25 v2.5h Standard LaTeX font definitions
 0876pt x 312.41719pt>
 File: obrazky/04_http_post.png Graphic file (type png)
 
-<use obrazky/04_http_post.png> [17] [18 <./obrazky/04_http_post.png>] [19]
-<obrazky/04_beh_programu.png, id=149, 390.70969pt x 155.83218pt>
+<use obrazky/04_http_post.png>
+<obrazky/04_http_request.png, id=138, 298.11375pt x 140.77594pt>
+File: obrazky/04_http_request.png Graphic file (type png)
+
+<use obrazky/04_http_request.png> [17] [18 <./obrazky/04_http_post.png> <./obra
+zky/04_http_request.png>] [19]
+<obrazky/04_beh_programu.png, id=151, 390.70969pt x 155.83218pt>
 File: obrazky/04_beh_programu.png Graphic file (type png)
 
 <use obrazky/04_beh_programu.png> [20 <./obrazky/04_beh_programu.png>] [21])
@@ -513,10 +513,10 @@ LaTeX Warning: There were undefined references.
 
  ) 
 Here is how much of TeX's memory you used:
- 1575 strings out of 95025
- 18416 string characters out of 1181938
- 68636 words of memory out of 1500000
- 4715 multiletter control sequences out of 10000+50000
+ 1580 strings out of 95025
+ 18574 string characters out of 1181938
+ 68648 words of memory out of 1500000
+ 4719 multiletter control sequences out of 10000+50000
  17392 words of font info for 38 fonts, out of 1200000 for 2000
  37 hyphenation exceptions out of 8191
  25i,5n,20p,324b,254s stack positions out of 5000i,500n,6000p,200000b,5000s
@@ -533,9 +533,9 @@ s/pk/ljfour/jknappen/ec/ecbx1440.600pk> </home/hippi/.texmf-var/fonts/pk/ljfour
 /jknappen/ec/ecrm1200.600pk></usr/share/texmf-texlive/fonts/type1/bluesky/cm/cm
 r10.pfb></usr/share/texmf-texlive/fonts/type1/bluesky/cm/cmr8.pfb></usr/share/t
 exmf-texlive/fonts/type1/bluesky/cm/cmsy10.pfb>
-Output written on main.pdf (39 pages, 633442 bytes).
+Output written on main.pdf (39 pages, 644017 bytes).
 PDF statistics:
- 651 PDF objects out of 1000 (max. 8388607)
+ 661 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 131072)
- 56 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 61 words of extra memory for PDF output out of 10000 (max. 10000000)
 

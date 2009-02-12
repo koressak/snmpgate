@@ -109,9 +109,7 @@ Komunikační mechanismus mezi manažerem a agentem je definován pomocí datov�
 	\item \textbf{Trap} - zpráva od agenta manažerovi, která upozorňuje na nastálé situace na monitorovaném systému.
 \end{itemize}
 
-Strukturu jednotlivých SNMP paketů zobrazuje obrázek \ref{obr_snmp3}. Pro pochopení významu jednotlivých polí se obraťte na \cite{RFC1157}.
-%TODO: Dodelat popis SNMP PDU. Nazeneme tim nejake misto
-%TODO: vypsat i TRAP PDU a popis
+Strukturu jednotlivých SNMP paketů zobrazuje obrázek \ref{obr_snmp3}.
 
 \begin{figure}[htp]
 	\begin{center}
@@ -120,6 +118,26 @@ Strukturu jednotlivých SNMP paketů zobrazuje obrázek \ref{obr_snmp3}. Pro poc
 		\label{obr_snmp3}
 	\end{center}
 \end{figure}
+
+Hlavní část datového paketu je tvořena poli Version a Community string. První popisuje verzi SNMP protokolu použitou při komunikaci a druhé je heslo pro přístup
+k položkám MIB. Blíže k bezpečnosti v dalším odstavci. Druhá část paketu se liší dle typu zprávy. Paket odeslaný agentem při výskytu monitorované události obsahuje
+informace, které popisují druh problému.
+\begin{itemize}
+	\item \textit{Enterprise} - identifikuje typ zařízení, které zprávu poslalo
+	\item \textit{Agent adress} - adresa zařízení, kde běží agent
+	\item \textit{Generic trap type} - specifikuje, zda-li se jednalo o některý z předdefinovaných typů událostí (linkDown, linkUp, coldStart, aj.)
+	\item \textit{Specific trap type} - identifikuje jednu z mnoha specifických událostí
+\end{itemize}
+
+Druhým typem zprávy jsou dotazy a odpovědi, které zasílá manažer a agent na ně odpovídá. Jednotlivá pole mají následující význam:
+\begin{itemize}
+	\item \textit{Request ID} - pořadové číslo dotazu (aby manažer věděl, na co přišla odpověď)
+	\item \textit{Error status} - je nastaven pouze u odpovědi a obsahuje druh problému, který se při dotazu objevil
+	\item \textit{Error index} - asociuje problém s instancí objektu.
+\end{itemize}
+
+Společným polem pro oba dva typy paketu jsou \textit{Variable bindings} - jsou to dvojice polí, kde jedna část identifikuje objekt a druhá část je jeho hodnota. Například
+při dotazu příkazem GET se nastaví název objektu a v odpovědi přijde nastavena i hodnota.
 
 Bezpečnost v této verzi protokolu je založena pouze na takzvaném \textit{community string}u, který vystupuje jako heslo. Existují pouze dvě úrovně zabezpečení
 přístupu a to - pouze pro čtení (read only) a čtení-zápis (read-write access). Je patrné, že se používají pouze dvě hesla, každé pro jednu úroveň. Je to velice slabé
@@ -174,7 +192,6 @@ data.
 	\end{center}
 \end{figure}
 
-\newpage
 
 Důležitou součástí nového standardu je i systém přístupových práv (VACM - View-Based Access Control Model). Tento model umožňuje nakonfigurovat agenta tak, 
 že specifickému manažerovi bude umožněn přístup pouze k části MIB. Je možné omezit manažera pro přístup pouze k části databáze monitorovaných dat a 
