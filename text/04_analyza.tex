@@ -219,7 +219,7 @@ Součástí inicializace je i ověření, zda-li všechna monitorovaná zaříze
 Transformace dat představuje samotné mapování MIB do XML tak, jak bylo popsáno dříve. Pro každé zařízení může být specifikováno několik různých MIB, jak veřejné, tak proprietární. Pro každé
 zařízení je tedy nutno vytvořit XML dokument, popisující veškeré MIB informace.
 
-V tomt místě jsou možné dvě cesty, jak vybudovat výstupní XML dokument. Jednou možností je zahrnout všechny informace do jednoho souboru, který potom bude rozesílán každému manažerovi, jenž si o něj řekne. Tato varianta
+V tomt místě jsou možné dvě cesty, jak vybudovat výstupní XML dokument. Jednou možností je zahrnout veškeré informace o všech zařízeních do jednoho souboru, který potom bude rozesílán každému manažerovi, jenž si o něj řekne. Tato varianta
 je sice praktická, ale neefektivní. Pro zařízení s velkým množstvím informací by byl výsledný dokument opravdu veliký. Kdyby manažer chtěl spravovat pouze jediné zařízení, byl by stejně nucen stáhnout velký objem dat, než
 by mu bylo dovoleno pracovat dále.
 
@@ -231,7 +231,7 @@ Po úspěšném přůchodu oběma přechozími fázemi se program dostává do s
 
 Jak již bylo popsáno na začátku této kapitoly, o komunikaci se starají dva moduly - SNMP a XML. Proto taky komunikační rozhraní se dělí na dvě části.
 
-SNMP modul bude komunikovat pomocí protokolu UDP, posíláním SNMP zpráv. O tuto část se postará knihovna. Tato část rozhraní bude blíže popsána v následující kapitole.
+SNMP modul bude komunikovat pomocí protokolu UDP, posíláním SNMP zpráv. Tato část rozhraní bude blíže popsána v následující kapitole.
 
 Komunikace v rámci XML je na bázi HTTP protokolu. Pro zpracování mnoha požadavků, které je nutno očekávat, bude použito HTTP serveru. V tomto případě se nám nabízí dvě možnosti
 řešení - využijeme nějakého již stávajícího webového serveru (Apache, Tomcat, ...), na kterém budeme spouštět CGI script a tak komunikovat s naším programem, nebo do aplikace nějaký jednoduchý server
@@ -254,7 +254,7 @@ Při změně informačních bází jednotlivých zařízení, přidání či ode
 by byly aktuální, kdyby se změnily za plného provozu, by mohla mít pak vážné následky na data, která by manažeři dostali zpět.
 
 \section{XML manažerská aplikace}
-Součástí této práce je i implementace základního XML manažera tak, aby dovolil ukázat veškeré funkční aspekty protokolové brány. V této sekci budou shrnuty základní požadavky, které musí manažerská aplikace splňovat.
+Součástí této práce je i implementace základního XML manažera tak, aby dovolil ukázat veškeré funkční aspekty protokolové brány.
 
 Program bude mít implementován celý XML komunikační protokol tak, jak byl navržen v kapitole \ref{kap_xml}. Tudíž základní příkazy - Discovery, Publication, Get, Set, Subscription, Distribution.
 
