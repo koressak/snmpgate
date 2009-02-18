@@ -17,17 +17,17 @@
 \contentsline {subsection}{\numberline {3.2.2}Datov\IeC {\'e} typy}{13}
 \contentsline {subsection}{\numberline {3.2.3}MIB strom}{13}
 \contentsline {section}{\numberline {3.3}Zpr\IeC {\'a}vy}{16}
-\contentsline {chapter}{\numberline {4}N\IeC {\'a}vrh syst\IeC {\'e}mu}{17}
-\contentsline {section}{\numberline {4.1}Teoretick\IeC {\'e} po\IeC {\v z}adavky}{17}
-\contentsline {subsection}{\numberline {4.1.1}XML}{18}
-\contentsline {subsection}{\numberline {4.1.2}SNMP}{23}
-\contentsline {section}{\numberline {4.2}Struktura programu}{23}
-\contentsline {subsection}{\numberline {4.2.1}SOAP vs. d\IeC {\'e}mon}{23}
-\contentsline {subsection}{\numberline {4.2.2}Navrhovan\IeC {\'a} aplikace}{24}
-\contentsline {subsubsection}{\numberline {4.2.2.1}Inicializace}{24}
-\contentsline {subsubsection}{\numberline {4.2.2.2}Transformace dat}{25}
-\contentsline {subsubsection}{\numberline {4.2.2.3}Zpracov\IeC {\'a}v\IeC {\'a}n\IeC {\'\i } po\IeC {\v z}adavk\IeC {\r u}}{25}
-\contentsline {section}{\numberline {4.3}Spr\IeC {\'a}va protokolov\IeC {\'e} br\IeC {\'a}ny}{26}
-\contentsline {section}{\numberline {4.4}XML mana\IeC {\v z}ersk\IeC {\'a} aplikace}{26}
-\contentsline {chapter}{\numberline {5}Implementace}{27}
-\contentsline {chapter}{Literatura}{29}
+\contentsline {chapter}{\numberline {4}N\IeC {\'a}vrh syst\IeC {\'e}mu}{21}
+\contentsline {section}{\numberline {4.1}Teoretick\IeC {\'e} po\IeC {\v z}adavky}{21}
+\contentsline {subsection}{\numberline {4.1.1}XML}{22}
+\contentsline {subsection}{\numberline {4.1.2}SNMP}{27}
+\contentsline {section}{\numberline {4.2}Struktura programu}{27}
+\contentsline {subsection}{\numberline {4.2.1}SOAP vs. d\IeC {\'e}mon}{27}
+\contentsline {subsection}{\numberline {4.2.2}Navrhovan\IeC {\'a} aplikace}{28}
+\contentsline {subsubsection}{\numberline {4.2.2.1}Inicializace}{28}
+\contentsline {subsubsection}{\numberline {4.2.2.2}Transformace dat}{29}
+\contentsline {subsubsection}{\numberline {4.2.2.3}Zpracov\IeC {\'a}v\IeC {\'a}n\IeC {\'\i } po\IeC {\v z}adavk\IeC {\r u}}{29}
+\contentsline {section}{\numberline {4.3}Spr\IeC {\'a}va protokolov\IeC {\'e} br\IeC {\'a}ny}{30}
+\contentsline {section}{\numberline {4.4}XML mana\IeC {\v z}ersk\IeC {\'a} aplikace}{30}
+\contentsline {chapter}{\numberline {5}Implementace}{31}
+\contentsline {chapter}{Literatura}{33}
