@@ -36,7 +36,7 @@ jak vypadá zařízení popsané od nejvyšší úrovně.
 \begin{figure}[htp]
 	\begin{center}
 		\includegraphics[width=15cm]{obrazky/03_popis_zarizeni.png}
-		\caption{Popis zařízení v XML schématu (obrázek 5.8, \cite{macejko_dipl})}
+		\caption{Popis zařízení v XML schématu (\cite{macejko_dipl})}
 		\label{obr_xml_popis_zarizeni}
 	\end{center}
 \end{figure}
@@ -75,7 +75,7 @@ pomocí XML schématu (v rámci standardu SMIv1).
 \begin{figure}[htp]
 	\begin{center}
 		\includegraphics{obrazky/03_mapovani_smiv1.png}
-		\caption{Mapování aplikačních typů SMIv1 do XML schématu (obrázek 5.2, \cite{macejko_dipl})}
+		\caption{Mapování aplikačních typů SMIv1 do XML schématu (\cite{macejko_dipl})}
 		\label{obr_xml_smi1_typy}
 	\end{center}
 \end{figure}
@@ -102,7 +102,7 @@ pomocí XML schématu (v rámci standardu SMIv1).
       \hline
     \end{tabular}
   }
-	\caption{Mapování makra OBJECT-TYPE, jednoduchý typ (SMIv1) (tabulka 5.6, \cite{macejko_dipl})}
+	\caption{Mapování makra OBJECT-TYPE, jednoduchý typ (SMIv1) (\cite{macejko_dipl})}
 	\label{tab_xml_smi1_simple_type}
 \end{table}
 
@@ -143,7 +143,7 @@ Hodnota \verb|SEQUENCE OF| pak vyjadřuje množinu řádkových typů (tabulka \
       \hline
     \end{tabular}
   }
-	\caption{Mapování SEQUENCE, makro OBJECT-TYPE (tabulka 5.7, \cite{macejko_dipl})}
+	\caption{Mapování SEQUENCE, makro OBJECT-TYPE (\cite{macejko_dipl})}
 	\label{tab_xml_smi1_sequence}
 \end{table}
 
@@ -164,7 +164,7 @@ Hodnota \verb|SEQUENCE OF| pak vyjadřuje množinu řádkových typů (tabulka \
       \hline
     \end{tabular}
   }
-	\caption{Mapování SEQUENCE OF, makro OBJECT-TYPE (tabulka 5.8, \cite{macejko_dipl})}
+	\caption{Mapování SEQUENCE OF, makro OBJECT-TYPE (\cite{macejko_dipl})}
 	\label{tab_xml_smi1_sequenceof}
 \end{table}
 
@@ -192,12 +192,147 @@ v části \verb|appinfo|.
       \hline
     \end{tabular}
   }
-	\caption{Mapování TRAP-TYPE makra (tabulka 5.10, \cite{macejko_dipl})}
+	\caption{Mapování TRAP-TYPE makra (\cite{macejko_dipl})}
 	\label{tab_xml_trap_type}
 \end{table}
 
 \newpage
 
 \section{Zprávy}
+Navrhovaný systém by měl využívat spolehlivého a potvrzovaného přenosového protokolu, na rozdíl od nepotvrzovaného SNMP. Zaroveň by mělo být možno
+přenášet zprávy v co nejjednodušším formátu. Proto bylo rozhodnuto o použití protokolu HTTP, který využívá přenosový protokol TCP, čímž je zajištěn 
+splehlivý přenos. Všecha data se budou přenášet pomocí HTTP zprávy POST.
+
+HTTP je bezestavový protokol. Veškerá komunikace se sestává z dvojice dotaz a odpověď. Na serveru se neudržují jakékoliv další informace ohledně probíhajícím
+spojení. Tato nenáročnost dovoluje implementaci na velice různorodém hardwaru.
+
+Bezpečnost přenosu může být řešena za použití tunelování paketů (IPSec, STunel,...), nebo je možno využít výhody HTTPS (HTTP over SSL). 
+
+Veškerá přenášená data budou ve formátu XML dokumentu s kořenovým uzlem \verb|message|. Tento uzel má několik atributů, které specifikují jeho zpracování a přístupová
+práva. Jsou to \verb|queue|, \verb|password|, \verb|context|. První atribut určuje frontu (může být založeno na prioritním zpracování), ve které bude požadavek zpracován.
+V principu ale nejsou agenti ani brány povinni takovouto funkčnost implementovat. Zprávy pak budou zpracovány sekvenčně a odpovědi budou generovány v přesném pořadí tak, 
+jak přišly dotazy. Zbylé dva atributy slouží pro vymezení přístupu uživatele (\verb|context|) na určitý podstrom dat. 
+
+Bylo již naznačeno, že zpráva může obsahovat několik jednotlivých dotazů. Struktura zprávy je vyjádřena na obrázku \ref{obr_xml_struktura_zpravy}.
+
+\begin{figure}[htp]
+	\begin{center}
+		\includegraphics{obrazky/03_struktura_zpravy.png}
+		\caption{Struktura XML zprávy}
+		\label{obr_xml_struktura_zpravy}
+	\end{center}
+\end{figure}
+
+Dotazy a odpovědi, které definují komunikaci mezi manažerem a klientem, jsou popsány níže. Přesné XML schéma definující úplnou strukturu zpráv obsahuje (\cite{macejko_dipl}, příloha D).
+
+\subsubsection*{DISCOVERY}
+Tato zpráva je první, kterou zašle manažer agentovi, aby zjistil, jaká monitorovaná data jsou k dispozici.
+Povinným atributem je číslo verze protokolu (\verb|protocolVersion|) a nepovinným je \verb|fullDescription| pro bližší specifikace
+typů spravovaných dat.
+
+\begin{verbatim}
+<message context="honza">
+  <discovery protocolVersion="1.0" msgid="123" />
+</message>
+\end{verbatim}
+
+\subsubsection*{PUBLICATION}
+Agentova odpověď na manažerův dotaz DISCOVERY. V rámci zprávy je uvedeno, jakou verzi protokolu agent používá a jaká data spravuje. Tato data jsou pak
+manažerem zpracována a použita jako informační model.
+
+\begin{verbatim}
+<publication msgid="123">
+  <info>
+    <xpath>1.0</xpath>
+    ...
+  </info>
+  <dataModel>
+    ... XML schema popisující spravovaná data ...
+  </dataModel>
+</publication>
+\end{verbatim}
+
+Pakliže agent nepodporuje danou verzi protokolu, musí odpovědět chybovou zprávou:
+
+\begin{verbatim}
+<publication msgid="123">
+  <error code="1">Protocol not supported</error>
+</publication>
+\end{verbatim}
+
+\subsubsection*{GET}
+Tímto dotazem se manažer ptá agenta na hodnotu nějakého uzlu. Pro specifikaci jakého je nutno použít XPath či XQuery.
+
+\begin{verbatim}
+<get msgid="123">
+  <xpath>
+    device/data/interface
+  </xpath>
+</get>
+\end{verbatim}
+
+
+\subsubsection*{SET}
+Zpráva SET je určena pro nastavení hodnoty uzlu. Struktura je podobná zprávě GET, ale obsahuje navíc element \verb|value|.
+
+\begin{verbatim}
+<set msgid="123">
+  <xpath>
+    device/data/interface/status
+  </xpath>
+  <value>4</value>
+</set>
+\end{verbatim}
+
+\subsubsection*{RESPONSE}
+Odpověď na zprávy GET a SET. V případě GET nese zpráva příslušná data. Pakliže je to odpověď na SET, je to pouze potvrzení, že hodnota byla uzlu úspěšně nastavena.
+
+\begin{verbatim}
+<response msgid="123">
+  <value>4</value>
+</response>
+
+<response msgid="123" />
+\end{verbatim}
+
+\subsubsection*{EVENT}
+Pro oznamování asynchronních událostí, je tu zpráva EVEN (stejná funkcionalita jako TRAP u SNMP). Přenášené informace specifikují, která událost vyvolala toto oznámení,
+kdo to poslal, datum a čas, případně nějaká další data, která by mohla být při řešení problému užitečná.
+
+\begin{verbatim}
+<event msgid="123" timestamp="" senderID="router1" eventSpec="/device/notifications/dhcp/noFreeLease">
+  <data>
+    <value valueLocation="/data/services/dhcp/leases/free">0</value>
+    <value valueLocation="/data/services/dhcp/leases/used">50</value>
+  </data>
+</event>
+\end{verbatim}
+
+Je nutné, aby doručení této zprávy bylo potvrzeno. Což bude dodrženo použitým protokolem.
+
+\subsubsection*{SUBSCRIBE}
+Touto zprávou se manažer přihlásí k opakovanému zasílání dat. Potvrzením je pak první doručení dat - zpráva DISTRIBUTION - nebo chybové zprávy, že je něco v nepořádku.
+Je možné specifikovat ještě nepovinný atribut \verb|frequency| - doba ve vteřinách, po které mají být opakovaně zasílány zprávy. Další nepovinné atributy \verb|distrid| a \verb|delete|
+jsou využity pro editaci či smazání daného přihlášení.
+
+\begin{verbatim}
+<subscribe msgid="123" frequency="150">
+  <xpath>/device/data/interface/status</xpath>
+</subscribe>
+\end{verbatim}
+
+\subsubsection*{DISTRIBUTION}
+Zpráva obsahuje data, o která si manažer řekl. Je nutné, aby odesílaná data byla ve stejném pořadí, ve kterém byla ve zprávě SUBSCRIBE. 
+Povinný atribut \verb|distrid| je určený k identifikaci příchozích dat u manažera.
+
+\begin{verbatim}
+<distribution msgid="123" distrid="5678">
+  <value>1</value>
+  <valuea>500</value>
+</distribution>
+\end{verbatim}
+
+Příjem těchto dat je též nutné potvrdit, což zajistí transportní protokol.
+
 
 
