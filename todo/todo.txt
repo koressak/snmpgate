@@ -1,0 +1,54 @@
+-------------------------
+--ToDo
+-------------------------
+
+NAZEV = snmpxmld (deamon)
+
+1. Struktura demona
+	- zkusit spustit demona
+	DONE
+
+	- init script (/etc/init.d) a komunikace pomoci start-stop-daemon
+	DONE
+
+	-logging - time format
+	DONE
+
+	- input parameter - config file
+	DONE
+
+	- config file v /etc/snmpxml/nazev
+	DONE
+
+2. Nacrtnout tridy programu
+DONE
+
+3. konfiguracni cast
+	- navrhnout strukturu konfiguraku
+	DONE
+
+	- parsovat konfigurak
+
+	- predavat informace SNMP tride o jednotlivych zarizenich
+		- check jestli uz takove zarizeni neni pridane
+		- nutno vymyslet strukturu, ktera bude predavatelna mezi nimi
+
+4. check na dostupnost jednotlivych zarizeni
+	- vytvorit celou SNMP tridu 
+	- realizovat tuto funkci
+
+5. transformace
+	- prochazet komplet mib do detailu
+	- nastudovat si XML XSD strukturu Macejkova navrhu
+	- udelat transformaci
+
+
+
+
+
+
+
+------------------------
+--Problemy k vyreseni
+------------------------
+
