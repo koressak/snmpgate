@@ -13,11 +13,17 @@ Standard includes
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
+#include <ctype.h>
 
 /*
 Timestamp for log
 */
 #include <ctime>
+
+/*
+STL struktury
+*/
+#include <list>
 
 
 /*
@@ -36,6 +42,8 @@ XML Xerces related
 
 #include <xercesc/parsers/XercesDOMParser.hpp>
 #include <xercesc/util/XMLUni.hpp>
+#include <xercesc/sax/ErrorHandler.hpp>
+#include <xercesc/sax/SAXParseException.hpp>
 
 
 /*
@@ -54,12 +62,24 @@ souboru a pracovniho adresare
 #define LOCK	"snmpxmld.lock"
 #define LOG		"snmpxmld.log"
 
+/*
+SNMP specificke defaultni hodnoty
+*/
+#define SNMP_SEND_PORT 161
+#define SNMP_LISTEN_PORT 162
+
+/*
+XML default hodnoty
+*/
+#define XML_SEND_PORT 2053
+#define XML_LISTEN_PORT 2054
+
 
 /*
 Par standardnich funkci, ktere zajisti chovani demona.
 Plus logovani zprav do log souboru
 */
-inline void log_message(char *filename, string message)
+inline void log_message(char *filename, const char* message)
 {
 	time_t rawtime;
 	struct tm * timeinfo;
@@ -90,7 +110,7 @@ inline void signal_handler(int sig)
 	switch( sig )
 	{
 		case SIGTERM:
-			log_message( (char *)LOG, string("killing snmpxmld"));
+			log_message( (char *)LOG, (char *)"killing snmpxmld");
 			exit(0);
 			break;
 	}
@@ -148,6 +168,53 @@ inline void daemonize(void)
 	signal(SIGTERM, signal_handler);
 
 }
+
+
+
+
+/*
+	SNMP device struc
+*/
+struct SNMP_device {
+	int				id;
+	char *			snmp_addr;
+	char *			protocol_version;
+	char *			name;
+	char *			description;
+	list<char *>	mibs;
+	list<char *>	traps;
+
+	//gate specific
+	char *			log_file;
+	char *			mib_path;
+	char *			xsd_path;
+	int				snmp_listen_port;
+	int				snmp_trans_port;
+	int				xml_listen_port;
+	int				xml_trans_port;
+
+
+	~SNMP_device()
+	{
+		if ( snmp_addr ) 		XMLString::release( &snmp_addr );
+		if ( name ) 		XMLString::release( &name );
+		if ( description ) XMLString::release( &description );
+		if ( protocol_version ) XMLString::release( &protocol_version );
+		if ( log_file ) 		XMLString::release( &log_file );
+		if ( mib_path )			XMLString::release( &mib_path );
+		if ( xsd_path )			XMLString::release( &xsd_path );
+
+		for ( list<char *>::iterator it = mibs.begin(); it != mibs.end(); it++ )
+			XMLString::release( &*it );
+
+		for ( list<char *>::iterator it = traps.begin(); it != traps.end(); it++ )
+			XMLString::release( &*it );
+
+	}
+	
+
+};
+
 
 
 #endif

@@ -9,6 +9,32 @@
 
 #include "definitions.h"
 
+class ConfigErrorHandler : public ErrorHandler
+{
+	private:
+		char *message;
+	public:
+		void warning( const SAXParseException &e )
+		{
+			message = XMLString::transcode( e.getMessage() );
+			log_message( (char *) LOG, message);
+			XMLString::release(&message);
+		}
+		void error( const SAXParseException &e )
+		{
+			log_message( (char*) LOG, XMLString::transcode( e.getMessage() ) );
+		}
+		void fatalError( const SAXParseException &e )
+		{
+			log_message( (char*) LOG, XMLString::transcode( e.getMessage() ) );
+		}
+
+		void resetErrors()
+		{
+			log_message( (char *)LOG, (char*)"reseting error");
+		}
+};
+
 
 class SnmpXmlGate
 {
@@ -23,6 +49,7 @@ class SnmpXmlGate
 		XML
 		*/
 		XercesDOMParser *conf_parser;
+		XMLCh* tagDevice;
 
 
 	public:
@@ -31,6 +58,8 @@ class SnmpXmlGate
 
 		void run(void);
 		void initialize_config(void);
+		void getDeviceInfo( DOMElement *, SNMP_device * );
+
 };
 
 
