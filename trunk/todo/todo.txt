@@ -25,7 +25,6 @@ DONE
 
 3. konfiguracni cast
 	- navrhnout strukturu konfiguraku
-	DONE
 
 	- parsovat konfigurak
 
@@ -51,4 +50,23 @@ DONE
 ------------------------
 --Problemy k vyreseni
 ------------------------
+
+Low priority
+------------
+- Nedelat transformaci pokazde. Ulozit si checksum logovaciho souboru a pak se podivat, jestli se neco zmenilo (low priority)
+
+
+
+Medium priority
+---------------
+
+- Struktura elementu <trap></trap> v ramci konfiguraku
+
+
+
+High Priority
+---------------
+- DONE  Dodelat elementy do konfiguraku dle toho, jak je pak navrzena struktura device v diplomce (appInfo tagy apod) 
+
+- DONE  getNodeValue() nevraci hodnotu daneho uzlu -> pradny info o device!!!!
 

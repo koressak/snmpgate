@@ -1,6 +1,32 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
-<root>
-	<application>
-		<name>snmpxmlgate</name>
-	</application>
-</root>
+<?xml version="1.0" encoding="UTF-8"?>
+<devices>
+	<!-- Gate -->
+	<device id="0">
+		<name>SNMP Gate</name>
+		<description>Popis brany</description>
+		<snmpAddr>localhost</snmpAddr>
+		<protocolVersion>2</protocolVersion>
+		<mibs>
+			<mib>default</mib>
+		</mibs>
+		<traps>
+			<manager>127.0.0.1</manager>
+		</traps>
+
+		<!--
+		 Gate specific elements
+		-->
+		<logFile>/tmp/snmpxmld.log</logFile>
+		<snmp>
+			<mibPath>a</mibPath>
+			<listenPort>1</listenPort>
+			<transmitPort>2</transmitPort>
+		</snmp>
+		<xml>
+			<xsdPath></xsdPath>
+			<listenPort>1</listenPort>
+			<transmitPort>2</transmitPort>
+		</xml>
+	</device>
+</devices>
+
