@@ -25,16 +25,44 @@ DONE
 
 3. konfiguracni cast
 	- navrhnout strukturu konfiguraku
+	MOSTLY DONE - TODO REVISION
 
 	- parsovat konfigurak
+	VIZ PREDCHOZI
 
 	- predavat informace SNMP tride o jednotlivych zarizenich
+	DONE
 		- check jestli uz takove zarizeni neni pridane
+		DONE
 		- nutno vymyslet strukturu, ktera bude predavatelna mezi nimi
+		DONE
 
 4. check na dostupnost jednotlivych zarizeni
 	- vytvorit celou SNMP tridu 
-	- realizovat tuto funkci
+		- inicializace snmp
+		DONE
+
+	- osetrit povinne elementy vytazene z konfiguraku
+	DONE
+	
+	- nejprve nahrat vsechna zarizeni a kontrola, jestli uz takove id tam neni
+	DONE
+
+	- pak zkontrolovat jejich funkcnost (odpoved snmp zpravou) a existenci jejich mib
+		- komunikace s jednotlivymi zarizenimi
+		DONE
+		
+		- dodelat switch na protocol version (pouze 1,2 -> z toho netsnmp)
+		DONE
+
+		- osetrit spravne chovani pri spatne inicializaci sessny
+		DONE
+
+		- existence mib
+		DONE
+
+	- paklize uz neni zadne zarizeni na monitorovani, vypsat hlasku a skoncit
+	DONE
 
 5. transformace
 	- prochazet komplet mib do detailu
@@ -54,6 +82,9 @@ DONE
 Low priority
 ------------
 - Nedelat transformaci pokazde. Ulozit si checksum logovaciho souboru a pak se podivat, jestli se neco zmenilo (low priority)
+
+- DONE Ukoncit beh pri parsovani konfiguraku, paklize jsme nalezli duplikatni zarizeni ci jakykoliv problem pri pridavani zarizeni
+
 
 
 
