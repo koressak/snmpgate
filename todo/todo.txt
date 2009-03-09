@@ -64,10 +64,13 @@ DONE
 	- paklize uz neni zadne zarizeni na monitorovani, vypsat hlasku a skoncit
 	DONE
 
+	- paklize ma nejake zarizeni stejne MIB jako nejake jine, dat mu novy parametr "similarAsId" (kvuli sdileni stromu)
+
 5. transformace
 	- prochazet komplet mib do detailu
 	- nastudovat si XML XSD strukturu Macejkova navrhu
 	- udelat transformaci
+	- udelat dokument se zakladni kostrou stromu pro gate
 
 
 
@@ -85,6 +88,9 @@ Low priority
 
 - DONE Ukoncit beh pri parsovani konfiguraku, paklize jsme nalezli duplikatni zarizeni ci jakykoliv problem pri pridavani zarizeni
 
+- Do textu pak napsat, ze vyuzivame pouze protokol 1 a 2c, jine nepodoporuje knihovna net-snmp
+
+- Do textu dopsat, ze neni nutno nahravat vsechny mib, pac je tam jisty standard. ostatni se musi pridat
 
 
 
@@ -100,4 +106,10 @@ High Priority
 - DONE  Dodelat elementy do konfiguraku dle toho, jak je pak navrzena struktura device v diplomce (appInfo tagy apod) 
 
 - DONE  getNodeValue() nevraci hodnotu daneho uzlu -> pradny info o device!!!!
+
+- Paklize nebude v konfiguraku zadna MIB uvedena dodatecne, bere se v potaz, ze je to DEFAULT a tim padem se vezme zakladni nastaveni net-snmp s jeho default moduly.
+
+- Domyslet cesty pro mib, log soubory, xsd soubory, aby to v tom unix file tree nejak hezky sedelo a nebyla to prasarna.
+
+- Co delaji SMI OBJECT INDEXes
 
