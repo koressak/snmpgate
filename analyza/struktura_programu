@@ -1,10 +1,10 @@
 TODO:
-	- adresace sama sebe a jak je to se SNMP / XML spravou sama sebe.
 	- vyzkouset jak moc zabiraji mib v xml v pameti - jestli je nutno sdilet stromy nebo ne
-	- vyzkouset vytvoreni mib stromu - vzdyt samotne jedno mib je usazeno treba az v mgmt/mib2/if. ale my potrebujeme zacit od iso/org. TUdiz nacist nejake zakladni mib by to chtelo.(asi??)
+	
 	!!!!!!!!!!!!!!!! MIB - RFC1155-SMI , RFC1213-MIB - zakladni polozky stromu.!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	- vytvorit xml strom, jaky bude v te gate v pameti - ve kterem se bude vyhledavat
-		- adresace polozek v tabulkach (nutno vymyslet to odseparovani cisel od zbytku, vyhledani a pak doplneni do hledane polozky)
+
+
+	- adresace polozek v tabulkach (nutno vymyslet to odseparovani cisel od zbytku, vyhledani a pak doplneni do hledane polozky)
 
 	- Access control - nutne vymyslet
 	- Komunikace mezi SNMP a XML tridou
@@ -16,7 +16,9 @@ TODO:
 		Notification/subscription -> jeden thread na handle vsech. bude spat a kdyz neco prijde, tak jej probudi 
 			a on si sam spocita, kdy se ma probouzet, aby zasilal jednotlive informace.
 
-	- Gate pobezi jako demon - bude se moci restartovat, startovat, zabijet!!!!!!
+
+	- Nejspis implementovat jednoduchy HTTP server
+	- Mapovani a vubec vytvoreni seznamu TRAP messages v xml stromu a reakce na ne
 
 
 Krok po kroku:

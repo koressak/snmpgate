@@ -7,8 +7,7 @@ SnmpXmlGate::SnmpXmlGate( char *conf_file )
 {
 	/*
 	TODO:
-	inicializace xml
-	inicializace snmp
+	inicializace xml modulu
 	*/
 	config_file = conf_file;
 	log_file = (char *)LOG;
@@ -27,6 +26,18 @@ SnmpXmlGate::SnmpXmlGate( char *conf_file )
 	}
 
 	tagDevice = XMLString::transcode( "device" );
+
+	/*
+	Inicializace snmp modulu
+	*/
+	try {
+		snmpmod = new SnmpModule();
+	}
+	catch ( char * e )
+	{
+		log_message( log_file, e );
+		throw -1;
+	}
 }
 
 /*
@@ -51,6 +62,9 @@ SnmpXmlGate::~SnmpXmlGate()
 	{
 		log_message( log_file , XMLString::transcode( ex.getMessage() ) );
 	}
+
+	//zavreme snmp modul
+	delete(snmpmod);
 }
 
 
@@ -62,9 +76,7 @@ void SnmpXmlGate::run()
 {
 	/*
 	TODO
-	nacteni configu a parsovani optionu
 	transformace
-	check na devices
 	inicializace http serveru, poslech
 	*/
 
@@ -81,6 +93,21 @@ void SnmpXmlGate::run()
 		log_message( log_file, (char *)"Unknown error while device initialization." );
 		exit(1);
 
+	}
+
+	snmpmod->setParameters( log_file, mib_path );
+	//check na funkcnost zarizeni
+	log_message( log_file, (char *)"Checking devices");
+	if  (snmpmod->checkDevices() != 0 )
+	{
+		exit(1);
+	}
+	log_message( log_file, (char *)"Checking done");
+
+	if ( snmpmod->emptyDevices() )
+	{
+		log_message( log_file, (char *)"No devices left to monitor. Exitting.");
+		exit(1);
 	}
 
 
@@ -134,7 +161,16 @@ void SnmpXmlGate::initialize_config()
 					
 					getDeviceInfo( currElem, dev );
 
-					//TODO paklize je to Gate, tak bychom meli nastavit interni promenne!
+					//Jestli je to brana, nastavime zakladni promenne
+					if ( dev->id == 0 )
+					{
+						log_file = dev->log_file;
+						mib_path = dev->mib_path;
+						xsd_path = dev->xsd_path;
+
+						if ( ( mib_path == "" ) || ( xsd_path == "" ) )
+							throw (char *)"MIB and XSD paths must be set up";
+					}
 
 					/*
 					TODO : TEMP Zalogujeme informace o spravovanem zarizeni
@@ -147,11 +183,28 @@ void SnmpXmlGate::initialize_config()
 					log_msg += "\n";
 
 					log_message( log_file, log_msg.c_str() );
+
+					//Vlozeni do snmp modulu - do seznamu zarizeni
+					if ( snmpmod->addDevice( dev ) != 0 )
+					{
+						char dev_id[10];
+						log_msg = "Error adding device id: ";
+						sprintf( dev_id, "%d", dev->id );
+						log_msg += dev_id;
+						log_msg += "\n";
+						log_message( log_file, log_msg.c_str() );
+
+						throw (char *)"Device configuration error. Check config file.";
+					}
+
+
 				}
 				else
 					throw (char *)"Unknown element in config file.";
 			}
 		}
+
+		delete( xmlDoc );
 
 	}
 	catch ( char *e )

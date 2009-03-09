@@ -192,24 +192,38 @@ struct SNMP_device {
 	int				snmp_trans_port;
 	int				xml_listen_port;
 	int				xml_trans_port;
+	int				active;
 
+
+	SNMP_device()
+	{
+		active = 1;
+		snmp_addr = NULL;
+		protocol_version = NULL;
+		name = NULL;
+		description = NULL;
+		log_file = NULL;
+		mib_path = NULL;
+		xsd_path = NULL;
+	}
 
 	~SNMP_device()
 	{
-		if ( snmp_addr ) 		XMLString::release( &snmp_addr );
-		if ( name ) 		XMLString::release( &name );
-		if ( description ) XMLString::release( &description );
-		if ( protocol_version ) XMLString::release( &protocol_version );
-		if ( log_file ) 		XMLString::release( &log_file );
-		if ( mib_path )			XMLString::release( &mib_path );
-		if ( xsd_path )			XMLString::release( &xsd_path );
+		if ( snmp_addr != NULL ) 		XMLString::release( &snmp_addr );
+		if ( name != NULL ) 		XMLString::release( &name );
+		if ( description != NULL ) XMLString::release( &description );
+		if ( protocol_version != NULL ) XMLString::release( &protocol_version );
+		if ( log_file != NULL ) 		XMLString::release( &log_file );
+		if ( mib_path != NULL )			XMLString::release( &mib_path );
+		if ( xsd_path != NULL )			XMLString::release( &xsd_path );
 
+		
 		for ( list<char *>::iterator it = mibs.begin(); it != mibs.end(); it++ )
-			XMLString::release( &*it );
+			XMLString::release( &(*it) );
 
 		for ( list<char *>::iterator it = traps.begin(); it != traps.end(); it++ )
-			XMLString::release( &*it );
-
+			XMLString::release( &(*it) );
+		
 	}
 	
 

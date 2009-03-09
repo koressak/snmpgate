@@ -7,7 +7,7 @@
 	implementuje http server a ceka/vyrizuje pozadavky.
 */
 
-#include "definitions.h"
+#include "snmpmod.h"
 
 class ConfigErrorHandler : public ErrorHandler
 {
@@ -45,11 +45,19 @@ class SnmpXmlGate
 		char *config_file;
 		char *log_file;
 
+		char *mib_path;
+		char *xsd_path;
+
 		/*
 		XML
 		*/
 		XercesDOMParser *conf_parser;
 		XMLCh* tagDevice;
+
+		/*
+		SNMP
+		*/
+		SnmpModule *snmpmod;
 
 
 	public:

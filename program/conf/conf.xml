@@ -7,7 +7,7 @@
 		<snmpAddr>localhost</snmpAddr>
 		<protocolVersion>2</protocolVersion>
 		<mibs>
-			<mib>default</mib>
+			<mib>RFC1213-MIB</mib>
 		</mibs>
 		<traps>
 			<manager>127.0.0.1</manager>
@@ -18,7 +18,7 @@
 		-->
 		<logFile>/tmp/snmpxmld.log</logFile>
 		<snmp>
-			<mibPath>a</mibPath>
+			<mibPath>/var/run/snmpxmld/mib/</mibPath>
 			<listenPort>1</listenPort>
 			<transmitPort>2</transmitPort>
 		</snmp>
@@ -27,6 +27,19 @@
 			<listenPort>1</listenPort>
 			<transmitPort>2</transmitPort>
 		</xml>
+	</device>
+	<!-- Monitorovany notebook -->
+	<device id="1">
+		<name>notebook</name>
+		<description>dalsi zarizeni domaci notebook</description>
+		<snmpAddr>192.168.1.100</snmpAddr>
+		<protocolVersion>2</protocolVersion>
+		<mibs>
+			<mib>RFC1213-MIB</mib>
+		</mibs>
+		<traps>
+			<manager>192.168.1.50</manager>
+		</traps>
 	</device>
 </devices>
 
