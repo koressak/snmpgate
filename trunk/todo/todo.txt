@@ -37,6 +37,8 @@ DONE
 		- nutno vymyslet strukturu, ktera bude predavatelna mezi nimi
 		DONE
 
+		- dodelat elementy address, port do elementu manager (v ramci traps)
+
 4. check na dostupnost jednotlivych zarizeni
 	- vytvorit celou SNMP tridu 
 		- inicializace snmp
@@ -68,8 +70,23 @@ DONE
 
 5. transformace
 	- prochazet komplet mib do detailu
+	DONE
+
 	- nastudovat si XML XSD strukturu Macejkova navrhu
+		- jak volit namespace v ramci jednoho souboru (neni to rozdeleno do nekolika modulu, tudiz vsechno je v ramci 
+		jednoho souboru).
+
+		- vse generujeme do jedineho souboru ( 1 device = 1 soubor )
+		PROC: manazer na druhe strane nemuze vedet, jak to pospojovat dohromady - ze existuje nejake
+		oid, ktere je tim spojovacim clankem. Proto je nutne mu predat ten cely strom v celku.
+		Sice spojeni nekolika by usetrilo misto, pac by se kazde mib generovalo zvlast, ale
+		pak pri posilani by zabralo dlouhou dobu to vsechno pospojovat a poslat mu to najednou.
+		A zaroven se tyto mib generuji pouze jednou (pri zadne zmene), tudiz overhead je minimalni.
+		Zaroven mame sdileni stromu, takze vice zarizeni stejneho typu ma jeden soubor a sdileji jej.
+	
 	- udelat transformaci
+		- Normalni objekty - Simple, sequence, sequence of
+		- Trap types
 	- udelat dokument se zakladni kostrou stromu pro gate
 
 
@@ -111,5 +128,15 @@ High Priority
 
 - Domyslet cesty pro mib, log soubory, xsd soubory, aby to v tom unix file tree nejak hezky sedelo a nebyla to prasarna.
 
-- Co delaji SMI OBJECT INDEXes
+- Dodelat do konfiguraku manager -> address, port elementy. Nutne specifikovat, kde to manazer prijima.
+Tudiz dodat nove info do struktury SNMP_device a tak s tim podle toho pracovat!! Stanovit nejakej standardni
+port, kde to bude prijimat a pak to dle toho parsovat.!!!!!
+
+
+
+
+MACEJKOVI - konzultace:
+--------------------------
+- rict, ze budeme vzdy pro jeden celej device generovat cely strom. Nikoliv rozpitvani do jednotlivych souboru.
+- namespaces - jak to delat. Staci zvolit jeden pro celou stromovou strukturu v ramci jednoho device?
 
