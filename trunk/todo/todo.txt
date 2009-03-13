@@ -109,6 +109,8 @@ Low priority
 
 - Do textu dopsat, ze neni nutno nahravat vsechny mib, pac je tam jisty standard. ostatni se musi pridat
 
+- Do textu pripsat, jake problemy nam net-snmp dela (description, ruzne typy a range, ze to neni jednoznacne)
+
 
 
 Medium priority
@@ -131,6 +133,8 @@ High Priority
 - Dodelat do konfiguraku manager -> address, port elementy. Nutne specifikovat, kde to manazer prijima.
 Tudiz dodat nove info do struktury SNMP_device a tak s tim podle toho pracovat!! Stanovit nejakej standardni
 port, kde to bude prijimat a pak to dle toho parsovat.!!!!!
+
+- Transformator - vymyslet, jestli integrovat hlavicku, nebo ji prilozit ve vedlejsim souboru (definice typu)
 
 
 
