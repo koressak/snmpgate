@@ -14,15 +14,26 @@ Destruktor
 */
 SnmpModule::~SnmpModule()
 {
+	delete( transform );
 }
 
 /*
 Nastaveni zakladnich parametru
 */
-void SnmpModule::setParameters( char *log, char *mib )
+void SnmpModule::setParameters( char *log, char *mib, list<DOMElement*>* lis )
 {
 	log_file = log;
 	mib_path = mib;
+	devices_root = lis;
+}
+
+/*
+Preda elementy tride transform
+*/
+void SnmpModule::set_elements( DOMDocument *main_doc, DOMElement *main_root, char* xsd_path )
+{
+	transform = new Mib2Xsd( main_doc, main_root, log_file, devices_root );
+	transform->set_dirs( mib_path, xsd_path );
 }
 
 /*
@@ -33,12 +44,37 @@ int SnmpModule::addDevice( SNMP_device *dev )
 {
 	// nejprve zjistime, jestli uz takove zarizeni neni vlozeno
 	list<SNMP_device *>::iterator it;
+	list<char *>::iterator mib_it_dev;
+	list<char *>::iterator mib_it_all;
+	unsigned int mib_count = 0;
 
 	for( it = devices.begin(); it != devices.end(); it++ )
+	{
 		if ( dev->id == (*it)->id )
 			return 1;
+
+		//zkontrolujeme MIB, jestli jsou uplne stejne, pak nastavime priznak similar
+		if ( dev->similar_as == -1 )
+		{
+			for ( mib_it_dev = dev->mibs.begin(); mib_it_dev != dev->mibs.end(); mib_it_dev++ )
+			{
+				for ( mib_it_all = (*it)->mibs.begin(); mib_it_all != (*it)->mibs.end(); mib_it_all++ )
+				{
+					if ( strcmp( *mib_it_dev, *mib_it_all ) == 0 )
+						mib_count++;
+				}
+			}
+
+			//jestli ma vsechny mib stejne jako ten druhy a zaroven je to rovno poctu
+			//definovanych mib, pak jsou stejne
+			if ( (( mib_count == dev->mibs.size() ) && ( mib_count == (*it)->mibs.size() )) || ( ( dev->mibs.size() == 0) && ( (*it)->mibs.size() == 0 ) )  )
+			{
+				dev->similar_as = (*it)->id;
+			}
+		}
+	}
 	
-	if ( ( dev->snmp_addr == "" ) || ( dev->protocol_version == "" ) || dev->mibs.empty() )
+	if ( strcmp( dev->snmp_addr, "" )==0 || strcmp( dev->protocol_version, "" )==0 || dev->mibs.empty() )
 		return 1;
 	
 	devices.push_back( dev );
@@ -184,3 +220,43 @@ bool SnmpModule::emptyDevices()
 	return devices.empty();
 }
 
+/*
+Postupne transformuje vsechny devices mib to xsd
+*/
+int SnmpModule::start_transform()
+{
+	//nejprve musime vytvorit hlavni dokument
+	log_message( log_file, "start transform");
+	transform->create_main_document();
+	log_message( log_file, "main created");
+
+	//nasledne pro vsechny devices zavolame transformaci
+	list<SNMP_device *>::iterator it;
+
+	for( it = devices.begin(); it != devices.end(); it++ )
+	{
+		//pouze paklize je jinej, nez jakekoliv doposud transformovane
+		if ( (*it)->similar_as == -1 )
+			transform->parse_device_mib( *it );
+
+		/*
+		Paklize je stejny jako jiny device, nechame to byt a budeme
+		urcovat vyhledavani az u prijimani zprav.
+		*/
+	}
+
+	log_message( log_file, "end transform");
+	transform->end_main_document();
+	
+	log_message( log_file, "main ended");
+
+	return 0;
+}
+
+/*
+vrati seznam vsech devices
+*/
+list<SNMP_device *> * SnmpModule::get_all_devices()
+{
+	return &devices;
+}

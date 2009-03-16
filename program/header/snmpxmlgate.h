@@ -54,6 +54,13 @@ class SnmpXmlGate
 		XercesDOMParser *conf_parser;
 		XMLCh* tagDevice;
 
+		DOMDocument *doc;
+		DOMElement *root;
+
+		//seznam dokumentu jednotlivych devices
+		list<DOMElement *> *devices_root;
+		list<SNMP_device*> *devices_list;
+
 		/*
 		SNMP
 		*/

@@ -7,10 +7,13 @@
 		<snmpAddr>localhost</snmpAddr>
 		<protocolVersion>2</protocolVersion>
 		<mibs>
-			<mib>RFC1213-MIB</mib>
+			<mib>RFC1213-MIB.txt</mib>
 		</mibs>
 		<traps>
-			<manager>127.0.0.1</manager>
+			<manager>
+				<address>127.0.0.1</address>
+				<port>1048</port>
+			</manager>
 		</traps>
 
 		<!--
@@ -18,12 +21,12 @@
 		-->
 		<logFile>/tmp/snmpxmld.log</logFile>
 		<snmp>
-			<mibPath>/var/run/snmpxmld/mib/</mibPath>
+			<mibPath>/usr/share/snmp/mibs/</mibPath>
 			<listenPort>1</listenPort>
 			<transmitPort>2</transmitPort>
 		</snmp>
 		<xml>
-			<xsdPath></xsdPath>
+			<xsdPath>/tmp/</xsdPath>
 			<listenPort>1</listenPort>
 			<transmitPort>2</transmitPort>
 		</xml>
@@ -35,10 +38,13 @@
 		<snmpAddr>192.168.1.100</snmpAddr>
 		<protocolVersion>2</protocolVersion>
 		<mibs>
-			<mib>RFC1213-MIB</mib>
+			<mib>RFC1213-MIB.txt</mib>
 		</mibs>
 		<traps>
-			<manager>192.168.1.50</manager>
+			<manager>
+				<address>192.168.1.50</address>
+				<port>1048</port>
+			</manager>
 		</traps>
 	</device>
 </devices>

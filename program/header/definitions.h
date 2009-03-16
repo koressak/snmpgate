@@ -44,13 +44,19 @@ XML Xerces related
 #include <xercesc/util/XMLUni.hpp>
 #include <xercesc/sax/ErrorHandler.hpp>
 #include <xercesc/sax/SAXParseException.hpp>
+#include <xercesc/framework/LocalFileFormatTarget.hpp>
 
+/*
+SNMP includy
+*/
+#include <net-snmp/net-snmp-config.h>
+#include <net-snmp/net-snmp-includes.h>
 
 /*
 Namespaces
 */
-using namespace xercesc;
 using namespace std;
+using namespace xercesc;
 
 
 
@@ -170,6 +176,28 @@ inline void daemonize(void)
 }
 
 
+/*
+Manazer
+*/
+struct trap_manager {
+	char *address;
+	char *port;
+
+	trap_manager()
+	{
+		address = NULL;
+		port = NULL;
+	}
+
+	~trap_manager()
+	{
+		if ( address != NULL )
+			XMLString::release( &address );
+		
+		if ( port != NULL )
+			XMLString::release( &port );
+	}
+};
 
 
 /*
@@ -182,7 +210,7 @@ struct SNMP_device {
 	char *			name;
 	char *			description;
 	list<char *>	mibs;
-	list<char *>	traps;
+	list<trap_manager *>	traps;
 
 	//gate specific
 	char *			log_file;
@@ -194,9 +222,14 @@ struct SNMP_device {
 	int				xml_trans_port;
 	int				active;
 
+	//stejne mib jako jiny device - budou sdilet xml strom
+	int				similar_as;
+
 
 	SNMP_device()
 	{
+		similar_as = -1;
+
 		active = 1;
 		snmp_addr = NULL;
 		protocol_version = NULL;
@@ -221,8 +254,8 @@ struct SNMP_device {
 		for ( list<char *>::iterator it = mibs.begin(); it != mibs.end(); it++ )
 			XMLString::release( &(*it) );
 
-		for ( list<char *>::iterator it = traps.begin(); it != traps.end(); it++ )
-			XMLString::release( &(*it) );
+		for ( list<trap_manager *>::iterator it = traps.begin(); it != traps.end(); it++ )
+			delete( (*it) );
 		
 	}
 	
