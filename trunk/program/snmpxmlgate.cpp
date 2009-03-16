@@ -12,6 +12,8 @@ SnmpXmlGate::SnmpXmlGate( char *conf_file )
 	config_file = conf_file;
 	log_file = (char *)LOG;
 
+	devices_root = new list<DOMElement*>;
+
 
 	try {
 		XMLPlatformUtils::Initialize();
@@ -47,6 +49,8 @@ SnmpXmlGate::~SnmpXmlGate()
 {
 	try {
 		XMLString::release( &tagDevice );
+
+		doc->release();
 	}
 	catch (...)
 	{
@@ -65,6 +69,7 @@ SnmpXmlGate::~SnmpXmlGate()
 
 	//zavreme snmp modul
 	delete(snmpmod);
+
 }
 
 
@@ -95,10 +100,13 @@ void SnmpXmlGate::run()
 
 	}
 
-	snmpmod->setParameters( log_file, mib_path );
+	//nastaveni trid a vytvoreni transformatoru
+	snmpmod->setParameters( log_file, mib_path, devices_root );
+	snmpmod->set_elements( doc, root, xsd_path );
+
 	//check na funkcnost zarizeni
 	log_message( log_file, (char *)"Checking devices");
-	if  (snmpmod->checkDevices() != 0 )
+	if  ( snmpmod->checkDevices() != 0 )
 	{
 		exit(1);
 	}
@@ -109,6 +117,20 @@ void SnmpXmlGate::run()
 		log_message( log_file, (char *)"No devices left to monitor. Exitting.");
 		exit(1);
 	}
+
+	/*
+	Transformacni faze
+	*/
+	log_message( log_file, (char *)"Starting transformation");
+	if ( snmpmod->start_transform() != 0 )
+	{
+		log_message( log_file, (char *)"error during transformation. Exitting." );
+		exit(1);
+	}
+	log_message( log_file, (char *)"End of transformation");
+
+	//ziskame odkaz na seznam zarizeni (pro dalsi pouziti)
+	devices_list = snmpmod->get_all_devices();
 
 
 	while(1) sleep(1);
@@ -168,7 +190,7 @@ void SnmpXmlGate::initialize_config()
 						mib_path = dev->mib_path;
 						xsd_path = dev->xsd_path;
 
-						if ( ( mib_path == "" ) || ( xsd_path == "" ) )
+						if ( strcmp( mib_path, "" ) == 0  || strcmp( xsd_path, "" )==0 )
 							throw (char *)"MIB and XSD paths must be set up";
 					}
 
@@ -196,7 +218,6 @@ void SnmpXmlGate::initialize_config()
 
 						throw (char *)"Device configuration error. Check config file.";
 					}
-
 
 				}
 				else
@@ -303,7 +324,30 @@ void SnmpXmlGate::getDeviceInfo( DOMElement *device, SNMP_device *info )
 					{
 						DOMElement *trapElem = dynamic_cast<DOMElement *>( trapNode );
 
-						info->traps.push_back( XMLString::transcode( trapElem->getTextContent() ) );
+						trap_manager *manager = new trap_manager;
+
+						//vybirame dve deti - address a port
+						DOMNodeList* man_list = trapElem->getChildNodes();
+
+						for ( XMLSize_t man = 0; man < man_list->getLength(); man++ )
+						{
+							DOMNode* tmp  = children->item(man);
+							if ( tmp->getNodeType() && tmp->getNodeType() == DOMNode::ELEMENT_NODE )
+							{
+								DOMElement *tmp2 = dynamic_cast<DOMElement *>( tmp );
+								if ( XMLString::equals( tmp2->getTagName(), XMLString::transcode( "address" ) ) )
+								{
+									manager->address = XMLString::transcode( tmp2->getTextContent() );
+								}
+								else if ( XMLString::equals( tmp2->getTagName(), XMLString::transcode( "port" ) ) )
+								{
+									manager->port = XMLString::transcode( tmp2->getTextContent() );
+								}
+
+							}
+						}
+
+						info->traps.push_back( manager );
 					}
 
 				}

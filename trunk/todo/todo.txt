@@ -38,9 +38,11 @@ DONE
 		DONE
 
 		- dodelat elementy address, port do elementu manager (v ramci traps)
+		DONE
 
 4. check na dostupnost jednotlivych zarizeni
 	- vytvorit celou SNMP tridu 
+	DONE
 		- inicializace snmp
 		DONE
 
@@ -51,6 +53,7 @@ DONE
 	DONE
 
 	- pak zkontrolovat jejich funkcnost (odpoved snmp zpravou) a existenci jejich mib
+	DONE
 		- komunikace s jednotlivymi zarizenimi
 		DONE
 		
@@ -67,12 +70,14 @@ DONE
 	DONE
 
 	- paklize ma nejake zarizeni stejne MIB jako nejake jine, dat mu novy parametr "similarAsId" (kvuli sdileni stromu)
+	DONE
 
 5. transformace
 	- prochazet komplet mib do detailu
 	DONE
 
 	- nastudovat si XML XSD strukturu Macejkova navrhu
+	DONE
 		- jak volit namespace v ramci jednoho souboru (neni to rozdeleno do nekolika modulu, tudiz vsechno je v ramci 
 		jednoho souboru).
 
@@ -85,11 +90,42 @@ DONE
 		Zaroven mame sdileni stromu, takze vice zarizeni stejneho typu ma jeden soubor a sdileji jej.
 	
 	- udelat transformaci
+	DONE
 		- Normalni objekty - Simple, sequence, sequence of
+		DONE
 		- Trap types
+		DONE
+
 	- udelat dokument se zakladni kostrou stromu pro gate
+		- zakladni dokuemnt
+		DONE
+
+		- dodat informace z notifications!!
+
+	- udelat vlastni transformacni tridu a zaclenit ji do demona
+	DONE
+
+	- Dodelat sortovani zarizeni v ramci devices_list dle id, aby tomu pak odpovidalo poradi xml dokumentu
+
+	- Dodelat promenne pro zakladni nazvy souboru "snmpxmld.xsd", aby to slo menit globalne
 
 
+
+6. Nastartovani threadu pro poslouchani a vykonavani prikazu
+	- pripravit si thready a funkce
+
+	- nastavit embedded http server
+
+	- pustit http server na poslouchani
+
+7. komunikacni protokol
+	- prijimani pozadavku
+
+	- vyrizovani pozadavku
+
+	- odchytavani trapu a preposilani
+
+	- subscription a to druhy
 
 
 
@@ -101,9 +137,10 @@ DONE
 
 Low priority
 ------------
-- Nedelat transformaci pokazde. Ulozit si checksum logovaciho souboru a pak se podivat, jestli se neco zmenilo (low priority)
-
 - DONE Ukoncit beh pri parsovani konfiguraku, paklize jsme nalezli duplikatni zarizeni ci jakykoliv problem pri pridavani zarizeni
+
+
+- Nedelat transformaci pokazde. Ulozit si checksum logovaciho souboru a pak se podivat, jestli se neco zmenilo (low priority)
 
 - Do textu pak napsat, ze vyuzivame pouze protokol 1 a 2c, jine nepodoporuje knihovna net-snmp
 
@@ -126,21 +163,32 @@ High Priority
 
 - DONE  getNodeValue() nevraci hodnotu daneho uzlu -> pradny info o device!!!!
 
-- Paklize nebude v konfiguraku zadna MIB uvedena dodatecne, bere se v potaz, ze je to DEFAULT a tim padem se vezme zakladni nastaveni net-snmp s jeho default moduly.
+- DONE Paklize nebude v konfiguraku zadna MIB uvedena dodatecne, bere se v potaz, ze je to DEFAULT a tim padem se vezme zakladni nastaveni net-snmp s jeho default moduly.
 
-- Domyslet cesty pro mib, log soubory, xsd soubory, aby to v tom unix file tree nejak hezky sedelo a nebyla to prasarna.
 
-- Dodelat do konfiguraku manager -> address, port elementy. Nutne specifikovat, kde to manazer prijima.
+- DONE  Dodelat do konfiguraku manager -> address, port elementy. Nutne specifikovat, kde to manazer prijima.
 Tudiz dodat nove info do struktury SNMP_device a tak s tim podle toho pracovat!! Stanovit nejakej standardni
 port, kde to bude prijimat a pak to dle toho parsovat.!!!!!
 
-- Transformator - vymyslet, jestli integrovat hlavicku, nebo ji prilozit ve vedlejsim souboru (definice typu)
+- DONE Transformator - vymyslet, jestli integrovat hlavicku, nebo ji prilozit ve vedlejsim souboru (definice typu) -> Prikladame ve vedlejsim souboru
+
+- DONE Hlavni trida Gate by mela mit primarne seznam vsech devices (aby mohla poskytovat info dalsim tridam)
+To navratime gettrem z snmpmod
 
 
+
+
+- PROBLEM - xml dokumenty se nedokazou prekryvat. Tudiz udelame seznam device dokumentu a hlavni dokument bude zvlast.
+paklize se pak nekdo zepta na nejaka data, tak se mrkneme do prislusneho dokumentu, ale nemuze to byt pod data (je to ULEHCENI)
+
+- Domyslet cesty pro mib, log soubory, xsd soubory, aby to v tom unix file tree nejak hezky sedelo a nebyla to prasarna.
+
+- Device id = 0, paklize je duplikat, spadne to na segfaultu, pac to chce pristoupit nekam, co tam neni
 
 
 MACEJKOVI - konzultace:
 --------------------------
 - rict, ze budeme vzdy pro jeden celej device generovat cely strom. Nikoliv rozpitvani do jednotlivych souboru.
 - namespaces - jak to delat. Staci zvolit jeden pro celou stromovou strukturu v ramci jednoho device?
+- ulehceni -> bude seznam dokumentu a nikoliv nebudeme udrzovat seznam vseho v jednom
 
