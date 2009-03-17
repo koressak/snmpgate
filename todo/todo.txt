@@ -113,21 +113,37 @@ DONE
 
 6. Nastartovani threadu pro poslouchani a vykonavani prikazu
 	- pripravit si thready a funkce
+		- snmp comm thread
+		- http server
+		- distribution thr.
+		- xml trap to manager
 
-	- nastavit embedded http server
+7. Zakladni komunikace
+	- rozchodit http server thread
 
-	- pustit http server na poslouchani
+	- spustit poslouchani
 
-7. komunikacni protokol
-	- prijimani pozadavku
+	- callback na vyrizovani pozadavku
+		- parsovani dat
 
-	- vyrizovani pozadavku
+		- generovani odpovedi
+	
+	- thread na komunikaci se SNMP
+		- definovat struktury v komunikacnich kanalech
 
-	- odchytavani trapu a preposilani
+		- mutexy a signaly (thread safe design)
 
-	- subscription a to druhy
+8. Pokrocila komunikace - notifications
+	- thread na posilani XML zprav managerovi
+
+	- signaly na probouzeni tohoto vlakna
 
 
+9. Pokrocila komunikace - subscriptions / distribution
+	- thread na vyrizovani techto pozadavku
+
+10. Zabezpeceni
+	- pridat fci na spousteni demona s certifikatama
 
 
 
@@ -139,8 +155,8 @@ Low priority
 ------------
 - DONE Ukoncit beh pri parsovani konfiguraku, paklize jsme nalezli duplikatni zarizeni ci jakykoliv problem pri pridavani zarizeni
 
+- INVALID Nedelat transformaci pokazde. Ulozit si checksum logovaciho souboru a pak se podivat, jestli se neco zmenilo (low priority)
 
-- Nedelat transformaci pokazde. Ulozit si checksum logovaciho souboru a pak se podivat, jestli se neco zmenilo (low priority)
 
 - Do textu pak napsat, ze vyuzivame pouze protokol 1 a 2c, jine nepodoporuje knihovna net-snmp
 
@@ -148,12 +164,14 @@ Low priority
 
 - Do textu pripsat, jake problemy nam net-snmp dela (description, ruzne typy a range, ze to neni jednoznacne)
 
+- Pro managera pouzit knihovnu libcurl pro smotavani http dotazu
+
 
 
 Medium priority
 ---------------
 
-- Struktura elementu <trap></trap> v ramci konfiguraku
+- DONE Struktura elementu <trap></trap> v ramci konfiguraku
 
 
 
@@ -164,7 +182,6 @@ High Priority
 - DONE  getNodeValue() nevraci hodnotu daneho uzlu -> pradny info o device!!!!
 
 - DONE Paklize nebude v konfiguraku zadna MIB uvedena dodatecne, bere se v potaz, ze je to DEFAULT a tim padem se vezme zakladni nastaveni net-snmp s jeho default moduly.
-
 
 - DONE  Dodelat do konfiguraku manager -> address, port elementy. Nutne specifikovat, kde to manazer prijima.
 Tudiz dodat nove info do struktury SNMP_device a tak s tim podle toho pracovat!! Stanovit nejakej standardni
@@ -185,10 +202,14 @@ paklize se pak nekdo zepta na nejaka data, tak se mrkneme do prislusneho dokumen
 
 - Device id = 0, paklize je duplikat, spadne to na segfaultu, pac to chce pristoupit nekam, co tam neni
 
+- HTTP server -> nutno doplnit do konfiguraku neco ohledne bezpecnostiho certifikatu pro https
+
 
 MACEJKOVI - konzultace:
 --------------------------
 - rict, ze budeme vzdy pro jeden celej device generovat cely strom. Nikoliv rozpitvani do jednotlivych souboru.
 - namespaces - jak to delat. Staci zvolit jeden pro celou stromovou strukturu v ramci jednoho device?
 - ulehceni -> bude seznam dokumentu a nikoliv nebudeme udrzovat seznam vseho v jednom
+- http server nebude optimalni, pac jeho implementace presahuje ramec programu
+
 
