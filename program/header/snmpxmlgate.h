@@ -8,6 +8,10 @@
 */
 
 #include "snmpmod.h"
+#include "xmlmod.h"
+
+extern XmlModule *xm;
+
 
 class ConfigErrorHandler : public ErrorHandler
 {
@@ -35,7 +39,6 @@ class ConfigErrorHandler : public ErrorHandler
 		}
 };
 
-
 class SnmpXmlGate
 {
 	private:
@@ -62,9 +65,26 @@ class SnmpXmlGate
 		list<SNMP_device*> *devices_list;
 
 		/*
+		XML module
+		*/
+		XmlModule *xmlmod;
+
+		/*
 		SNMP
 		*/
 		SnmpModule *snmpmod;
+
+		/*
+		HTTP Daemon
+		*/
+		MHD_Daemon *http_server;
+
+		/*
+		Threads information
+		*/
+		pthread_t snmp_trap_th;
+		pthread_t distribution_th;
+		pthread_t xml_inform_th;
 
 
 	public:
@@ -74,6 +94,13 @@ class SnmpXmlGate
 		void run(void);
 		void initialize_config(void);
 		void getDeviceInfo( DOMElement *, SNMP_device * );
+
+		void stop(void);
+
+		int process_message( void *cls, MHD_Connection *connection, const char *url, const char *method, const char *version, const char *upload_data, size_t *dsize, void **con_cls)
+		{
+			return 1;
+		}
 
 };
 

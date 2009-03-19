@@ -5,17 +5,20 @@
 #
 #
 GCC=g++
-LIBS=-lxerces-c -lsnmp
+LIBS=-lxerces-c -lsnmp -lmicrohttpd -pthread
 PAR=-Wall
 
 
 all: daemon
 
-daemon: gate.o snmpmod.o main.o mib2xsd.o header/definitions.h
-	$(GCC) -o snmpxmld main.o snmpxmlgate.o snmpmod.o mib2xsd.o $(LIBS) 
+daemon: xmlmod.o gate.o snmpmod.o main.o mib2xsd.o header/definitions.h
+	$(GCC) -o snmpxmld main.o snmpxmlgate.o snmpmod.o mib2xsd.o xmlmod.o $(LIBS) 
 
 snmpmod.o: snmpmod.cpp header/snmpmod.h header/definitions.h
 	$(GCC) -o snmpmod.o -c snmpmod.cpp  $(PAR)
+
+xmlmod.o: xmlmod.cpp header/xmlmod.h header/definitions.h
+	$(GCC) -o xmlmod.o -c xmlmod.cpp  $(PAR)
 
 gate.o: snmpxmlgate.cpp header/snmpxmlgate.h header/definitions.h
 	$(GCC) -o snmpxmlgate.o -c snmpxmlgate.cpp  $(PAR)

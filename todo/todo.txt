@@ -40,6 +40,8 @@ DONE
 		- dodelat elementy address, port do elementu manager (v ramci traps)
 		DONE
 
+		- dodelat element protocolVersion -  do hlavniho elementu Gate (pro Discovery message)
+
 4. check na dostupnost jednotlivych zarizeni
 	- vytvorit celou SNMP tridu 
 	DONE
@@ -114,29 +116,53 @@ DONE
 6. Nastartovani threadu pro poslouchani a vykonavani prikazu
 	- pripravit si thready a funkce
 		- snmp comm thread
+
 		- http server
+		DONE
+
 		- distribution thr.
+
 		- xml trap to manager
 
 7. Zakladni komunikace
 	- rozchodit http server thread
+	DONE
 
 	- spustit poslouchani
+	DONE
 
 	- callback na vyrizovani pozadavku
 		- parsovani dat
 
 		- generovani odpovedi
 	
-	- thread na komunikaci se SNMP
-		- definovat struktury v komunikacnich kanalech
+	- kazdy http thread bude volat snmp fci -> send meesgae
+		Tato fce bude cekat thread-safe synch response na odpoved a rovnou
+		se pak vygeneruje odpoved.
 
-		- mutexy a signaly (thread safe design)
+		Mezi tridami se nebudou predavat xml-specific/snmp-specific informace.
+		Pouze to nejnutnejsi. Snmp vyparsuje data a preda je pak xml, ktera z toho
+		udela odpoved a konec. Striktne oddelena funkcnost!!!!
+	
+	- jednotlive zpravy
+		- discovery
+
+		- publication
+
+		- get
+			-tabulky
+
+		- set
+			- tabulky
+
+		- response
 
 8. Pokrocila komunikace - notifications
 	- thread na posilani XML zprav managerovi
 
 	- signaly na probouzeni tohoto vlakna
+
+	- snmp thread, ktery ceka na ty trapy
 
 
 9. Pokrocila komunikace - subscriptions / distribution
@@ -164,7 +190,12 @@ Low priority
 
 - Do textu pripsat, jake problemy nam net-snmp dela (description, ruzne typy a range, ze to neni jednoznacne)
 
+- Do textu zmenit analyzu -> Description message - optional atribut objectId
+
 - Pro managera pouzit knihovnu libcurl pro smotavani http dotazu
+
+- Udelat snmpxmlgate jako global promennou -> pri odchytnuti sigterm se zavola stop a ukonci se jeho funkce hezky a nikoliv
+nasilnym smazanim vsech struktur.
 
 
 
@@ -192,17 +223,25 @@ port, kde to bude prijimat a pak to dle toho parsovat.!!!!!
 - DONE Hlavni trida Gate by mela mit primarne seznam vsech devices (aby mohla poskytovat info dalsim tridam)
 To navratime gettrem z snmpmod
 
-
-
-
-- PROBLEM - xml dokumenty se nedokazou prekryvat. Tudiz udelame seznam device dokumentu a hlavni dokument bude zvlast.
+- DONE  xml dokumenty se nedokazou prekryvat. Tudiz udelame seznam device dokumentu a hlavni dokument bude zvlast.
 paklize se pak nekdo zepta na nejaka data, tak se mrkneme do prislusneho dokumentu, ale nemuze to byt pod data (je to ULEHCENI)
+
+
+
 
 - Domyslet cesty pro mib, log soubory, xsd soubory, aby to v tom unix file tree nejak hezky sedelo a nebyla to prasarna.
 
 - Device id = 0, paklize je duplikat, spadne to na segfaultu, pac to chce pristoupit nekam, co tam neni
 
 - HTTP server -> nutno doplnit do konfiguraku neco ohledne bezpecnostiho certifikatu pro https
+
+- Do parseru XML configu -> paklize nejsou nastaveny porty pro poslouchani a transmit, dosadime nejake defaultni (GATE device)
+
+- Zamyslet se nad tim, proc mam vlastne xsd soubory, kdyz to stejne nacitam z pameti
+
+- Udelat lepsi parsovani XML dat z message, ktery prijmeme
+
+- DULEZITE NECHODI SEND RESPONSE BACK
 
 
 MACEJKOVI - konzultace:
