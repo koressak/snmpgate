@@ -5,10 +5,6 @@
 */
 SnmpXmlGate::SnmpXmlGate( char *conf_file )
 {
-	/*
-	TODO:
-	inicializace xml modulu
-	*/
 	config_file = conf_file;
 	log_file = (char *)LOG;
 
@@ -30,10 +26,12 @@ SnmpXmlGate::SnmpXmlGate( char *conf_file )
 	tagDevice = XMLString::transcode( "device" );
 
 	/*
-	Inicializace snmp modulu
+	Inicializace snmp a xml modulu
 	*/
 	try {
 		snmpmod = new SnmpModule();
+		xmlmod = new XmlModule();
+		xm = xmlmod;
 	}
 	catch ( char * e )
 	{
@@ -69,6 +67,7 @@ SnmpXmlGate::~SnmpXmlGate()
 
 	//zavreme snmp modul
 	delete(snmpmod);
+	delete(xmlmod);
 
 }
 
@@ -81,8 +80,7 @@ void SnmpXmlGate::run()
 {
 	/*
 	TODO
-	transformace
-	inicializace http serveru, poslech
+	inicializace dalsich threadu
 	*/
 
 	try {
@@ -102,7 +100,7 @@ void SnmpXmlGate::run()
 
 	//nastaveni trid a vytvoreni transformatoru
 	snmpmod->setParameters( log_file, mib_path, devices_root );
-	snmpmod->set_elements( doc, root, xsd_path );
+	snmpmod->set_elements(  xsd_path );
 
 	//check na funkcnost zarizeni
 	log_message( log_file, (char *)"Checking devices");
@@ -132,6 +130,39 @@ void SnmpXmlGate::run()
 	//ziskame odkaz na seznam zarizeni (pro dalsi pouziti)
 	devices_list = snmpmod->get_all_devices();
 
+	
+	/*
+	Pustime http server
+	*/
+	SNMP_device *gate = snmpmod->get_gate_device();
+
+	if ( gate == NULL )
+	{
+		log_message( log_file, (char *)"Gate is not in th edevice list. Some error with translation.");
+		exit(1);
+	}
+
+	//nastavime parametry xmlmodulu
+	doc = snmpmod->get_doc();
+	root = snmpmod->get_root();
+	xmlmod->set_parameters( root, devices_root, log_file, gate->xsd_path, snmpmod );
+	
+	http_server = MHD_start_daemon( MHD_USE_THREAD_PER_CONNECTION, gate->xml_listen_port,
+					NULL, NULL, &process_request, NULL,
+					MHD_OPTION_NOTIFY_COMPLETED, request_completed, NULL, MHD_OPTION_END);
+
+
+
+	/*
+	Vytvarime thread pro poslouchani na snmp strane
+	*/
+	//snmp_trap_th = pthread_create();
+
+	/*
+	Thread na informovani xml klientu
+	*/
+
+	//pthread_join( snmp_trap_th );
 
 	while(1) sleep(1);
 }
@@ -437,6 +468,16 @@ void SnmpXmlGate::getDeviceInfo( DOMElement *device, SNMP_device *info )
 
 	//return info;	
 
+}
+
+/*
+Zastavi http demona a ukonci beh ostatnich threadu (skonci praci)
+*/
+void SnmpXmlGate::stop()
+{
+	MHD_stop_daemon( http_server );
+
+	//TODO: zastavit ostatni thready
 }
 
 

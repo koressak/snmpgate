@@ -3,6 +3,7 @@
 
 #include "definitions.h"
 
+
 /*
 Pomocna trida pro prevod XML stringu na char *
 */
@@ -79,7 +80,7 @@ class Mib2Xsd
 		list<DOMElement *> *devices_root;
 	
 	public:
-		Mib2Xsd( DOMDocument*, DOMElement*, char *, list<DOMElement*>* );
+		Mib2Xsd( char *, list<DOMElement*>* );
 		~Mib2Xsd();
 
 		void set_dirs( char *, char * );
@@ -111,6 +112,16 @@ class Mib2Xsd
 		void create_main_document();
 		void create_device_element( SNMP_device *, DOMElement* );
 		void end_main_document();
+
+		DOMDocument* get_main_doc()
+		{
+			return main_doc;
+		}
+
+		DOMElement* get_main_root()
+		{
+			return main_root;
+		}
 
 };
 

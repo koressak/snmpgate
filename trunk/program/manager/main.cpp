@@ -39,6 +39,9 @@ static size_t write_data( void *ptr, size_t size, size_t nmemb, void *data)
 
 }
 
+const char *msg = "<message><discovery msgid=\"1\" /></message>";
+
+
 int main(int argc, char *argv[])
 {
 	CURL *curl;
@@ -55,7 +58,7 @@ int main(int argc, char *argv[])
 
 	curl_formadd( &formpost, &lastptr,
 					CURLFORM_COPYNAME, "selection",
-					CURLFORM_COPYCONTENTS, "<xml></xml>",
+					CURLFORM_COPYCONTENTS, msg,
 					CURLFORM_CONTENTTYPE,"text/xml",
 					CURLFORM_END);
 

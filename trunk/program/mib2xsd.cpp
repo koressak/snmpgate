@@ -3,10 +3,10 @@
 /*
 Konstruktor
 */
-Mib2Xsd::Mib2Xsd( DOMDocument *d, DOMElement *r, char* log, list<DOMElement*> *lis )
+Mib2Xsd::Mib2Xsd( char* log, list<DOMElement*> *lis )
 {
-	main_doc = d;
-	main_root = r;
+	main_doc = NULL;
+	main_root = NULL;
 	log_file = log;
 	devices_root = lis;
 }
@@ -16,6 +16,13 @@ Destruktor
 */
 Mib2Xsd::~Mib2Xsd()
 {
+	main_doc->release();
+
+	//smazani jednotlivych device dokumentu
+	list<DOMElement *>::iterator it;
+
+	for ( it = devices_root->begin(); it != devices_root->end(); it++ )
+		(*it)->release();
 }
 
 /*

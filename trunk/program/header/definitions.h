@@ -45,12 +45,18 @@ XML Xerces related
 #include <xercesc/sax/ErrorHandler.hpp>
 #include <xercesc/sax/SAXParseException.hpp>
 #include <xercesc/framework/LocalFileFormatTarget.hpp>
+#include <xercesc/framework/MemBufInputSource.hpp>
 
 /*
 SNMP includy
 */
 #include <net-snmp/net-snmp-config.h>
 #include <net-snmp/net-snmp-includes.h>
+
+/*
+HTTP server
+*/
+#include <microhttpd.h>
 
 /*
 Namespaces
@@ -79,6 +85,39 @@ XML default hodnoty
 */
 #define XML_SEND_PORT 2053
 #define XML_LISTEN_PORT 2054
+
+/*
+XML error hodnoty
+*/
+#define XML_ERR_NO_HTTP_POST 		1
+#define XML_ERR_UNKNOWN				2
+#define XML_ERR_WRONG_MSG			3
+#define XML_ERR_UNKNOWN_MSG			4
+
+
+
+/*
+XML zpravy
+*/
+#define XML_MSG_ROOT "<message"
+#define XML_MSG_ROOT_END "</message>"
+
+
+/*
+XML typy zprav
+*/
+#define XML_MSG_TYPE_DISCOVERY 		1
+#define XML_MSG_TYPE_GET			2
+#define XML_MSG_TYPE_SET			3
+
+
+/*
+HTTP parametry
+*/
+#define HTTP_GET 0
+#define HTTP_POST 1
+#define POSTBUFFERSIZE 512
+
 
 
 /*
@@ -260,6 +299,43 @@ struct SNMP_device {
 	}
 	
 
+};
+
+/*
+Struktura pouzita http serverem pro predavani informaci
+o spojeni a ostatnim
+*/
+struct connection_info {
+	struct MHD_PostProcessor *post_processor;
+	string data;
+	int conn_type;
+
+	connection_info()
+	{
+		post_processor = NULL;
+	}
+};
+
+/*
+Xml request struktura obsahujici data,
+ktera chceme ziskat od agenta
+*/
+struct request_data {
+
+	int msgid;
+	int msg_type;
+
+	int discovery_object_id;
+
+	//TODO dodefinovat vsechny podstatne seznamy
+
+	request_data()
+	{
+		msgid = 0;
+		msg_type = -1;
+
+		discovery_object_id = -1;
+	}
 };
 
 

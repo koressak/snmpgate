@@ -22,17 +22,17 @@
 		<logFile>/tmp/snmpxmld.log</logFile>
 		<snmp>
 			<mibPath>/usr/share/snmp/mibs/</mibPath>
-			<listenPort>1</listenPort>
-			<transmitPort>2</transmitPort>
+			<listenPort>162</listenPort>
+			<transmitPort>161</transmitPort>
 		</snmp>
 		<xml>
 			<xsdPath>/tmp/</xsdPath>
-			<listenPort>1</listenPort>
-			<transmitPort>2</transmitPort>
+			<listenPort>8888</listenPort>
+			<transmitPort>2055</transmitPort>
 		</xml>
 	</device>
 	<!-- Monitorovany notebook -->
-	<device id="1">
+	<!-- <device id="1">
 		<name>notebook</name>
 		<description>dalsi zarizeni domaci notebook</description>
 		<snmpAddr>192.168.1.100</snmpAddr>
@@ -46,6 +46,6 @@
 				<port>1048</port>
 			</manager>
 		</traps>
-	</device>
+	</device>-->
 </devices>
 

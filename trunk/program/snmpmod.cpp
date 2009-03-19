@@ -30,9 +30,9 @@ void SnmpModule::setParameters( char *log, char *mib, list<DOMElement*>* lis )
 /*
 Preda elementy tride transform
 */
-void SnmpModule::set_elements( DOMDocument *main_doc, DOMElement *main_root, char* xsd_path )
+void SnmpModule::set_elements( char* xsd_path )
 {
-	transform = new Mib2Xsd( main_doc, main_root, log_file, devices_root );
+	transform = new Mib2Xsd( log_file, devices_root );
 	transform->set_dirs( mib_path, xsd_path );
 }
 
@@ -226,9 +226,7 @@ Postupne transformuje vsechny devices mib to xsd
 int SnmpModule::start_transform()
 {
 	//nejprve musime vytvorit hlavni dokument
-	log_message( log_file, "start transform");
 	transform->create_main_document();
-	log_message( log_file, "main created");
 
 	//nasledne pro vsechny devices zavolame transformaci
 	list<SNMP_device *>::iterator it;
@@ -245,10 +243,8 @@ int SnmpModule::start_transform()
 		*/
 	}
 
-	log_message( log_file, "end transform");
 	transform->end_main_document();
 	
-	log_message( log_file, "main ended");
 
 	return 0;
 }
@@ -260,3 +256,31 @@ list<SNMP_device *> * SnmpModule::get_all_devices()
 {
 	return &devices;
 }
+
+/*
+Vrati odkaz na zarizeni brany 
+*/
+SNMP_device* SnmpModule::get_gate_device()
+{
+	list<SNMP_device *>::iterator it;
+
+	for( it = devices.begin(); it != devices.end(); it++ )
+	{
+		if ( (*it)->id == 0 )
+			return (*it);
+	}
+
+	return NULL;
+
+}
+
+/*
+Zaslani dotazu agentovi - volano XmlModulem
+*/
+int send_request( struct request_data* req_data )
+{
+	//TODO: delat pomoci thread safe Single API 
+}
+
+
+

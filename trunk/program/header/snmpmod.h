@@ -25,18 +25,35 @@ class SnmpModule {
 		int addDevice( SNMP_device * );
 		int checkDevices();
 		void setParameters( char* , char*, list<DOMElement*>* );
-		void set_elements( DOMDocument*, DOMElement*, char* );
+		void set_elements( char* );
 		bool emptyDevices();
 
 		int start_transform();
-		/*
-		TODO: vratit device brany - kvuli poslouchacim portum
-		*/
 		list<SNMP_device*>* get_all_devices();
+		SNMP_device* get_gate_device();
+
+		/*
+		TODO: Thread na poslouchani snmp trapu
+		*/
+
+		/*
+		Funkce pro XmlModule na posilani zprav a ocekavani odpovedi
+		*/
+		int send_request( struct request_data* );
+
+		DOMDocument *get_doc()
+		{
+			return transform->get_main_doc();
+		}
+
+		DOMElement* get_root()
+		{
+			return transform->get_main_root();
+		}
 
 		
 };
 
-
+  
 
 #endif
