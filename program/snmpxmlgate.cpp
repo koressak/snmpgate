@@ -13,6 +13,7 @@ SnmpXmlGate::SnmpXmlGate( char *conf_file )
 
 	try {
 		XMLPlatformUtils::Initialize();
+		XPathEvaluator::initialize();
 	}
 	catch ( const XMLException& ex )
 	{
@@ -58,6 +59,7 @@ SnmpXmlGate::~SnmpXmlGate()
 
 	//uzavreni Xercesu
 	try {
+		XPathEvaluator::terminate();
 		XMLPlatformUtils::Terminate();
 	}
 	catch( const XMLException& ex )

@@ -74,16 +74,20 @@ class XmlModule
 			const char *filename, const char *content_type, const char *transfer_encoding, 
 			const char *data, size_t off, size_t size);
 
-		int send_response( struct MHD_Connection *, string *);
+		int send_response( struct MHD_Connection *, const char*,  string *);
 
 		int send_error_response( struct MHD_Connection *, int error );
 
 		string * build_response_string( struct request_data* );
 
+		DOMElement* get_device_document( int );
+		string find_element_oid( const XMLCh*, DOMElement* );
+
 		/*
 		Funkce na handlovani jednotlivych typu zprav
 		*/
 		struct request_data* process_discovery_message( struct MHD_Connection *, DOMElement * );
+		struct request_data* process_get_message( DOMElement *, const char* );
 
 
 };

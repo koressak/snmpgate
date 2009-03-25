@@ -31,6 +31,7 @@ class SnmpModule {
 		int start_transform();
 		list<SNMP_device*>* get_all_devices();
 		SNMP_device* get_gate_device();
+		int get_device_position( int );
 
 		/*
 		TODO: Thread na poslouchani snmp trapu
