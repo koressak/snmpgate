@@ -102,7 +102,12 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 			MemBufInputSource *mem_buf = new  MemBufInputSource( (const XMLByte *) con_info->data.c_str(), strlen(con_info->data.c_str()),
 					"message", NULL);
 
+			//Zakladni promenne
 			DOMDocument *message;
+			const XMLCh* value;
+			char* msg_context;
+			string *response_string;
+			char* password;
 
 			try {
 				parser->parse( *mem_buf );
@@ -112,6 +117,8 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 			{
 				log_message( log_file, "Error parsing buffer" );
 				log_message( log_file, XMLString::transcode( e.getMessage() ) );
+				send_error_response( connection, XML_ERR_UNKNOWN );
+				delete( mem_buf );
 				return MHD_NO;
 			}
 
@@ -121,8 +128,10 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 			if ( !msg_root )
 			{
 				log_message( log_file, "No root element in message" );
+				//odesilame error
 				send_error_response( connection, XML_ERR_UNKNOWN );
 				message->release();
+				delete( mem_buf );
 				return MHD_NO;
 			}
 
@@ -130,17 +139,26 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 			if ( !XMLString::equals( msg_root->getTagName(), X("message") ) )
 			{
 				log_message( log_file, "No message element in message" );
+				//spatny format zpravy
 				send_error_response( connection, XML_ERR_WRONG_MSG );
 				message->release();
+				delete( mem_buf );
 				return MHD_NO;
 			}
 
-			//TODO: zde nas zajima attribut password => community pro snmp
+			//Ulozime password = community string
+			value = msg_root->getAttribute( X( "password" ) );
+			password = XMLString::transcode( value );
+
+			//Ulozime si Message Context atribut
+			value = msg_root->getAttribute( X( "context" ) );
+			msg_context = XMLString::transcode( value );
+
+			response_string = new string;;
 
 			//Nasleduje cyklus pro kazdy podelement rootu -> jeden prikaz na zpracovani
 			DOMNodeList *children = msg_root->getChildNodes();
 
-			//TODO: nutno send_response dat az ven z for cyklu a poslat pouze 1 zpravu!!
 
 			for( XMLSize_t i = 0; i < children->getLength(); i++ )
 			{
@@ -151,22 +169,19 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 				{
 					DOMElement *elem = dynamic_cast<DOMElement *>(node);
 
-					log_message( log_file, "element");
-
 					struct request_data *xr;
 
 					//zpracovani nejake zpravy
 					if ( XMLString::equals( elem->getTagName(), X( "discovery" ) ) )
 					{
 						xr = process_discovery_message( connection, elem );
-					//volani fce na vybudovani odpovedi
-					//string *out = build_response_string( xr );
+						//volani fce na vybudovani odpovedi
 
 					//send_response( connection, out );
 					}
 					else if ( XMLString::equals( elem->getTagName(), X( "get" ) ) )
 					{
-						//process_discovery_message( connection, elem );
+						xr = process_get_message( elem, password );
 					}
 					else if ( XMLString::equals( elem->getTagName(), X( "set" ) ) )
 					{
@@ -178,15 +193,30 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 						log_message( log_file, "element error");
 						//send_error_response( connection, XML_ERR_UNKNOWN_MSG );
 						message->release();
+						delete( mem_buf );
 						return MHD_NO;
 					}
 
+					string *out = build_response_string( xr );
+					*response_string += *out;
+					delete( out );
+					delete( xr );
 
 				}
+
 			}
 
 		 message->release();
-		 return MHD_NO;
+
+		 //odeslani odpovedi
+		 int ret =  send_response( connection, msg_context,  response_string );
+		 delete( response_string );
+		 XMLString::release( &password );
+		 XMLString::release( &msg_context );
+		 delete( mem_buf );
+
+
+		 return ret;
 		}
 
 		return MHD_NO;
@@ -255,19 +285,39 @@ int XmlModule::post_iterate( void *coninfo_cls, enum MHD_ValueKind kind, const c
 /*
 Odeslani zpravy zpet
 */
-int XmlModule::send_response( struct MHD_Connection *connection, string *out )
+int XmlModule::send_response( struct MHD_Connection *connection, const char* msg_context,  string *out )
 {
 	int ret;
 	struct MHD_Response *response = NULL;
 
-	log_message( log_file, "Sending response");
-	log_message( log_file, out->c_str() );
-	response = MHD_create_response_from_data( strlen( out->c_str() ), (void *) out->c_str(), MHD_YES, MHD_NO );
+	/*
+	Vybudujeme finalni obalku okolo vsech vystupnich odpovedi
+	*/
+	string message = "<message";
+
+	if ( strcmp( msg_context, "" ) == 0 )
+		message += ">";
+	else
+	{
+		message += "context=\"";
+		message += msg_context;
+		message += "\">";
+	}
+
+	message += *out;
+	message += "</message>";
+
+	response = MHD_create_response_from_data(  message.size(), (void *) message.c_str(), MHD_NO, MHD_YES );
+
+	if ( response == NULL )
+	{
+		log_message( log_file, "Cannot create response from data. Cannot send back anything." );
+		return MHD_NO;
+	}
 
 	ret = MHD_queue_response( connection, MHD_HTTP_OK, response );
 	MHD_destroy_response( response);
 
-	log_message( log_file, "returning from send response" );
 	return ret;
 }
 
@@ -280,6 +330,8 @@ int XmlModule::send_error_response( struct MHD_Connection *connection, int error
 	struct MHD_Response *response = NULL;
 
 	const char *wrong_message_type = "Must be POST method";
+	const char *message_missing = "Element <message></message> missing.";
+	const char *unknown_error = "Server experienced uknown error while parsing request.";
 
 	switch (error)
 	{
@@ -287,7 +339,15 @@ int XmlModule::send_error_response( struct MHD_Connection *connection, int error
 			//send back page
 			response = MHD_create_response_from_data( strlen (wrong_message_type), (void *)wrong_message_type, MHD_NO, MHD_NO);
 			break;
+		case XML_ERR_UNKNOWN:
+			//send back page
+			response = MHD_create_response_from_data( strlen (unknown_error), (void *)unknown_error, MHD_NO, MHD_NO);
+			break;
 
+		case XML_ERR_WRONG_MSG:
+			//send back page
+			response = MHD_create_response_from_data( strlen (message_missing), (void *)message_missing, MHD_NO, MHD_NO);
+			break;
 		default:
 		break;
 	}
@@ -312,9 +372,15 @@ Vybudovani odpovedniho stringu
 */
 string * XmlModule::build_response_string( struct request_data *data )
 {
-	string *out;
+	string *out = new string;
 	char *buf;
+	char tmpid[10];
 
+	//TODO: nejprve check, jestli data neobsahuji nastaveny error
+
+	/*
+	DISCOVERY message response
+	*/
 	if ( data->msg_type == XML_MSG_TYPE_DISCOVERY )
 	{
 		DOMImplementation *impl;
@@ -330,10 +396,10 @@ string * XmlModule::build_response_string( struct request_data *data )
 		writer->setErrorHandler( err );
 
 
-		//writer->setFeature( XMLUni::fgDOMWRTFormatPrettyPrint, true );
+		writer->setFeature( XMLUni::fgDOMWRTFormatPrettyPrint, true );
 
 		//Jestli budeme posilat main xsd, nebo xsd zarizeni
-		if ( data->discovery_object_id == -1 )
+		if ( data->object_id == -1 )
 		{
 			//main xsd
 			try {
@@ -347,12 +413,36 @@ string * XmlModule::build_response_string( struct request_data *data )
 		else
 		{
 			//xsd daneho zarizeni
+			int position = snmpmod->get_device_position( data->object_id );
+			if ( position != -1  )
+			{
+				DOMElement *ro = get_device_document( position );
+
+				xsd = writer->writeToString( *ro );
+			}
 		}
+
+
+		/*
+		Odpoved - PUBLICATION
+		*/
+		*out = "<publication msgid=\"";
+		sprintf( tmpid, "%d", data->msgid );
+		*out += tmpid;
+		*out += "\">\n";
 
 		if ( xsd != NULL )
 		{
+
+			//TODO: zamyslet se, jestli budeme posilat i neco s xquery nebo nechame xpath
+			*out += "<info><xpath>1.0</xpath></info>\n";
+			*out += "<dataModel>";
+
+
 			buf = XMLString::transcode( xsd );
-			out = new string( buf );
+			*out += buf;
+
+			*out += "</datamodel>\n";
 
 			//log_message( log_file, out->c_str() );
 
@@ -362,15 +452,128 @@ string * XmlModule::build_response_string( struct request_data *data )
 		}
 		else
 		{
-			out = new string("");
-			log_message( log_file, "write to string failed" );
+			*out += "<error code=\"2\">Cannot generate data model</error>\n";
+			log_message( log_file, "Cannot generate data model in response to DISCOVERY message" );
 		}
+
+		//uzavreni vystupni zpravy
+		*out += "</publication>\n";
+
 		writer->release();
+	}
+	/*
+	GET message response
+	*/
+	else if ( data->msg_type == XML_MSG_TYPE_GET )
+	{
+		//check na error
+
+		//vyrizeni odpovedi
 	}
 
 	return out;
 }
 
+
+/*
+Vrati odkaz na DOMElement z devices_root
+*/
+DOMElement* XmlModule::get_device_document( int position )
+{
+	list<DOMElement *>::iterator it = devices_root->begin();
+
+	for ( int a=0; a < position; a++ )
+		it++;
+	
+	return *it;
+}
+
+/*
+Nalezne element dle xpath vyrazu a vrati na nej odkaz
+*/
+string XmlModule::find_element_oid( const XMLCh* name, DOMElement* doc_root )
+{
+	string ret_str = "";
+	char *ret_buf;
+
+	log_message( log_file, "Starting find of oid" );
+	//Ziskame pointer na dokument daneho zarizeni
+	DOMDocument *doc = doc_root->getOwnerDocument();
+
+	if ( doc == NULL )
+	{
+		log_message( log_file, "Document is NULL" );
+	}
+
+	//Pripravime struktury k vyhledani
+	XercesDOMSupport              support;
+    XercesParserLiaison           liaison(support);
+	XercesDOMWrapperParsedSource  src(doc, liaison, support);
+	XalanDocument*                xalanDoc = src.getDocument( );
+
+    XPathEvaluator                evaluator;
+    XalanDocumentPrefixResolver   resolver(xalanDoc);
+    XObjectPtr                    result;
+
+
+	//Vyhledani daneho elementu
+	log_message( log_file, "Before evaluate" );
+	try {
+		result = evaluator.evaluate(
+				   support,        // DOMSupport
+				  xalanDoc,       // context node
+				  name,  // XPath expr
+				  resolver );     // Namespace resolver
+	}
+	catch ( ... )
+	{
+		log_message( log_file, "Error while searching for element");
+		return ret_str;
+	}
+
+	 log_message( log_file, "End of evaluate" );
+
+    const NodeRefListBase&        nodeset = result->nodeset( );
+
+	if ( nodeset.getLength() > 1 )
+	{
+		log_message( log_file, "Found more than one element by xpath expression" );
+		//ERROR - nesmime najit vice elementu
+		return ret_str;
+	}
+	else if ( nodeset.getLength() == 1 )
+	{
+		log_message( log_file, "trying to get the node" );
+		XalanElement *elm = dynamic_cast<XalanElement *>(nodeset.item(0));
+		XalanDOMString *oid_str = new XalanDOMString("oid");
+		const XMLCh* value;
+
+		struct XalanNodeList *oid_list = elm->getElementsByTagName( *oid_str );
+
+		XalanNode *tmp_node = oid_list->item(0);
+
+		if ( tmp_node->getNodeType() && tmp_node->getNodeType() == XalanNode::ELEMENT_NODE )
+		{
+			elm = dynamic_cast<XalanElement *>(tmp_node);
+
+			value = elm->getNodeValue().c_str();
+			ret_buf = XMLString::transcode( value );
+			ret_str = string( ret_buf );
+
+			XMLString::release( &ret_buf );
+		}
+
+		log_message( log_file, "Ending find of oid" );
+		delete( oid_str );
+		return ret_str;
+	}
+	else
+	{
+		log_message( log_file, "No element found");
+		return ret_str;
+	}
+
+}
 
 /****************************************************
 ************** Cast zpracovani zprav*****************
@@ -387,7 +590,9 @@ struct request_data* XmlModule::process_discovery_message( struct MHD_Connection
 
 	/*
 	TODO:
-	protocolVersion check
+	protocolVersion check - nastavi error v request datech
+
+	proc mame v parametrech to connection???
 	*/
 
 	log_message( log_file, "Dostali jsme DISCOVERY message" );
@@ -399,11 +604,91 @@ struct request_data* XmlModule::process_discovery_message( struct MHD_Connection
 
 	value = elem->getAttribute( X( "objectId" ) );
 	if ( !XMLString::equals( value, X( "" ) ) )
-		xr->discovery_object_id = atoi( XMLString::transcode( value ) );
+	{
+		xr->object_id = atoi( XMLString::transcode( value ) );
+	}
 
 
 	return xr;
 }
 
 
+/*
+GET MESSAGE
+*/
+struct request_data* XmlModule::process_get_message( DOMElement *elem, const char *password )
+{
+	struct request_data *xr = new request_data;
+	const XMLCh* value;
+
+	/*
+	TODO:
+	*/
+
+	log_message( log_file, "Dostali jsme GET message" );
+
+	xr->msg_type = XML_MSG_TYPE_GET;
+
+	value = elem->getAttribute( X( "msgid" ) );
+	xr->msgid = atoi( XMLString::transcode( value ) );
+
+	value = elem->getAttribute( X( "objectId" ) );
+	if ( !XMLString::equals( value, X( "" ) ) )
+	{
+		xr->object_id = atoi( XMLString::transcode( value ) );
+	}
+	else xr->object_id = 0;
+
+	//Parsovani <xpath> elementu
+	DOMNodeList *children = elem->getChildNodes();
+
+	for( XMLSize_t i = 0; i < children->getLength(); i++ )
+	{
+		DOMNode *node = children->item(i);
+		
+		if ( node->getNodeType() && node->getNodeType() == DOMNode::ELEMENT_NODE)
+		{
+			DOMElement *el = dynamic_cast<DOMElement *>(node);
+
+			struct value_pair *vp = new value_pair;
+
+			//paklize je to <xpath>
+			if ( XMLString::equals( el->getTagName(), X( "xpath" ) ) )
+			{
+				value = el->getTextContent();
+				//Nalezeni OID hledaneho objektu
+				int pos = snmpmod->get_device_position( xr->object_id );
+				vp->oid = find_element_oid( value, get_device_document( pos ) );
+
+				log_message( log_file, vp->oid.c_str() );
+
+				/*
+				TODO 
+				find oid, dat do vp a pokracovat dal
+				*/
+
+				/*if ( strcmp( vp->oid.c_str(), "" ) == 0 )
+				{
+					xr->error = 1;
+					xr->error_str = "Such name cannot be found in managed data tree.";
+					return xr;
+				}*/
+
+				xr->request_list.push_back( vp );
+			}
+			else
+			{
+				xr->error = 1;
+				xr->error_str = "Unknown element in GET message";
+				return xr;
+			}
+		}
+	}
+
+	//TODO zavolat snmpmod funkci na ziskani danych dat!!
+
+
+
+	return xr;
+}
 

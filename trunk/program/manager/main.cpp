@@ -35,11 +35,12 @@ static size_t write_data( void *ptr, size_t size, size_t nmemb, void *data)
 		mem->memory[mem->size] = 0;
     }
 	
+	//cout << (char *)ptr <<endl;
 	return realsize;
 
 }
 
-const char *msg = "<message><discovery msgid=\"1\" /></message>";
+const char *msg = "<message><get msgid=\"1\" objectId=\"0\"><xpath>/schema</xpath></get></message>";
 
 
 int main(int argc, char *argv[])
@@ -85,6 +86,7 @@ int main(int argc, char *argv[])
 		now we output data in respose
 		*/
 		cout << response.memory << endl;
+		cout << "End of response------"<<endl;
     curl_slist_free_all (headerlist);
 
 		/* then cleanup the formpost chain */

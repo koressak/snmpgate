@@ -133,8 +133,10 @@ DONE
 
 	- callback na vyrizovani pozadavku
 		- parsovani dat
+		DONE
 
 		- generovani odpovedi
+		DONE
 	
 	- kazdy http thread bude volat snmp fci -> send meesgae
 		Tato fce bude cekat thread-safe synch response na odpoved a rovnou
@@ -146,11 +148,18 @@ DONE
 	
 	- jednotlive zpravy
 		- discovery
+		DONE
 
 		- publication
+		DONE
 
 		- get
+			- simple values
+
 			-tabulky
+
+			- Nutne dodelani objectId parametru do teto zpravy!
+			DONE
 
 		- set
 			- tabulky
@@ -183,6 +192,9 @@ Low priority
 
 - INVALID Nedelat transformaci pokazde. Ulozit si checksum logovaciho souboru a pak se podivat, jestli se neco zmenilo (low priority)
 
+- DONE Pro managera pouzit knihovnu libcurl pro smotavani http dotazu
+
+
 
 - Do textu pak napsat, ze vyuzivame pouze protokol 1 a 2c, jine nepodoporuje knihovna net-snmp
 
@@ -192,10 +204,10 @@ Low priority
 
 - Do textu zmenit analyzu -> Description message - optional atribut objectId
 
-- Pro managera pouzit knihovnu libcurl pro smotavani http dotazu
-
 - Udelat snmpxmlgate jako global promennou -> pri odchytnuti sigterm se zavola stop a ukonci se jeho funkce hezky a nikoliv
 nasilnym smazanim vsech struktur.
+
+- Udelat seznam Publication error codes - (vubec vymyslet nejaky seznam)
 
 
 
@@ -226,6 +238,9 @@ To navratime gettrem z snmpmod
 - DONE  xml dokumenty se nedokazou prekryvat. Tudiz udelame seznam device dokumentu a hlavni dokument bude zvlast.
 paklize se pak nekdo zepta na nejaka data, tak se mrkneme do prislusneho dokumentu, ale nemuze to byt pod data (je to ULEHCENI)
 
+- DONE DULEZITE NECHODI SEND RESPONSE BACK
+
+
 
 
 
@@ -241,14 +256,20 @@ paklize se pak nekdo zepta na nejaka data, tak se mrkneme do prislusneho dokumen
 
 - Udelat lepsi parsovani XML dat z message, ktery prijmeme
 
-- DULEZITE NECHODI SEND RESPONSE BACK
+- RESPONSE message se musi rozsirit i o ERROR element, kdy neco nevyjde
+
+- Problem s XPath. Jestli v te hnusne podobe ma posilat string manager, nebo se ma vytvorit az na miste
+
+
+
+
 
 
 MACEJKOVI - konzultace:
 --------------------------
-- rict, ze budeme vzdy pro jeden celej device generovat cely strom. Nikoliv rozpitvani do jednotlivych souboru.
-- namespaces - jak to delat. Staci zvolit jeden pro celou stromovou strukturu v ramci jednoho device?
-- ulehceni -> bude seznam dokumentu a nikoliv nebudeme udrzovat seznam vseho v jednom
-- http server nebude optimalni, pac jeho implementace presahuje ramec programu
+- Kdyz bude pri GET dotaz na uzel, ktery ma deti, tak se to ma rekurzivne projet dolu a najit vsechny hodnoty??
+- GET a SET message mohou mit vice jednotlivych <xpath></xpath> dotazu v ramci jedne message,ze?
+- XPath vyraz je problem - musime odkazovat na atribut name. Tudiz mel by se o to starat ten manager?? Jsem rozhodne pro
+(vysledny xpath vyraz je fakt hnusny, pac se stale opakuje xsd:element[name="xxx"])
 
 

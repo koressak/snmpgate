@@ -275,6 +275,27 @@ SNMP_device* SnmpModule::get_gate_device()
 }
 
 /*
+Vrati pozici daneho zarizeni v seznamu devices.
+coz se rovna i pozici v seznamu rootu dokumentu
+*/
+int SnmpModule::get_device_position( int dev_id )
+{
+	int pos = 0;
+
+	list<SNMP_device *>::iterator it;
+
+	for( it = devices.begin(); it != devices.end(); it++ )
+	{
+		if ( (*it)->id == dev_id )
+			return pos;
+		else
+			pos++;
+	}
+
+	return -1;
+}
+
+/*
 Zaslani dotazu agentovi - volano XmlModulem
 */
 int send_request( struct request_data* req_data )

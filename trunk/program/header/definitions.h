@@ -48,6 +48,18 @@ XML Xerces related
 #include <xercesc/framework/MemBufInputSource.hpp>
 
 /*
+XML Xalan XPath evaluator
+*/
+#include <xalanc/DOMSupport/XalanDocumentPrefixResolver.hpp>
+#include <xalanc/XalanTransformer/XercesDOMWrapperParsedSource.hpp>
+#include <xalanc/XercesParserLiaison/XercesParserLiaison.hpp>
+#include <xalanc/XercesParserLiaison/XercesDOMSupport.hpp>
+#include <xalanc/XPath/XObject.hpp>
+#include <xalanc/XPath/XPathEvaluator.hpp>
+#include <xalanc/XalanDOM/XalanNodeList.hpp>
+
+
+/*
 SNMP includy
 */
 #include <net-snmp/net-snmp-config.h>
@@ -63,6 +75,7 @@ Namespaces
 */
 using namespace std;
 using namespace xercesc;
+using namespace xalanc;
 
 
 
@@ -91,7 +104,7 @@ XML error hodnoty
 */
 #define XML_ERR_NO_HTTP_POST 		1
 #define XML_ERR_UNKNOWN				2
-#define XML_ERR_WRONG_MSG			3
+#define XML_ERR_WRONG_MSG			3 //spatny format zpravy
 #define XML_ERR_UNKNOWN_MSG			4
 
 
@@ -317,15 +330,41 @@ struct connection_info {
 };
 
 /*
+Dvojice nazev - hodnota.
+*/
+struct value_pair
+{
+	string oid;
+	string value;
+
+	value_pair()
+	{
+		oid = value = "";
+	}
+
+	~value_pair()
+	{
+	}
+};
+
+/*
 Xml request struktura obsahujici data,
 ktera chceme ziskat od agenta
 */
 struct request_data {
 
+	//obecne hodnoty
 	int msgid;
+	string msg_context;
 	int msg_type;
+	int object_id;
 
-	int discovery_object_id;
+	//GET list
+	list<value_pair *> request_list;
+
+	//jakykoliv error
+	int error;
+	string error_str;
 
 	//TODO dodefinovat vsechny podstatne seznamy
 
@@ -334,7 +373,18 @@ struct request_data {
 		msgid = 0;
 		msg_type = -1;
 
-		discovery_object_id = -1;
+		object_id = -1;
+
+		error = -1;
+	}
+
+	~request_data()
+	{
+		list<value_pair *>::iterator it;
+		for ( it = request_list.begin(); it != request_list.end(); it++ )
+		{
+			delete( (*it) );
+		}
 	}
 };
 
