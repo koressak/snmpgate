@@ -1259,7 +1259,37 @@ void Mib2Xsd::create_device_element( SNMP_device *dev, DOMElement *r )
 	tmel = main_doc->createElement( X("data") );
 	device->appendChild( tmel );
 
-	devices_root->push_back(r);
+	/*
+	Zde nacteme znova celej dokument pomoci parseru
+	a setDoNamespaces(true)
+	*/
+	//Nutno nejprve releasnout ten hlavni dokument
+	doc->release();
+
+	XercesDOMParser *conf_parser = new XercesDOMParser;
+
+	conf_parser->setValidationScheme( XercesDOMParser::Val_Never );
+	conf_parser->setDoNamespaces( true );
+	conf_parser->setDoSchema( false );
+	conf_parser->setLoadExternalDTD( false );
+
+	sprintf( out, "%d.xsd", dev->id );
+
+	try {
+
+		conf_parser->parse( out );
+
+		DOMDocument *xmlDoc = conf_parser->getDocument();
+		DOMElement *rootElem = xmlDoc->getDocumentElement();
+
+		if ( !rootElem )
+			throw (char *)"Empty config file.";
+
+		devices_root->push_back(rootElem);
+	}
+	catch ( ... )
+	{
+	}
 
 }
 

@@ -46,17 +46,19 @@ XML Xerces related
 #include <xercesc/sax/SAXParseException.hpp>
 #include <xercesc/framework/LocalFileFormatTarget.hpp>
 #include <xercesc/framework/MemBufInputSource.hpp>
+#include <xercesc/framework/LocalFileInputSource.hpp>
 
 /*
 XML Xalan XPath evaluator
 */
+#include <xalanc/PlatformSupport/XSLException.hpp>
 #include <xalanc/DOMSupport/XalanDocumentPrefixResolver.hpp>
-#include <xalanc/XalanTransformer/XercesDOMWrapperParsedSource.hpp>
-#include <xalanc/XercesParserLiaison/XercesParserLiaison.hpp>
-#include <xalanc/XercesParserLiaison/XercesDOMSupport.hpp>
 #include <xalanc/XPath/XObject.hpp>
 #include <xalanc/XPath/XPathEvaluator.hpp>
-#include <xalanc/XalanDOM/XalanNodeList.hpp>
+#include <xalanc/XalanSourceTree/XalanSourceTreeDOMSupport.hpp>
+#include <xalanc/XalanSourceTree/XalanSourceTreeInit.hpp>
+#include <xalanc/XalanSourceTree/XalanSourceTreeParserLiaison.hpp>
+#include <xalanc/XalanTransformer/XercesDOMWrapperParsedSource.hpp>
 
 
 /*
