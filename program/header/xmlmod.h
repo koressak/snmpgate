@@ -81,7 +81,7 @@ class XmlModule
 		string * build_response_string( struct request_data* );
 
 		DOMElement* get_device_document( int );
-		string find_element_oid( const XMLCh*, DOMElement* );
+		string find_element( const XMLCh*, DOMElement* );
 
 		/*
 		Funkce na handlovani jednotlivych typu zprav

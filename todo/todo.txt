@@ -209,6 +209,8 @@ nasilnym smazanim vsech struktur.
 
 - Udelat seznam Publication error codes - (vubec vymyslet nejaky seznam)
 
+- Preddelat si XalanDocumenty pro DOMDocumenty zarizeni, aby se pak pri vyhledavani mohlo prejit ciste jenom na evaluate()
+
 
 
 Medium priority
