@@ -155,6 +155,7 @@ DONE
 
 		- get
 			- simple values
+			DONE
 
 			-tabulky
 
@@ -162,9 +163,16 @@ DONE
 			DONE
 
 		- set
+			-simple values 
+			DONE
+
 			- tabulky
 
 		- response
+			-report values
+			DONE
+
+			-error codes	
 
 8. Pokrocila komunikace - notifications
 	- thread na posilani XML zprav managerovi
@@ -194,6 +202,7 @@ Low priority
 
 - DONE Pro managera pouzit knihovnu libcurl pro smotavani http dotazu
 
+- DONE Preddelat si XalanDocumenty pro DOMDocumenty zarizeni, aby se pak pri vyhledavani mohlo prejit ciste jenom na evaluate()
 
 
 - Do textu pak napsat, ze vyuzivame pouze protokol 1 a 2c, jine nepodoporuje knihovna net-snmp
@@ -209,7 +218,8 @@ nasilnym smazanim vsech struktur.
 
 - Udelat seznam Publication error codes - (vubec vymyslet nejaky seznam)
 
-- Preddelat si XalanDocumenty pro DOMDocumenty zarizeni, aby se pak pri vyhledavani mohlo prejit ciste jenom na evaluate()
+- Otestovat na prijimani veskerych hodnot ( net-snmp ma haldu debilnich typu a ja se z toho muzu co?.... )
+
 
 
 
@@ -242,6 +252,8 @@ paklize se pak nekdo zepta na nejaka data, tak se mrkneme do prislusneho dokumen
 
 - DONE DULEZITE NECHODI SEND RESPONSE BACK
 
+- INVALID Zamyslet se nad tim, proc mam vlastne xsd soubory, kdyz to stejne nacitam z pameti
+Nutno pro zpetne nacteni a parsovani (pro pozdejsi vyhledavani pomoci XPathu)
 
 
 
@@ -254,14 +266,21 @@ paklize se pak nekdo zepta na nejaka data, tak se mrkneme do prislusneho dokumen
 
 - Do parseru XML configu -> paklize nejsou nastaveny porty pro poslouchani a transmit, dosadime nejake defaultni (GATE device)
 
-- Zamyslet se nad tim, proc mam vlastne xsd soubory, kdyz to stejne nacitam z pameti
-
 - Udelat lepsi parsovani XML dat z message, ktery prijmeme
 
 - RESPONSE message se musi rozsirit i o ERROR element, kdy neco nevyjde
 
 - Problem s XPath. Jestli v te hnusne podobe ma posilat string manager, nebo se ma vytvorit az na miste
 
+- Thread Safe design - zamyslet se nad tim, jake operace by mohly byt pro thready spatne a tim padem
+by si mohli prepisovat data
+
+- Neni mozne se ptat na uzel, ktery ma podstrom pod sebou ( neni to tabulka ). Nebylo by mu mozne totiz servirovat
+zpet odpovedi. O to se musi postarat manager!!
+
+- Osetrit chybu. Kdyz snmp zahlasi chybu, tak ten thread a connection nikdy neskonci. Kde se deje ten problem??@?@
+
+- Protestovat ruzne nody (typy MIB) na get a getnext zpravy. jak to tam zaonacit
 
 
 
@@ -269,9 +288,19 @@ paklize se pak nekdo zepta na nejaka data, tak se mrkneme do prislusneho dokumen
 
 MACEJKOVI - konzultace:
 --------------------------
-- Kdyz bude pri GET dotaz na uzel, ktery ma deti, tak se to ma rekurzivne projet dolu a najit vsechny hodnoty??
 - GET a SET message mohou mit vice jednotlivych <xpath></xpath> dotazu v ramci jedne message,ze?
+
+IMPORTANT:
+Neni mozne se dotazat na NO-LEAF node, ktery zaroven neni tabulkou. Pac jak bychom mu pak zpet servirovali hodnoty
+vsech leaf podnodu??
+
+Manager se bude muset postarat, pri dotazu na takovyto uzel, aby vygeneroval zpravu, jenz se bude dotazovat pouze na 
+jedinou hodnotu ci tabulku.
+
+
 - XPath vyraz je problem - musime odkazovat na atribut name. Tudiz mel by se o to starat ten manager?? Jsem rozhodne pro
 (vysledny xpath vyraz je fakt hnusny, pac se stale opakuje xsd:element[name="xxx"])
+
+- Nutno probrat, jestli system, kterym to delam, je v poradku. Ze se na kazdou vec zeptam a pak zpet posadim odpoved.
 
 

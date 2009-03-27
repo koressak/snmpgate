@@ -32,6 +32,7 @@ class SnmpModule {
 		list<SNMP_device*>* get_all_devices();
 		SNMP_device* get_gate_device();
 		int get_device_position( int );
+		SNMP_device* get_device_ptr( int );
 
 		/*
 		TODO: Thread na poslouchani snmp trapu
@@ -40,7 +41,7 @@ class SnmpModule {
 		/*
 		Funkce pro XmlModule na posilani zprav a ocekavani odpovedi
 		*/
-		int send_request( struct request_data* );
+		int send_request( struct request_data*, const char* password,  int msg_type );
 
 		DOMDocument *get_doc()
 		{
