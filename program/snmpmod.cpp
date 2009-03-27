@@ -14,6 +14,7 @@ Destruktor
 */
 SnmpModule::~SnmpModule()
 {
+	shutdown_mib();
 	delete( transform );
 }
 
@@ -246,6 +247,27 @@ int SnmpModule::start_transform()
 	transform->end_main_document();
 	
 
+	//parsovat uplne vsechna MIB, ktera jsou v jednotlivych zarizenich
+	init_mib();
+	struct tree *tr;
+	string mi = "";
+
+	for( it = devices.begin(); it != devices.end(); it++ )
+	{
+		if ( (*it)->similar_as == -1 )
+		{
+			list<char *>::iterator mit;
+			for ( mit = (*it)->mibs.begin(); mit != (*it)->mibs.end(); mit++)
+			{
+				mi = mib_path;
+				mi += (*mit);
+
+				tr = read_mib( mi.c_str() );
+			}
+		}
+
+	}
+
 	return 0;
 }
 
@@ -295,12 +317,226 @@ int SnmpModule::get_device_position( int dev_id )
 	return -1;
 }
 
+
+
+/*
+Vrati pozici daneho zarizeni v seznamu devices.
+coz se rovna i pozici v seznamu rootu dokumentu
+*/
+SNMP_device* SnmpModule::get_device_ptr( int dev_id )
+{
+
+	list<SNMP_device *>::iterator it;
+
+	for( it = devices.begin(); it != devices.end(); it++ )
+	{
+		if ( (*it)->id == dev_id )
+			return (*it);
+	}
+
+	return NULL;
+}
+
+
+
+
+/*****************************
+*********************************/
+
+
+
 /*
 Zaslani dotazu agentovi - volano XmlModulem
 */
-int send_request( struct request_data* req_data )
+int SnmpModule::send_request( struct request_data* req_data, const char *password,  int msg_type )
 {
 	//TODO: delat pomoci thread safe Single API 
+	int liberr, syserr;
+	char *errstr;
+
+	void *ss;
+	struct snmp_session session, *sptr;
+
+	struct snmp_pdu *pdu, *response;
+
+	oid elem[MAX_OID_LEN];
+	size_t elem_len= MAX_OID_LEN;
+	int status;
+
+	string error_msg;
+	SNMP_device *dev;
+
+	/*
+	Variable list pro odpoved
+	*/
+	struct variable_list *vars;
+	char *var_buf;
+
+	//Nejprve ziskame device, kteremu to budeme posilat
+	dev = get_device_ptr( req_data->object_id );
+	
+	if ( dev == NULL )
+	{
+		log_message( log_file, "SnmpModule: Cannot find device" );
+		return -1;
+	}
+
+	//inicializace snmp session
+	snmp_sess_init( &session );
+
+	session.peername = dev->snmp_addr;
+
+	switch ( atoi( dev->protocol_version ) )
+	{
+		case 1:
+			session.version = SNMP_VERSION_1;
+			break;
+		case 2:
+			session.version = SNMP_VERSION_2c;
+			break;
+		default:
+			session.version = SNMP_VERSION_1;
+	}
+
+	session.community = (u_char *) password;
+	session.community_len = strlen( (const char *)session.community );
+
+	ss = snmp_sess_open( &session );
+
+	if ( ss == NULL )
+	{
+		snmp_error( &session, &liberr, &syserr, &errstr );
+		log_message( log_file, errstr );
+		delete( errstr );
+		errstr = NULL;
+		return -1;
+	}
+	
+	sptr = snmp_sess_session( ss );
+
+	/*
+	Vytvoreni pdu a naplneni daty
+	*/
+	switch ( msg_type )
+	{
+		case XML_MSG_TYPE_GET:
+			pdu = snmp_pdu_create( SNMP_MSG_GET );
+			break;
+
+		case XML_MSG_TYPE_SET:
+			pdu = snmp_pdu_create( SNMP_MSG_SET );
+			break;
+
+		default:
+			req_data->error = 1;
+			req_data->error_str = "no such message";
+			snmp_sess_close( ss );
+			return -1;
+
+	}
+
+	list<struct value_pair *>::iterator it;
+
+	for ( it = req_data->request_list.begin(); it != req_data->request_list.end(); it++ )
+	{
+		//TODO - dle typu message bud dat hodnotu nebo null var (get/set)
+		get_node( (*it)->oid.c_str(), elem, &elem_len );
+
+		switch ( msg_type )
+		{
+			case XML_MSG_TYPE_SET:
+				snmp_pdu_add_variable( pdu, elem, elem_len, ASN_OCTET_STR, (const u_char*)(*it)->value.c_str(), (*it)->value.size() );
+				break;
+
+			case XML_MSG_TYPE_GET:
+			default:
+				snmp_add_null_var( pdu, elem, elem_len );
+		}
+	}
+
+	status = snmp_sess_synch_response( ss, pdu, &response );
+	//status = snmp_sess_send( ss, pdu );
+
+	if ( status != STAT_SUCCESS || response->errstat != SNMP_ERR_NOERROR )
+	{
+		//chyba v komunikaci - odebirame z monitorovanych zarizeni
+		log_message( log_file, "error happened" );
+		snmp_sess_error( &sptr, &liberr, &syserr, &errstr );
+		while ( errstr )
+		{
+			log_message( log_file, errstr);
+
+			delete(errstr);
+			errstr = NULL;
+			snmp_sess_error( &sptr, &liberr, &syserr, &errstr );
+		}
+
+		//TODO dodelat checknuti na error odpoved od agenta
+	}
+	else
+	{
+		//Prisle hodnoty vrazime zpet do request_data struktury
+		//a muzeme v klidu vratit
+
+		if ( msg_type == XML_MSG_TYPE_GET )
+		{
+			for ( it = req_data->request_list.begin(), vars = response->variables; it != req_data->request_list.end(); vars = vars->next_variable, it++ )
+			{
+				if ( vars != NULL )
+				{
+					var_buf = new char[ 1 + vars->val_len ];
+					switch ( vars->type )
+					{
+						case ASN_OCTET_STR:
+							memcpy( var_buf, vars->val.string, vars->val_len );
+							var_buf[ vars->val_len ] = '\0';
+							break;
+
+						case ASN_BIT_STR:
+							memcpy( var_buf, vars->val.bitstring, vars->val_len );
+							var_buf[ vars->val_len ] = '\0';
+							break;
+
+						case ASN_OBJECT_ID:
+							sprintf( var_buf, "%ld", *(vars->val.objid) );
+							break;
+
+						case ASN_INTEGER:
+							sprintf( var_buf, "%ld", *(vars->val.integer) );
+							break;
+
+						case ASN_APP_COUNTER64:
+							sprintf( var_buf, "%ld%ld", vars->val.counter64->high, vars->val.counter64->low );
+							break;
+
+						case ASN_APP_FLOAT:
+							sprintf( var_buf, "%f", *(vars->val.floatVal) );
+							break;
+
+						case ASN_APP_DOUBLE:
+							sprintf( var_buf, "%f", *(vars->val.doubleVal) );
+							break;
+
+						//TODO check na Integer64 a Unsigned64 - jestli se to schovava v counter64
+
+					}
+
+					(*it)->value = string( var_buf );
+					log_message( log_file, var_buf );
+
+					delete ( var_buf );
+				}
+
+			}
+		}
+	}
+
+	if ( response )
+		snmp_free_pdu( response );
+
+	snmp_sess_close( ss );
+
+	return 0;
 }
 
 

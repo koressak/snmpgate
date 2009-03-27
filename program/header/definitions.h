@@ -59,6 +59,7 @@ XML Xalan XPath evaluator
 #include <xalanc/XalanSourceTree/XalanSourceTreeInit.hpp>
 #include <xalanc/XalanSourceTree/XalanSourceTreeParserLiaison.hpp>
 #include <xalanc/XalanTransformer/XercesDOMWrapperParsedSource.hpp>
+#include <xalanc/XercesParserLiaison/XercesElementWrapper.hpp>
 
 
 /*
@@ -377,7 +378,7 @@ struct request_data {
 
 		object_id = -1;
 
-		error = -1;
+		error = 0;
 	}
 
 	~request_data()
@@ -390,6 +391,26 @@ struct request_data {
 	}
 };
 
+
+/*
+Ulozeni XalanDocumentu s Liaisonem
+*/
+struct xalan_docs_list
+{
+	XalanDocument *doc;
+	XercesParserLiaison *liaison;
+
+	xalan_docs_list()
+	{
+		doc = NULL;
+		liaison = NULL;
+	}
+
+	~xalan_docs_list()
+	{
+		delete( liaison );
+	}
+};
 
 
 #endif

@@ -34,6 +34,11 @@ Destruktor
 */
 XmlModule::~XmlModule()
 {
+	//TODO delete all xalan documents
+	list< struct xalan_docs_list *>::iterator it;
+
+	for( it = xalan_docs.begin(); it != xalan_docs.end(); it++ )
+		delete ((*it));
 }
 
 /*
@@ -46,6 +51,34 @@ void XmlModule::set_parameters( DOMElement *r, list<DOMElement *> *roots, char *
 	log_file = log;
 	xsd_dir = xsd;
 	snmpmod = sn;
+
+
+	/*
+	Build Xalan Documents
+	*/
+	list<DOMElement *>::iterator it; 
+
+	DOMDocument *doc;
+	XercesDOMSupport		theDOMSupport;
+	XercesParserLiaison	*theLiaison;
+	XalanDocument *theDocument;
+	
+
+	for ( it= devices_root->begin(); it != devices_root->end(); it++ )
+	{
+		doc = (*it)->getOwnerDocument();
+		struct xalan_docs_list *l = new xalan_docs_list;
+
+		theLiaison = new XercesParserLiaison( theDOMSupport );
+		theDocument =
+			theLiaison->createDocument(doc, true, true, true);
+
+		l->doc = theDocument;
+		l->liaison = theLiaison;
+
+		xalan_docs.push_back( l );
+	}
+
 }
 
 /*
@@ -181,11 +214,11 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 					}
 					else if ( XMLString::equals( elem->getTagName(), X( "get" ) ) )
 					{
-						xr = process_get_message( elem, password );
+						xr = process_get_set_message( elem, password, XML_MSG_TYPE_GET );
 					}
 					else if ( XMLString::equals( elem->getTagName(), X( "set" ) ) )
 					{
-						//process_discovery_message( connection, elem );
+						xr = process_get_set_message( elem, password, XML_MSG_TYPE_SET );
 					}
 					else
 					{
@@ -210,14 +243,15 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 
 		 //odeslani odpovedi
 		 int ret =  send_response( connection, msg_context,  response_string );
+
 		 delete( response_string );
 		 XMLString::release( &password );
 		 XMLString::release( &msg_context );
 		 delete( mem_buf );
 
-
 		 return ret;
 		}
+
 
 		return MHD_NO;
 	}
@@ -466,9 +500,33 @@ string * XmlModule::build_response_string( struct request_data *data )
 	*/
 	else if ( data->msg_type == XML_MSG_TYPE_GET )
 	{
-		//check na error
-
 		//vyrizeni odpovedi
+		/*
+		Odpoved - RESPONSE
+		*/
+		*out = "<response msgid=\"";
+		sprintf( tmpid, "%d", data->msgid );
+		*out += tmpid;
+		*out += "\">\n";
+
+		list<struct value_pair *>::iterator rit;
+
+		for ( rit = data->request_list.begin(); rit != data->request_list.end(); rit++ )
+		{
+			*out += "<value>";
+			*out += (*rit)->value;
+			*out += "</value>\n";
+		}
+
+		*out += "</response>\n";
+	}
+	else if ( data->msg_type == XML_MSG_TYPE_SET )
+	{
+		//TODO udelat check na error
+		*out = "<response msgid=\"";
+		sprintf( tmpid, "%d", data->msgid );
+		*out += tmpid;
+		*out += "\" />\n";
 	}
 
 	return out;
@@ -489,97 +547,98 @@ DOMElement* XmlModule::get_device_document( int position )
 }
 
 /*
+Vrati odkaz na XalanDokument z xalan_docs
+*/
+XalanDocument* XmlModule::get_device_xalan_document( int position )
+{
+	list<struct xalan_docs_list *>::iterator it = xalan_docs.begin();
+
+	for ( int a=0; a < position; a++ )
+		it++;
+	
+	return (*it)->doc;
+}
+
+/*
 Nalezne element dle xpath vyrazu a vrati na nej odkaz
 */
-string XmlModule::find_element( const XMLCh* name, DOMElement* doc_root )
+const DOMElement* XmlModule::find_element( const XMLCh* name, XalanDocument* theDocument )
 {
-	string ret_str = "";
-	char *ret_buf;
-	const XMLCh* value;
-
-	log_message( log_file, "Starting find of oid" );
-
-	/*
-	TODO:
-	doosetrit spatne xpath vyrazy -> nutno dat try catch elementy
-	*/
-
+	const DOMElement *ret_elm = NULL;
 
 	//Ziskame pointer na dokument daneho zarizeni
-	DOMDocument *doc = doc_root->getOwnerDocument();
 
 	//Pripravime struktury k vyhledani
 	XercesDOMSupport		theDOMSupport;
-	XercesParserLiaison	theLiaison(theDOMSupport);
-	XalanDocument* const	theDocument =
-			theLiaison.createDocument(doc, true, true, true);
 	
 	if ( theDocument == NULL )
 	{
 		log_message( log_file, "cannot create document" );
-	}
-	
+		return ret_elm;
+	}	
+
 
 	XalanDocumentPrefixResolver		thePrefixResolver(theDocument);
 	XPathEvaluator	theEvaluator;
+	XalanNode* theContextNode;
 
-	XalanNode* const	theContextNode =
+	try {
+		theContextNode =
 			theEvaluator.selectSingleNode(
 				theDOMSupport,
 				theDocument,
 				XalanDOMString("xsd:schema").c_str(),
 				thePrefixResolver);
 
-	//Vyhledani daneho elementu
-	const XObjectPtr result( theEvaluator.evaluate(
-				   theDOMSupport,        // DOMSupport
-				  theContextNode,       // context node
-				  XalanDOMString(name).c_str(),  // XPath expr
-				   thePrefixResolver));     // Namespace resolver
 
-    const NodeRefListBase&        nodeset = result->nodeset( );
+		//Vyhledani daneho elementu
+		 const XObjectPtr result( theEvaluator.evaluate(
+					   theDOMSupport,        // DOMSupport
+					  theContextNode,       // context node
+					  XalanDOMString(name).c_str(),  // XPath expr
+					   thePrefixResolver));     // Namespace resolver
 
-	if ( nodeset.getLength() > 1 )
-	{
-		log_message( log_file, "Found more than one element by xpath expression" );
-		return ret_str;
-	}
-	else if ( nodeset.getLength() == 1 )
-	{
-		/*
-		Nasli jsme pomoci XPath vyrazu dany element
-		Nyni z neho dostaneme atribut name a ten navratime
-		*/
-		XalanNode *n = nodeset.item(0);
+		const NodeRefListBase&        nodeset = result->nodeset( );
 
-		if ( n->getNodeType() && n->getNodeType() != XalanNode::ELEMENT_NODE)
+		if ( nodeset.getLength() > 1 )
 		{
-			log_message( log_file, "Cannot get the element node" );
-			return ret_str;
+			log_message( log_file, "Found more than one element by xpath expression" );
+			return ret_elm;
 		}
+		else if ( nodeset.getLength() == 1 )
+		{
+			/*
+			Nasli jsme pomoci XPath vyrazu dany element
+			*/
+			XalanNode *n = nodeset.item(0);
 
-		XalanElement *elm = dynamic_cast<XalanElement *>(n);
+			if ( n->getNodeType() && n->getNodeType() != XalanNode::ELEMENT_NODE)
+			{
+				log_message( log_file, "Cannot get the element node" );
+				return ret_elm;
+			}
 
-		XalanDOMString dom_str("name");
+			//Z XalanElementu musime udelat DOMElement a ten vratit
+			XalanElement *elm = dynamic_cast<XalanElement *>(n);
+			XercesElementWrapper *wrap = dynamic_cast<XercesElementWrapper *>(elm);
+			ret_elm = wrap->getXercesNode();
 
-		value = (elm->getAttribute( dom_str )).c_str();
-		ret_buf = XMLString::transcode( value );
-		ret_str = string(ret_buf);
-
-		XMLString::release( &ret_buf );
-		return ret_str;
+			return ret_elm;
+		}
+		else
+		{
+			log_message( log_file, "No element found");
+			return ret_elm;
+		}
 	}
-	else
+	catch ( ... )
 	{
-		/*
-		TODO paklize jsme nic nenasli. Zkusime odparsovat posledni cast - asi tabulka
-		a zkusime to zavolat znovu. Paklize nic, tak to neexistuje
-		*/
-		log_message( log_file, "No element found");
-		return ret_str;
+		log_message( log_file, "Exception while evaluating XPath expression" );
+		return ret_elm;
 	}
 
 }
+
 
 /****************************************************
 ************** Cast zpracovani zprav*****************
@@ -622,19 +681,31 @@ struct request_data* XmlModule::process_discovery_message( struct MHD_Connection
 /*
 GET MESSAGE
 */
-struct request_data* XmlModule::process_get_message( DOMElement *elem, const char *password )
+struct request_data* XmlModule::process_get_set_message( DOMElement *elem, const char *password, int msg_type )
 {
 	struct request_data *xr = new request_data;
 	const XMLCh* value;
+	struct value_pair *vp;
+	DOMNodeList *children;
+	DOMElement *el;
+	DOMNode *node;
 
-	log_message( log_file, "Dostali jsme GET message" );
+	const DOMElement *found_el;
+	const DOMElement *type_element;
 
-	xr->msg_type = XML_MSG_TYPE_GET;
+	string tmp_str_xpath = "";
+	char *tmp_buf;
+	bool create_vp = true;
 
+
+
+	log_message( log_file, "Dostali jsme GET/SET message" );
+
+	xr->msg_type = msg_type;
 	value = elem->getAttribute( X( "msgid" ) );
 	xr->msgid = atoi( XMLString::transcode( value ) );
-
 	value = elem->getAttribute( X( "objectId" ) );
+
 	if ( !XMLString::equals( value, X( "" ) ) )
 	{
 		xr->object_id = atoi( XMLString::transcode( value ) );
@@ -642,53 +713,111 @@ struct request_data* XmlModule::process_get_message( DOMElement *elem, const cha
 	else xr->object_id = 0;
 
 	//Parsovani <xpath> elementu
-	DOMNodeList *children = elem->getChildNodes();
+	children = elem->getChildNodes();
 
 	for( XMLSize_t i = 0; i < children->getLength(); i++ )
 	{
-		DOMNode *node = children->item(i);
+		node = children->item(i);
 		
 		if ( node->getNodeType() && node->getNodeType() == DOMNode::ELEMENT_NODE)
 		{
-			DOMElement *el = dynamic_cast<DOMElement *>(node);
+			el = dynamic_cast<DOMElement *>(node);
 
-			struct value_pair *vp = new value_pair;
+			if ( create_vp )
+			{
+				vp = new value_pair;
+
+				create_vp = false;
+			}
 
 			//paklize je to <xpath>
 			if ( XMLString::equals( el->getTagName(), X( "xpath" ) ) )
 			{
 				value = el->getTextContent();
-				//Nalezeni OID hledaneho objektu
-				int pos = snmpmod->get_device_position( xr->object_id );
-				vp->oid = find_element( value, get_device_document( pos ) );
-
-				log_message( log_file, vp->oid.c_str() );
 
 				/*
-				TODO 
-				find oid, dat do vp a pokracovat dal
+				TODO:
+				zde bude nejprve check na tabulku - vyskyt TAble a Entry v xpathu
+				a pak se bude teprve zjistovat jmeno elementu
 				*/
 
-				/*if ( strcmp( vp->oid.c_str(), "" ) == 0 )
+				int pos = snmpmod->get_device_position( xr->object_id );
+				found_el = find_element( value, get_device_xalan_document( pos ) );
+
+				if ( found_el == NULL )
 				{
+					log_message( log_file, "NULL found element" );
 					xr->error = 1;
-					xr->error_str = "Such name cannot be found in managed data tree.";
+					xr->error_str = "Such element cannot be found in managed data tree.";
+					
+					delete( vp );
 					return xr;
-				}*/
+				}
+
+				/*
+				Nyni je nutne dostat OID daneho elementu
+				Nejprve check, jestli ma nejake descendants - je to korenovy uzel pro nejaky podstrom.
+				Paklize ne, tak je to list a muzeme z neho dostat typ a OID
+				*/
+
+				if ( found_el->hasChildNodes() )
+				{
+					//TODO Prodiskutovat tuto cast s Macejkem. Na tohle se proste ptat nemuze
+					log_message( log_file, "This is not a leaf node. Canceling request" );
+					xr->error = 1;
+					xr->error_str = "Cannot request this non-simple value node";
+					delete( vp );
+					return xr;
+				}
+				else
+				{
+					// ziskame nazev typu elementu
+					value = found_el->getAttribute( X( "name" ) );
+					tmp_buf = XMLString::transcode( value );
+
+					vp->oid = string( tmp_buf );
+					vp->oid += ".0";
+
+
+					XMLString::release( &tmp_buf );
+
+				}
+
+				if ( msg_type == XML_MSG_TYPE_GET )
+				{
+					xr->request_list.push_back( vp );
+					create_vp = true;
+				}
+			}
+			else if ( msg_type == XML_MSG_TYPE_SET && XMLString::equals( el->getTagName(), X( "value" ) ) )
+			{
+				value =  el->getTextContent();
+				tmp_buf = XMLString::transcode( value );
+				vp->value = string( tmp_buf );
+
+				XMLString::release( &tmp_buf );
 
 				xr->request_list.push_back( vp );
+				create_vp = true;
 			}
 			else
 			{
 				xr->error = 1;
 				xr->error_str = "Unknown element in GET message";
+				delete ( vp );
 				return xr;
 			}
 		}
 	}
 
-	//TODO zavolat snmpmod funkci na ziskani danych dat!!
-
+	/*
+	Zavolame snmp funkci, ktera dana data zpracuje a odesle agentovi
+	zaroven prijme odpoved a zpracuje data zpet
+	*/
+	if ( snmpmod->send_request( xr, password,  msg_type ) != 0 )
+	{
+		log_message( log_file, "XmlMod: snmp module returned error" );
+	}
 
 
 	return xr;

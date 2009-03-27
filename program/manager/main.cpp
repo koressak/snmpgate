@@ -40,7 +40,7 @@ static size_t write_data( void *ptr, size_t size, size_t nmemb, void *data)
 
 }
 
-const char *msg = "<message><get msgid=\"1\" objectId=\"0\"><xpath>xsd:element[@name='iso']/xsd:element[@name='org']</xpath></get></message>";
+const char *msg = "<message password=\"private\"><set msgid=\"1\" objectId=\"0\"><xpath>xsd:element[@name='iso']//xsd:element[@name='org']//xsd:element[@name='dod']//xsd:element[@name='internet']//xsd:element[@name='mgmt']//xsd:element[@name='mib-2']//xsd:element[@name='system']//xsd:element[@name='sysContact']</xpath><value>AAAA</value></set></message>";
 
 
 int main(int argc, char *argv[])

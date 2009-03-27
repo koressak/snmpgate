@@ -47,6 +47,9 @@ class XmlModule
 
 		list<DOMElement *> *devices_root;
 
+		//xalanDocuments
+		list<xalan_docs_list *> xalan_docs;
+
 		/*
 		Pointer to SNMP module - to send requests
 		*/
@@ -81,13 +84,14 @@ class XmlModule
 		string * build_response_string( struct request_data* );
 
 		DOMElement* get_device_document( int );
-		string find_element( const XMLCh*, DOMElement* );
+		XalanDocument* get_device_xalan_document( int );
+		const DOMElement* find_element( const XMLCh*, XalanDocument* );
 
 		/*
 		Funkce na handlovani jednotlivych typu zprav
 		*/
 		struct request_data* process_discovery_message( struct MHD_Connection *, DOMElement * );
-		struct request_data* process_get_message( DOMElement *, const char* );
+		struct request_data* process_get_set_message( DOMElement *, const char*, int );
 
 
 };
