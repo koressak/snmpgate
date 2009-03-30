@@ -108,7 +108,7 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 		else
 		{
 			log_message( log_file, "GET request cancelled" );
-			send_error_response( connection, XML_ERR_NO_HTTP_POST );
+			send_error_response( connection, XML_ERR_NO_HTTP_POST, NULL );
 		}
 
 		*con_cls = (void *)con_info;
@@ -150,7 +150,7 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 			{
 				log_message( log_file, "Error parsing buffer" );
 				log_message( log_file, XMLString::transcode( e.getMessage() ) );
-				send_error_response( connection, XML_ERR_UNKNOWN );
+				send_error_response( connection, XML_ERR_UNKNOWN, NULL );
 				delete( mem_buf );
 				return MHD_NO;
 			}
@@ -162,7 +162,7 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 			{
 				log_message( log_file, "No root element in message" );
 				//odesilame error
-				send_error_response( connection, XML_ERR_UNKNOWN );
+				send_error_response( connection, XML_ERR_UNKNOWN, NULL );
 				message->release();
 				delete( mem_buf );
 				return MHD_NO;
@@ -173,7 +173,7 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 			{
 				log_message( log_file, "No message element in message" );
 				//spatny format zpravy
-				send_error_response( connection, XML_ERR_WRONG_MSG );
+				send_error_response( connection, XML_ERR_WRONG_MSG, NULL );
 				message->release();
 				delete( mem_buf );
 				return MHD_NO;
@@ -228,6 +228,23 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 						message->release();
 						delete( mem_buf );
 						return MHD_NO;
+					}
+
+					/*
+					Jestli zjistime nejaky error pri parsovani ci provadeni prikazu
+					je nutne ukoncit prubeh a poslat zpet zpravu o chybe.
+					Pouze INTERNAL error. Klasicke SNMP errory handlujeme jako normalni odpoved
+					*/
+					if ( xr->error == XML_MSG_ERR_INTERNAL )
+					{
+						int ret = send_error_response( connection, 0, xr->error_str.c_str() );
+						XMLString::release ( &password );
+						XMLString::release ( &msg_context );
+						delete( response_string );
+						delete( mem_buf );
+						delete( xr );
+
+						return ret;
 					}
 
 					string *out = build_response_string( xr );
@@ -358,7 +375,7 @@ int XmlModule::send_response( struct MHD_Connection *connection, const char* msg
 /*
 Odeslani chybne zpravy zpet
 */
-int XmlModule::send_error_response( struct MHD_Connection *connection, int error )
+int XmlModule::send_error_response( struct MHD_Connection *connection, int error, const char *err_msg )
 {
 	int ret;
 	struct MHD_Response *response = NULL;
@@ -383,6 +400,8 @@ int XmlModule::send_error_response( struct MHD_Connection *connection, int error
 			response = MHD_create_response_from_data( strlen (message_missing), (void *)message_missing, MHD_NO, MHD_NO);
 			break;
 		default:
+			if ( err_msg != NULL )
+				response = MHD_create_response_from_data( strlen( err_msg ), (void *)err_msg, MHD_NO, MHD_YES );
 		break;
 	}
 
@@ -409,8 +428,6 @@ string * XmlModule::build_response_string( struct request_data *data )
 	string *out = new string;
 	char *buf;
 	char tmpid[10];
-
-	//TODO: nejprve check, jestli data neobsahuji nastaveny error
 
 	/*
 	DISCOVERY message response
@@ -500,7 +517,6 @@ string * XmlModule::build_response_string( struct request_data *data )
 	*/
 	else if ( data->msg_type == XML_MSG_TYPE_GET )
 	{
-		//vyrizeni odpovedi
 		/*
 		Odpoved - RESPONSE
 		*/
@@ -513,20 +529,38 @@ string * XmlModule::build_response_string( struct request_data *data )
 
 		for ( rit = data->request_list.begin(); rit != data->request_list.end(); rit++ )
 		{
-			*out += "<value>";
+			*out += "<value name=\"";
+			*out += (*rit)->oid;
+			*out += "\">\n";
 			*out += (*rit)->value;
 			*out += "</value>\n";
 		}
 
 		*out += "</response>\n";
 	}
+	/*
+	SET message response
+	*/
 	else if ( data->msg_type == XML_MSG_TYPE_SET )
 	{
-		//TODO udelat check na error
+		/*
+		RESPONSE
+		*/
 		*out = "<response msgid=\"";
 		sprintf( tmpid, "%d", data->msgid );
 		*out += tmpid;
-		*out += "\" />\n";
+
+		//Paklize vznikl error, zasleme jej managerovi
+		if ( data->snmp_err )
+		{
+			*out += "\">\n";
+
+			*out += "<error>";
+			*out += data->snmp_err_str;
+			*out += "</error>\n</response>\n";
+		}
+		else
+			*out += "\" />\n";
 	}
 
 	return out;
@@ -562,7 +596,7 @@ XalanDocument* XmlModule::get_device_xalan_document( int position )
 /*
 Nalezne element dle xpath vyrazu a vrati na nej odkaz
 */
-const DOMElement* XmlModule::find_element( const XMLCh* name, XalanDocument* theDocument )
+const DOMElement* XmlModule::find_element( const XMLCh* name, XalanDocument* theDocument, struct request_data* req_data, bool deep = true )
 {
 	const DOMElement *ret_elm = NULL;
 
@@ -627,8 +661,78 @@ const DOMElement* XmlModule::find_element( const XMLCh* name, XalanDocument* the
 		}
 		else
 		{
-			log_message( log_file, "No element found");
-			return ret_elm;
+			//TODO dodelat odsekavani cisilek v jmenu elementu
+			//Nenasli jsme, jdeme separovat zpet
+			if ( deep )
+			{
+				char *buf = XMLString::transcode( name );
+				string xp = string( buf );
+				string to_search;
+				string leftover;
+				unsigned int pos1, pos2, pos3;
+				string name;
+				string tmp_xp;
+				
+				const DOMElement *tmp_find = NULL;
+
+				XMLString::release( &buf );
+				/*
+				Nejprve se pokusime odstranit z nazvu cisilka (u posledniho elementu)
+				a pak teprve pujdeme rezat dany xpath
+				*/
+				pos1 = xp.rfind( "name='" );
+				if ( pos1 != string::npos )
+				{
+					pos2 = xp.find( "']", pos1+1 );
+
+					name = xp.substr( pos1+6, pos2 - (pos1+6) );
+
+					pos3 = name.find( "." );
+					if ( pos3 != string::npos )
+					{
+						req_data->snmp_indexed_name = name;
+
+						name = name.substr( 0, pos3 );
+
+						tmp_xp = xp.replace( pos1+6, pos2 - (pos1+6), name, 0, name.size() );
+
+						tmp_find = find_element( X( tmp_xp.c_str() ), theDocument, req_data, false );
+
+						if ( tmp_find != NULL )
+						{
+							req_data->xpath_end = "";
+							return tmp_find;
+						}
+					}
+
+				}
+
+				pos1 = xp.rfind("//");
+				//xpath string jde rozdelit na elementy. 
+				if ( pos1 != string::npos )
+				{
+					to_search = xp;
+					leftover = to_search.substr( pos1, to_search.size() );
+					to_search = to_search.substr( 0, pos1 );
+
+					if ( leftover.compare( "//next" ) == 0 )
+					{
+						req_data->snmp_getnext = 1;
+					}
+					else
+						req_data->xpath_end = leftover + req_data->xpath_end;
+
+					return find_element( X( to_search.c_str() ), theDocument, req_data, true );
+
+
+				}
+				//dosli jsme na zacatek stringu a uz nemame nic, kde bychom hledali
+				else
+					return ret_elm;
+			}
+			else 
+				return ret_elm;
+
 		}
 	}
 	catch ( ... )
@@ -679,7 +783,7 @@ struct request_data* XmlModule::process_discovery_message( struct MHD_Connection
 
 
 /*
-GET MESSAGE
+GET / SET MESSAGE
 */
 struct request_data* XmlModule::process_get_set_message( DOMElement *elem, const char *password, int msg_type )
 {
@@ -735,19 +839,14 @@ struct request_data* XmlModule::process_get_set_message( DOMElement *elem, const
 			{
 				value = el->getTextContent();
 
-				/*
-				TODO:
-				zde bude nejprve check na tabulku - vyskyt TAble a Entry v xpathu
-				a pak se bude teprve zjistovat jmeno elementu
-				*/
 
 				int pos = snmpmod->get_device_position( xr->object_id );
-				found_el = find_element( value, get_device_xalan_document( pos ) );
+				found_el = find_element( value, get_device_xalan_document( pos ), xr, true );
 
 				if ( found_el == NULL )
 				{
 					log_message( log_file, "NULL found element" );
-					xr->error = 1;
+					xr->error = XML_MSG_ERR_INTERNAL;
 					xr->error_str = "Such element cannot be found in managed data tree.";
 					
 					delete( vp );
@@ -755,31 +854,86 @@ struct request_data* XmlModule::process_get_set_message( DOMElement *elem, const
 				}
 
 				/*
-				Nyni je nutne dostat OID daneho elementu
-				Nejprve check, jestli ma nejake descendants - je to korenovy uzel pro nejaky podstrom.
-				Paklize ne, tak je to list a muzeme z neho dostat typ a OID
+				Paklize jeste mame neco k vyhledani
+				Je to vetsinou u tabulek, kdy se musime podivat do typu elementu, jestli
+				to neni v nem
+				*/
+				if ( xr->xpath_end.compare( "" ) != 0 )
+				{
+					//Nutno najit element typu a pak vyhledat znova
+					tmp_buf = XMLString::transcode( found_el->getAttribute( X("type") ) );
+
+					tmp_str_xpath = "xsd:complexType[@name='";
+					tmp_str_xpath += string( tmp_buf );
+					tmp_str_xpath += "']";
+
+					type_element = find_element( X( tmp_str_xpath.c_str() ), get_device_xalan_document( pos ), xr, false );
+
+					if ( type_element == NULL )
+					{
+						log_message( log_file, "NULL found element" );
+						xr->error = XML_MSG_ERR_INTERNAL;
+						xr->error_str = "Such element cannot be found in managed data tree.";
+						
+						delete( vp );
+						return xr;
+					}
+
+					//Nasli jsme typ elementu. Nyni prohledame jeho zbytek, jestli je tam ten element uvnitr
+
+					xr->xpath_end = tmp_str_xpath + xr->xpath_end;
+
+					found_el = find_element( X( xr->xpath_end.c_str() ), get_device_xalan_document( pos ), xr, true );
+
+					if ( found_el == NULL )
+					{
+						log_message( log_file, "NULL found element" );
+						xr->error = XML_MSG_ERR_INTERNAL;
+						xr->error_str = "Such element cannot be found in managed data tree.";
+						
+						delete( vp );
+						return xr;
+					}
+
+				}
+
+				/*
+				Paklize je element korenovym elementem, je to zatim v TODO diskusi.
+
+				Jestli je to koncovym elementem, nastavime jmeno a hodnotu.
 				*/
 
 				if ( found_el->hasChildNodes() )
 				{
 					//TODO Prodiskutovat tuto cast s Macejkem. Na tohle se proste ptat nemuze
 					log_message( log_file, "This is not a leaf node. Canceling request" );
-					xr->error = 1;
+					xr->error = XML_MSG_ERR_INTERNAL;
 					xr->error_str = "Cannot request this non-simple value node";
 					delete( vp );
 					return xr;
 				}
 				else
 				{
-					// ziskame nazev typu elementu
-					value = found_el->getAttribute( X( "name" ) );
-					tmp_buf = XMLString::transcode( value );
+					if ( xr->snmp_indexed_name.compare( "" ) == 0 )
+					{
+						// ziskame nazev typu elementu
+						value = found_el->getAttribute( X( "name" ) );
+						tmp_buf = XMLString::transcode( value );
 
-					vp->oid = string( tmp_buf );
-					vp->oid += ".0";
+						vp->oid = string( tmp_buf );
+						vp->oid += ".0";
 
 
-					XMLString::release( &tmp_buf );
+						XMLString::release( &tmp_buf );
+					}
+					else
+					{
+						vp->oid = xr->snmp_indexed_name;
+					}
+
+					//uklizeni v nasi erarni strukture
+					xr->snmp_indexed_name = "";
+					xr->xpath_end = "";
 
 				}
 
@@ -802,8 +956,8 @@ struct request_data* XmlModule::process_get_set_message( DOMElement *elem, const
 			}
 			else
 			{
-				xr->error = 1;
-				xr->error_str = "Unknown element in GET message";
+				xr->error = XML_MSG_ERR_INTERNAL;
+				xr->error_str = "Unknown element in GET/SET message";
 				delete ( vp );
 				return xr;
 			}

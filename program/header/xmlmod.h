@@ -79,13 +79,13 @@ class XmlModule
 
 		int send_response( struct MHD_Connection *, const char*,  string *);
 
-		int send_error_response( struct MHD_Connection *, int error );
+		int send_error_response( struct MHD_Connection *, int error, const char *err_msg );
 
 		string * build_response_string( struct request_data* );
 
 		DOMElement* get_device_document( int );
 		XalanDocument* get_device_xalan_document( int );
-		const DOMElement* find_element( const XMLCh*, XalanDocument* );
+		const DOMElement* find_element( const XMLCh*, XalanDocument*, struct request_data*, bool );
 
 		/*
 		Funkce na handlovani jednotlivych typu zprav

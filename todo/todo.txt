@@ -157,9 +157,10 @@ DONE
 			- simple values
 			DONE
 
-			-tabulky
-
 			- Nutne dodelani objectId parametru do teto zpravy!
+			DONE
+
+			- tabulky
 			DONE
 
 		- set
@@ -167,12 +168,42 @@ DONE
 			DONE
 
 			- tabulky
+			DONE
 
 		- response
 			-report values
 			DONE
 
 			-error codes	
+			DONE
+
+
+	TODO 30.3.09
+		//- SET zprava - jednotlive nody
+		//- typy dat zpet - timetics apod vychytat.
+		//- definovat errory do struktury
+		//- checkovat errory pri build_response_string a manipulovat s nima
+		//- send_error_response
+
+	//	- zacatek tabulek
+	//	- doimplementovat pouziti GETNETXT requestu
+	DONE
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+TABULKY
+
+- Jak nahradit GETNEXT - jedna varianta reseni je ta, ze budeme do XPath vyrazu pridavat za element //next, cimz vyjadrime to GETNEXT,
+nebo to nechame bez toho a je to proste GET Request.
+
+Pote, co jsme udelali takhle GET a GETNEXT, posilame vzdy nejakej retezec, on zjisti dany node. A to rekurzivne, ze odrezava postupne
+posledni casti dotazu. Kdyz to najde (tabulky jsou pouze 2D, takze zadne nested), tak se mrkne na typ a pak hleda dale ten element
+v podtypu (element v SEQUENCE). Kdyz jej najde, tak posle dotaz na agenta.
+Je zohlednen node bez indexu, s indexama a zaroven i GETNEXT.
+
+Zpet se navraci nazev hodnoty, kterou jsme ziskali s plnym indexem a zaroven hodnotou. To je pro pruchod cele tabukly.
+Tohle pak plati pro vsechny nody, ale u tabulek je to nejpotrebnejsi.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 
 8. Pokrocila komunikace - notifications
 	- thread na posilani XML zprav managerovi
@@ -229,6 +260,14 @@ Medium priority
 - DONE Struktura elementu <trap></trap> v ramci konfiguraku
 
 
+- Domyslet cesty pro mib, log soubory, xsd soubory, aby to v tom unix file tree nejak hezky sedelo a nebyla to prasarna.
+
+- Do parseru XML configu -> paklize nejsou nastaveny porty pro poslouchani a transmit, dosadime nejake defaultni (GATE device)
+
+- Udelat lepsi parsovani XML dat z message, ktery prijmeme
+
+
+
 
 High Priority
 ---------------
@@ -258,15 +297,9 @@ Nutno pro zpetne nacteni a parsovani (pro pozdejsi vyhledavani pomoci XPathu)
 
 
 
-- Domyslet cesty pro mib, log soubory, xsd soubory, aby to v tom unix file tree nejak hezky sedelo a nebyla to prasarna.
-
 - Device id = 0, paklize je duplikat, spadne to na segfaultu, pac to chce pristoupit nekam, co tam neni
 
 - HTTP server -> nutno doplnit do konfiguraku neco ohledne bezpecnostiho certifikatu pro https
-
-- Do parseru XML configu -> paklize nejsou nastaveny porty pro poslouchani a transmit, dosadime nejake defaultni (GATE device)
-
-- Udelat lepsi parsovani XML dat z message, ktery prijmeme
 
 - RESPONSE message se musi rozsirit i o ERROR element, kdy neco nevyjde
 
@@ -279,8 +312,13 @@ by si mohli prepisovat data
 zpet odpovedi. O to se musi postarat manager!!
 
 - Osetrit chybu. Kdyz snmp zahlasi chybu, tak ten thread a connection nikdy neskonci. Kde se deje ten problem??@?@
+Dodelavky:
+	udelat snmp_parse_oid pri nahravani oid do packetu. Tim se mozna zabrani nejakemu exceptionu
 
-- Protestovat ruzne nody (typy MIB) na get a getnext zpravy. jak to tam zaonacit
+- Mozna bychom meli presunout dodavani .0 k OID na managera
+
+- DULEZITE: kdyz mame nekolik devices se stejnym dokumentem - nutno upravit funkce na vraceni dokumentu pro vyhledavani, 
+aby opravdu vracely ten spravny dokument!!!
 
 
 
@@ -294,6 +332,10 @@ IMPORTANT:
 Neni mozne se dotazat na NO-LEAF node, ktery zaroven neni tabulkou. Pac jak bychom mu pak zpet servirovali hodnoty
 vsech leaf podnodu??
 
+//OFFTOPIC
+Kdyby nahodou chtel udelat rekurzivni sestup dotazem na NO-LEAF node, tak to udelame tak, ze rovnou posleme
+send requestama GETNEXT dotazy tak dlouho, az to nepujde a to vsechno vratime zpet.
+
 Manager se bude muset postarat, pri dotazu na takovyto uzel, aby vygeneroval zpravu, jenz se bude dotazovat pouze na 
 jedinou hodnotu ci tabulku.
 
@@ -303,4 +345,10 @@ jedinou hodnotu ci tabulku.
 
 - Nutno probrat, jestli system, kterym to delam, je v poradku. Ze se na kazdou vec zeptam a pak zpet posadim odpoved.
 
+- Problem s GET messages:
+Potrebovali bychom vracet zpatky jak nazev promenne, tak hodnotu (<name></name><value></value>), nebo treba value = name/value,
+nebo <value name="">hodnota</value>
+=> z duvodu tabulek, kdy se on musi dozvedet jednotlive indexy a nazvy polozek v tabulce, jinak neudela walk.
+
+- Tabulky, viz vyse: nutno tlumocit, jestli je to takhle ok. Ono to totiz jinak moc nepujde
 

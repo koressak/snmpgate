@@ -127,6 +127,9 @@ XML typy zprav
 #define XML_MSG_TYPE_SET			3
 
 
+#define XML_MSG_ERR_INTERNAL		1
+//#define XML_MSG_ERR_SNMP			2
+
 /*
 HTTP parametry
 */
@@ -369,6 +372,17 @@ struct request_data {
 	int error;
 	string error_str;
 
+	//snmp error odpoved
+	int snmp_err;
+	string snmp_err_str;
+
+	//pro vyhledavani elementu tabulek
+	string xpath_end;
+	int snmp_getnext;
+	//jako temporary ulozeni jmena do tabulky, ktere u sebe
+	//ma mnoho indexu
+	string snmp_indexed_name;
+
 	//TODO dodefinovat vsechny podstatne seznamy
 
 	request_data()
@@ -379,6 +393,11 @@ struct request_data {
 		object_id = -1;
 
 		error = 0;
+		snmp_err = 0;
+
+		xpath_end = "";
+		snmp_getnext = 0;
+		snmp_indexed_name = "";
 	}
 
 	~request_data()
