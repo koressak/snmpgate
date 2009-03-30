@@ -34,6 +34,8 @@ class SnmpModule {
 		int get_device_position( int );
 		SNMP_device* get_device_ptr( int );
 
+		u_char map_type_to_pdu( int );
+
 		/*
 		TODO: Thread na poslouchani snmp trapu
 		*/

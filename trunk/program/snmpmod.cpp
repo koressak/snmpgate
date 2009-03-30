@@ -350,7 +350,6 @@ Zaslani dotazu agentovi - volano XmlModulem
 */
 int SnmpModule::send_request( struct request_data* req_data, const char *password,  int msg_type )
 {
-	//TODO: delat pomoci thread safe Single API 
 	int liberr, syserr;
 	char *errstr;
 
@@ -420,7 +419,10 @@ int SnmpModule::send_request( struct request_data* req_data, const char *passwor
 	switch ( msg_type )
 	{
 		case XML_MSG_TYPE_GET:
-			pdu = snmp_pdu_create( SNMP_MSG_GET );
+			if ( req_data->snmp_getnext == 1 )
+				pdu = snmp_pdu_create( SNMP_MSG_GETNEXT );
+			else
+				pdu = snmp_pdu_create( SNMP_MSG_GET );
 			break;
 
 		case XML_MSG_TYPE_SET:
@@ -428,8 +430,8 @@ int SnmpModule::send_request( struct request_data* req_data, const char *passwor
 			break;
 
 		default:
-			req_data->error = 1;
-			req_data->error_str = "no such message";
+			req_data->error = XML_MSG_ERR_INTERNAL;
+			req_data->error_str = "no such message type";
 			snmp_sess_close( ss );
 			return -1;
 
@@ -437,15 +439,23 @@ int SnmpModule::send_request( struct request_data* req_data, const char *passwor
 
 	list<struct value_pair *>::iterator it;
 
+	//Pro pouziti vyhledavani typu a nazvu elementu
+	struct tree *head = get_tree_head();
+
 	for ( it = req_data->request_list.begin(); it != req_data->request_list.end(); it++ )
 	{
-		//TODO - dle typu message bud dat hodnotu nebo null var (get/set)
 		get_node( (*it)->oid.c_str(), elem, &elem_len );
+
+		/*
+		Nejprve je nutne najit ten element podle oid a zjistit jeho typ,
+		ktery dosadime do pdu
+		*/
+		struct tree *node = get_tree( elem, elem_len, head );
 
 		switch ( msg_type )
 		{
 			case XML_MSG_TYPE_SET:
-				snmp_pdu_add_variable( pdu, elem, elem_len, ASN_OCTET_STR, (const u_char*)(*it)->value.c_str(), (*it)->value.size() );
+				snmp_pdu_add_variable( pdu, elem, elem_len, map_type_to_pdu( node->type ), (const u_char*)(*it)->value.c_str(), (*it)->value.size() );
 				break;
 
 			case XML_MSG_TYPE_GET:
@@ -457,21 +467,24 @@ int SnmpModule::send_request( struct request_data* req_data, const char *passwor
 	status = snmp_sess_synch_response( ss, pdu, &response );
 	//status = snmp_sess_send( ss, pdu );
 
-	if ( status != STAT_SUCCESS || response->errstat != SNMP_ERR_NOERROR )
+	if ( status != STAT_SUCCESS )
 	{
-		//chyba v komunikaci - odebirame z monitorovanych zarizeni
-		log_message( log_file, "error happened" );
 		snmp_sess_error( &sptr, &liberr, &syserr, &errstr );
-		while ( errstr )
-		{
 			log_message( log_file, errstr);
 
-			delete(errstr);
-			errstr = NULL;
-			snmp_sess_error( &sptr, &liberr, &syserr, &errstr );
-		}
+		req_data->error = XML_MSG_ERR_INTERNAL;
+		req_data->error_str = errstr;
 
-		//TODO dodelat checknuti na error odpoved od agenta
+			delete(errstr);
+
+	}
+	else if ( response->errstat != SNMP_ERR_NOERROR )
+	{
+		/*
+		Zjistime jaky error prisel pri odpovedi agenta
+		*/
+		req_data->snmp_err = 1;
+		req_data->snmp_err_str = snmp_errstring( response->errstat ) ;
 	}
 	else
 	{
@@ -488,11 +501,13 @@ int SnmpModule::send_request( struct request_data* req_data, const char *passwor
 					switch ( vars->type )
 					{
 						case ASN_OCTET_STR:
+						case ASN_OPAQUE:
 							memcpy( var_buf, vars->val.string, vars->val_len );
 							var_buf[ vars->val_len ] = '\0';
 							break;
 
 						case ASN_BIT_STR:
+						case ASN_IPADDRESS:
 							memcpy( var_buf, vars->val.bitstring, vars->val_len );
 							var_buf[ vars->val_len ] = '\0';
 							break;
@@ -502,10 +517,15 @@ int SnmpModule::send_request( struct request_data* req_data, const char *passwor
 							break;
 
 						case ASN_INTEGER:
+						case ASN_UNSIGNED: //same as GAUGE
+						case ASN_TIMETICKS:
 							sprintf( var_buf, "%ld", *(vars->val.integer) );
 							break;
 
+						case ASN_COUNTER:
 						case ASN_APP_COUNTER64:
+						case ASN_INTEGER64:
+						case ASN_UNSIGNED64:
 							sprintf( var_buf, "%ld%ld", vars->val.counter64->high, vars->val.counter64->low );
 							break;
 
@@ -517,14 +537,41 @@ int SnmpModule::send_request( struct request_data* req_data, const char *passwor
 							sprintf( var_buf, "%f", *(vars->val.doubleVal) );
 							break;
 
-						//TODO check na Integer64 a Unsigned64 - jestli se to schovava v counter64
-
 					}
 
+					/*
+					navratime zaroven i platne jmeno s indexem polozky
+					*/
+					string ret_name = "";
+					u_char *buf = NULL;
+					size_t buf_len = 0;
+					size_t out_len = 0;
+					char *name_p = NULL;
+
+					struct tree *node = get_tree( vars->name_loc, MAX_OID_LEN, head );
+
+					ret_name = string( node->label );
+					ret_name += ".";
+
+
+					//dostane z toho ten index
+					sprint_realloc_objid( &buf, &buf_len, &out_len, 1, vars->name, vars->name_length);
+
+					name_p = (char *)buf + 1;
+					name_p = strchr( name_p, '.' )+1;
+
+					ret_name += string( name_p );
+
+					log_message( log_file, ret_name.c_str() );
+
+
+					(*it)->oid = ret_name;
 					(*it)->value = string( var_buf );
 					log_message( log_file, var_buf );
 
 					delete ( var_buf );
+					delete( buf );
+
 				}
 
 			}
@@ -540,4 +587,64 @@ int SnmpModule::send_request( struct request_data* req_data, const char *passwor
 }
 
 
+
+/*
+Mapuje TYPE_XXX do ASN_TYPE_YYY
+Pro spravne nastaveni typu nodu v SET message
+*/
+u_char SnmpModule::map_type_to_pdu( int node_type )
+{
+	u_char ret;
+
+	switch( node_type )
+	{
+		case TYPE_OBJID:
+			ret = ASN_OBJECT_ID;
+			break;
+		case TYPE_OCTETSTR:
+			ret = ASN_OCTET_STR;
+			break;
+		case TYPE_INTEGER:
+			ret = ASN_INTEGER;
+			break;
+		case TYPE_NETADDR:
+			ret = ASN_IPADDRESS;
+			break;
+		case TYPE_IPADDR:
+			ret = ASN_IPADDRESS;
+			break;
+		case TYPE_COUNTER:
+			ret = ASN_COUNTER;
+			break;
+		case TYPE_GAUGE:
+			ret = ASN_GAUGE;
+			break;
+		case TYPE_TIMETICKS:
+			ret = ASN_TIMETICKS;
+			break;
+		case TYPE_OPAQUE:
+			ret = ASN_OPAQUE;
+			break;
+		case TYPE_COUNTER64:
+			ret = ASN_COUNTER64;
+			break;
+		case TYPE_BITSTRING:
+			ret = ASN_BIT_STR;
+			break;
+		case TYPE_UINTEGER:
+			ret = ASN_UINTEGER;
+			break;
+		case TYPE_UNSIGNED32:
+			ret = ASN_UINTEGER;
+			break;
+		case TYPE_INTEGER32:
+			ret = ASN_INTEGER;
+			break;
+		default:
+			ret = 0;
+	}
+
+	return ret;
+
+}
 
