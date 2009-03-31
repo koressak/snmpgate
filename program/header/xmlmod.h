@@ -49,11 +49,18 @@ class XmlModule
 
 		//xalanDocuments
 		list<xalan_docs_list *> xalan_docs;
+		struct xalan_docs_list* main_xa_doc;
+
 
 		/*
 		Pointer to SNMP module - to send requests
 		*/
 		SnmpModule *snmpmod;
+
+		/*
+		POSIX thread
+		*/
+		pthread_mutex_t subscr_lock; //zamyka pristup pro zmenu subscriptions
 
 
 	public:
@@ -92,6 +99,7 @@ class XmlModule
 		*/
 		struct request_data* process_discovery_message( struct MHD_Connection *, DOMElement * );
 		struct request_data* process_get_set_message( DOMElement *, const char*, int );
+		struct request_data* process_subscribe_message( DOMElement *, const char* );
 
 
 };

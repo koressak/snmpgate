@@ -39,6 +39,8 @@ XmlModule::~XmlModule()
 
 	for( it = xalan_docs.begin(); it != xalan_docs.end(); it++ )
 		delete ((*it));
+	
+	delete( main_xa_doc );
 }
 
 /*
@@ -78,6 +80,18 @@ void XmlModule::set_parameters( DOMElement *r, list<DOMElement *> *roots, char *
 
 		xalan_docs.push_back( l );
 	}
+
+	/*
+	Jeste pro hlavni dokument
+	*/
+	doc = main_root->getOwnerDocument();
+	main_xa_doc = new xalan_docs_list;
+
+	theLiaison = new XercesParserLiaison( theDOMSupport );
+	theDocument = theLiaison->createDocument( doc, true, true, true );
+
+	main_xa_doc->doc = theDocument;
+	main_xa_doc->liaison = theLiaison;
 
 }
 
@@ -208,9 +222,6 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 					if ( XMLString::equals( elem->getTagName(), X( "discovery" ) ) )
 					{
 						xr = process_discovery_message( connection, elem );
-						//volani fce na vybudovani odpovedi
-
-					//send_response( connection, out );
 					}
 					else if ( XMLString::equals( elem->getTagName(), X( "get" ) ) )
 					{
@@ -219,6 +230,10 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 					else if ( XMLString::equals( elem->getTagName(), X( "set" ) ) )
 					{
 						xr = process_get_set_message( elem, password, XML_MSG_TYPE_SET );
+					}
+					else if ( XMLString::equals( elem->getTagName(), X( "subscribe" ) ) )
+					{
+						xr = process_subscribe_message( elem, password );
 					}
 					else
 					{
@@ -807,12 +822,17 @@ struct request_data* XmlModule::process_get_set_message( DOMElement *elem, const
 
 	xr->msg_type = msg_type;
 	value = elem->getAttribute( X( "msgid" ) );
-	xr->msgid = atoi( XMLString::transcode( value ) );
+	tmp_buf = XMLString::transcode( value );
+	xr->msgid = atoi( tmp_buf );
+	XMLString::release( &tmp_buf );
+
 	value = elem->getAttribute( X( "objectId" ) );
 
 	if ( !XMLString::equals( value, X( "" ) ) )
 	{
-		xr->object_id = atoi( XMLString::transcode( value ) );
+		tmp_buf = XMLString::transcode( value );
+		xr->object_id = atoi( tmp_buf );
+		XMLString::release( &tmp_buf );
 	}
 	else xr->object_id = 0;
 
@@ -976,4 +996,118 @@ struct request_data* XmlModule::process_get_set_message( DOMElement *elem, const
 
 	return xr;
 }
+
+
+/*
+SUBSCRIBE message
+*/
+struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, const char* password )
+{
+	/*
+	Podivame se, jestli je pritomen atribut distrId a delete.
+	Paklize ano, tak budeme modifikovat existujici subscription.
+	Nejprve ale musime zjistit, jestli takova existuje. Paklize ne, tak
+	je to chyba a hodime error. Jinak pokracujeme ziskanim dat.
+	*/
+
+	//odpovedni data
+	struct request_data *xr; // = new request_data;
+
+	//pro upravu ci smazani subscriptions
+	int distr_id = 0;
+	bool del = false;
+
+	//sprava hodnot
+	const XMLCh* value;
+	string tmp_str_xpath = "";
+	char *tmp_buf;
+
+	//elementove zalezitosti
+	DOMElement *xpath;
+	DOMAttr *attr;
+	DOMText* txt;
+	string tmp_str;
+
+	DOMElement *subscr;
+
+
+
+	log_message( log_file, "Dostali jsme SUBSCRIBE message" );
+
+	value = elem->getAttribute( X( "distrid" ) );
+	tmp_buf = XMLString::transcode( value );
+	distr_id = atoi( tmp_buf );
+
+	tmp_str_xpath = "//subscriptions/subscription[@distrid='";
+	tmp_str_xpath += tmp_buf;
+	tmp_str_xpath += "']";
+
+	XMLString::release( &tmp_buf );
+
+	value = elem->getAttribute( X( "delete" ) );
+	tmp_buf = XMLString::transcode( value );
+	del = (bool) atoi( tmp_buf );
+	XMLString::release( &tmp_buf );
+
+	if ( distr_id > 0 )
+	{
+		//zjistime, jestli existuje dana subscriptiona
+		subscr = find_element( X( tmp_str_xpath.c_str() ), main_xa_doc->doc, false );
+
+		if ( subscr == NULL )
+		{
+			//Error
+			xr = new request_data;
+			xr->msg_type = XML_MSG_TYPE_SUBSCRIBE;
+			xr->error = XML_MSG_ERR_INTERNAL;
+			xr->error_str = "Such subscription does not exist.";
+
+			return xr;
+		}
+
+		//TODO:  delete! 
+
+
+	}
+
+
+	/*
+	Subscribe ma stejnou strukturu jako get message.
+	Nechame tedy ziskat data pomoci GET message, cimz se overi, ze je vse v poradku
+	a teprve pote budeme s daty vice manipulovat.
+	*/
+	xr = process_get_set_message( elem, password, XML_MSG_TYPE_GET );
+
+	//Nyni mame data ziskana.
+	if ( xr->error == XML_MSG_ERR_INTERNAL || xr->error == XML_MSG_ERR_SNMP )
+	{
+		/*
+		Error. Nektera data nemusi existovat. 
+		Posleme zpet error
+		*/
+		xr->msg_type = XML_MSG_TYPE_SUBSCRIBE;
+		return xr;
+	}
+
+	//Data jsou v poradku, nez je vratime zpet, zapiseme tento element do
+	//hlavniho stromu
+	//TODO udelat statickou funkci pro vypis xml do souboru -> abychom si mohli overit funkcnost pridavani
+	//a mazani jednotlivych nodu
+
+	if ( distr_id > 0 )
+	{
+		//Alter
+
+		//subscr uz je handle na ten element. Muzeme pracovat s nim
+	}
+	else
+	{
+		//Pridame
+	}
+
+	//TODO probudit thread, aby si to zpracoval
+
+	return xr;
+}
+
 

@@ -82,6 +82,7 @@ DONE
 	DONE
 		- jak volit namespace v ramci jednoho souboru (neni to rozdeleno do nekolika modulu, tudiz vsechno je v ramci 
 		jednoho souboru).
+		DONE - zadne namespace, neni to potreba
 
 		- vse generujeme do jedineho souboru ( 1 device = 1 soubor )
 		PROC: manazer na druhe strane nemuze vedet, jak to pospojovat dohromady - ze existuje nejake
@@ -90,6 +91,7 @@ DONE
 		pak pri posilani by zabralo dlouhou dobu to vsechno pospojovat a poslat mu to najednou.
 		A zaroven se tyto mib generuji pouze jednou (pri zadne zmene), tudiz overhead je minimalni.
 		Zaroven mame sdileni stromu, takze vice zarizeni stejneho typu ma jeden soubor a sdileji jej.
+		DONE: v poradku
 	
 	- udelat transformaci
 	DONE
@@ -115,8 +117,6 @@ DONE
 
 6. Nastartovani threadu pro poslouchani a vykonavani prikazu
 	- pripravit si thready a funkce
-		- snmp comm thread
-
 		- http server
 		DONE
 
@@ -189,6 +189,7 @@ DONE
 	//	- doimplementovat pouziti GETNETXT requestu
 	DONE
 
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 TABULKY
 
@@ -213,8 +214,36 @@ Tohle pak plati pro vsechny nody, ale u tabulek je to nejpotrebnejsi.
 	- snmp thread, ktery ceka na ty trapy
 
 
+
 9. Pokrocila komunikace - subscriptions / distribution
 	- thread na vyrizovani techto pozadavku
+
+	- fce process_subsribe_message
+		- identifikace odesilatele ( ipaddr/name )
+		- check na jednotlive nody (existuji?)
+		- ziskani frekvence posilani dat ( frequency je optional ?? - tak dame nejakou
+		defaultni hodnotu - treba par minut )
+
+		- mutex!!
+		- process_get_set_message na jednotlive nody
+			-> potvrzeni daneho subscriptionu managerovi
+		
+		- zapis do tabulky /device/subscriptions
+			- tam bude ulozeno vsechno
+
+		- vzbudime thread - on si to prebere a zacne vykonavat
+		
+		- POZOR: kdyz je pritomno distrId - bude se upravovat nebo mazat subscriptiona.
+		Tudiz musime checknout, jestli je to vsechno v pohode a potvrdit/zrusit
+
+	- distr. thread
+		- vezme vsechny hodnoty intervalu -> dle toho naplanuje spani.
+		- pro jednotlive nody - vygeneruje request_data strukturu a preda
+			process_get_set_message();
+
+		- mereni casu pri zpracovavani novych pozadavku, abychom si to odecetli od
+		dalsiho spanku
+
 
 10. Zabezpeceni
 	- pridat fci na spousteni demona s certifikatama
@@ -266,7 +295,7 @@ Medium priority
 
 - Udelat lepsi parsovani XML dat z message, ktery prijmeme
 
-
+- Podivat se, jestli pri vraceni erroru po SET requestu ukladame do struktury i dany error, nejenom jeho string reprezentaci
 
 
 High Priority
@@ -310,6 +339,7 @@ by si mohli prepisovat data
 
 - Neni mozne se ptat na uzel, ktery ma podstrom pod sebou ( neni to tabulka ). Nebylo by mu mozne totiz servirovat
 zpet odpovedi. O to se musi postarat manager!!
+OTAZKA: slo by to udelat, paklize v response muze byt vice value
 
 - Osetrit chybu. Kdyz snmp zahlasi chybu, tak ten thread a connection nikdy neskonci. Kde se deje ten problem??@?@
 Dodelavky:
@@ -321,34 +351,11 @@ Dodelavky:
 aby opravdu vracely ten spravny dokument!!!
 
 
+- Subscribe - jak odpovidat na delete? Vsechno ostatni zvladne Distribution, ale delete???
+
 
 
 
 MACEJKOVI - konzultace:
 --------------------------
-- GET a SET message mohou mit vice jednotlivych <xpath></xpath> dotazu v ramci jedne message,ze?
-
-IMPORTANT:
-Neni mozne se dotazat na NO-LEAF node, ktery zaroven neni tabulkou. Pac jak bychom mu pak zpet servirovali hodnoty
-vsech leaf podnodu??
-
-//OFFTOPIC
-Kdyby nahodou chtel udelat rekurzivni sestup dotazem na NO-LEAF node, tak to udelame tak, ze rovnou posleme
-send requestama GETNEXT dotazy tak dlouho, az to nepujde a to vsechno vratime zpet.
-
-Manager se bude muset postarat, pri dotazu na takovyto uzel, aby vygeneroval zpravu, jenz se bude dotazovat pouze na 
-jedinou hodnotu ci tabulku.
-
-
-- XPath vyraz je problem - musime odkazovat na atribut name. Tudiz mel by se o to starat ten manager?? Jsem rozhodne pro
-(vysledny xpath vyraz je fakt hnusny, pac se stale opakuje xsd:element[name="xxx"])
-
-- Nutno probrat, jestli system, kterym to delam, je v poradku. Ze se na kazdou vec zeptam a pak zpet posadim odpoved.
-
-- Problem s GET messages:
-Potrebovali bychom vracet zpatky jak nazev promenne, tak hodnotu (<name></name><value></value>), nebo treba value = name/value,
-nebo <value name="">hodnota</value>
-=> z duvodu tabulek, kdy se on musi dozvedet jednotlive indexy a nazvy polozek v tabulce, jinak neudela walk.
-
-- Tabulky, viz vyse: nutno tlumocit, jestli je to takhle ok. Ono to totiz jinak moc nepujde
 
