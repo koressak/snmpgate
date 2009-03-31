@@ -103,7 +103,7 @@ class Mib2Xsd
 		void write_sequence( struct tree *);
 		void write_sequence_of( struct tree*, DOMElement* );
 		void parse_node( struct tree*, DOMElement* );
-		void output_xml2file( const char*, DOMDocument* );
+		static void output_xml2file( const char*, DOMDocument* );
 		void write_header( DOMElement* );
 
 		/*

@@ -385,6 +385,10 @@ struct request_data {
 	//ma mnoho indexu
 	string snmp_indexed_name;
 
+
+	//SUBSCRIBE
+	int distr_id;
+
 	//TODO dodefinovat vsechny podstatne seznamy
 
 	request_data()
@@ -400,6 +404,8 @@ struct request_data {
 		xpath_end = "";
 		snmp_getnext = 0;
 		snmp_indexed_name = "";
+
+		distr_id = 0;
 	}
 
 	~request_data()

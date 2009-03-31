@@ -577,6 +577,34 @@ string * XmlModule::build_response_string( struct request_data *data )
 		else
 			*out += "\" />\n";
 	}
+	/*
+	DISTRIBUTION response
+	*/
+	else if ( data->msg_type == XML_MSG_TYPE_SUBSCRIBE )
+	{
+		*out = "<distribution msgid=\"";
+		sprintf( tmpid, "%d", data->msgid );
+		*out += tmpid;
+
+		*out += "\" distrid =\"";
+		sprintf( tmpid, "%d", data->distr_id );
+		*out += tmpid;
+		*out += "\">\n";
+
+		list<struct value_pair *>::iterator rit;
+
+		for ( rit = data->request_list.begin(); rit != data->request_list.end(); rit++ )
+		{
+			*out += "<value name=\"";
+			*out += (*rit)->oid;
+			*out += "\">\n";
+			*out += (*rit)->value;
+			*out += "</value>\n";
+		}
+
+		*out += "</distribution>\n";
+
+	}
 
 	return out;
 }
@@ -1021,14 +1049,19 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 	const XMLCh* value;
 	string tmp_str_xpath = "";
 	char *tmp_buf;
+	char tmpid[50];
 
 	//elementove zalezitosti
+	DOMDocument *doc = main_root->getOwnerDocument();
 	DOMElement *xpath;
+	DOMElement *subscription;
 	DOMAttr *attr;
 	DOMText* txt;
 	string tmp_str;
 
-	DOMElement *subscr;
+	const DOMElement *sub;
+	DOMElement *subscriptions;
+	
 
 
 
@@ -1052,9 +1085,9 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 	if ( distr_id > 0 )
 	{
 		//zjistime, jestli existuje dana subscriptiona
-		subscr = find_element( X( tmp_str_xpath.c_str() ), main_xa_doc->doc, false );
+		sub = find_element( X( tmp_str_xpath.c_str() ), main_xa_doc->doc, false );
 
-		if ( subscr == NULL )
+		if ( sub == NULL )
 		{
 			//Error
 			xr = new request_data;
@@ -1091,8 +1124,6 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 
 	//Data jsou v poradku, nez je vratime zpet, zapiseme tento element do
 	//hlavniho stromu
-	//TODO udelat statickou funkci pro vypis xml do souboru -> abychom si mohli overit funkcnost pridavani
-	//a mazani jednotlivych nodu
 
 	if ( distr_id > 0 )
 	{
@@ -1102,7 +1133,67 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 	}
 	else
 	{
-		//Pridame
+		//Pridavame
+
+		//Nejrpve najdeme posledni distr_id
+		log_message( log_file, "a" );
+		DOMNodeList *sl = main_root->getElementsByTagName( X( "subscriptions" ) );
+		subscriptions = dynamic_cast<DOMElement *> (sl->item(0));
+
+		DOMNode *lch = subscription->getLastChild();
+		log_message( log_file, "b" );
+		if ( lch == NULL )
+		{
+			distr_id = 1;
+		}
+		else
+		{
+			subscription = dynamic_cast< DOMElement *> (lch );
+			value = subscription->getAttribute( X( "distrid" ) );
+			tmp_buf = XMLString::transcode( value );
+
+			distr_id = atoi( tmp_buf );
+			XMLString::release( &tmp_buf );
+
+		}
+
+
+
+
+
+		log_message( log_file, "c" );
+		subscription = doc->createElement( X( "subscription" ) );
+		attr = doc->createAttribute( X( "distrid" ) );
+		sprintf( tmpid, "%d", distr_id );
+		attr->setNodeValue( X( tmpid ) );
+
+		log_message( log_file, "d" );
+
+		subscription->setAttributeNode( attr );
+		log_message( log_file, "e" );
+
+		attr = doc->createAttribute( X( "frequency" ) );
+		value = elem->getAttribute( X( "frequency" ) );
+
+		//paklize tam neni frekvence - dame to na minutu
+		if ( XMLString::equals( value, X("") ) == 0 )
+		{
+			value = X( "60" );
+		}
+		log_message( log_file, "f" );
+
+		attr->setNodeValue( value );
+		subscription->setAttributeNode( attr );
+
+
+		//TODO: manager
+
+		subscriptions->appendChild( subscription );
+		//Vypis vysledku
+		Mib2Xsd::output_xml2file( "zkuska.xsd", doc );
+
+		log_message( log_file, "g" );
+		
 	}
 
 	//TODO probudit thread, aby si to zpracoval
