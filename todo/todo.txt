@@ -244,6 +244,9 @@ Tohle pak plati pro vsechny nody, ale u tabulek je to nejpotrebnejsi.
 		- mereni casu pri zpracovavani novych pozadavku, abychom si to odecetli od
 		dalsiho spanku
 
+		- deklarovat struktury, kde se bude pocitat distr_id a pocet nedojitych zprav.
+		Paklize tento pocet stoupne az na hranici X, bude tento subscription smazan
+
 
 10. Zabezpeceni
 	- pridat fci na spousteni demona s certifikatama

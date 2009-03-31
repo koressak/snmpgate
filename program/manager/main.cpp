@@ -40,7 +40,9 @@ static size_t write_data( void *ptr, size_t size, size_t nmemb, void *data)
 
 }
 
-const char *msg = "<message password=\"private\"><get msgid=\"1\" objectId=\"0\"><xpath>xsd:element[@name='iso']//xsd:element[@name='org']//xsd:element[@name='dod']//xsd:element[@name='internet']//xsd:element[@name='mgmt']//xsd:element[@name='mib-2']//xsd:element[@name='tcp']//xsd:element[@name='tcpConnTable']//xsd:element[@name='tcpConnEntry']//xsd:element[@name='tcpConnState']//next</xpath></get></message>";
+//const char *msg = "<message password=\"private\"><get msgid=\"1\" objectId=\"0\"><xpath>xsd:element[@name='iso']//xsd:element[@name='org']//xsd:element[@name='dod']//xsd:element[@name='internet']//xsd:element[@name='mgmt']//xsd:element[@name='mib-2']//xsd:element[@name='tcp']//xsd:element[@name='tcpConnTable']//xsd:element[@name='tcpConnEntry']//xsd:element[@name='tcpConnState']//next</xpath></get></message>";
+
+const char *msg = "<message password=\"private\"><subscribe msgid=\"123\" objectId=\"0\"><xpath>xsd:element[@name='iso']//xsd:element[@name='org']//xsd:element[@name='dod']//xsd:element[@name='internet']//xsd:element[@name='mgmt']//xsd:element[@name='mib-2']//xsd:element[@name='tcp']//xsd:element[@name='tcpConnTable']//xsd:element[@name='tcpConnEntry']//xsd:element[@name='tcpConnState']//next</xpath></subscribe></message>";
 
 
 int main(int argc, char *argv[])
