@@ -14,6 +14,7 @@ Standard includes
 #include <iostream>
 #include <fstream>
 #include <ctype.h>
+#include <pthread.h>
 
 /*
 Timestamp for log
@@ -125,10 +126,11 @@ XML typy zprav
 #define XML_MSG_TYPE_DISCOVERY 		1
 #define XML_MSG_TYPE_GET			2
 #define XML_MSG_TYPE_SET			3
+#define XML_MSG_TYPE_SUBSCRIBE		4
 
 
 #define XML_MSG_ERR_INTERNAL		1
-//#define XML_MSG_ERR_SNMP			2
+#define XML_MSG_ERR_SNMP			2
 
 /*
 HTTP parametry

@@ -483,6 +483,7 @@ int SnmpModule::send_request( struct request_data* req_data, const char *passwor
 		/*
 		Zjistime jaky error prisel pri odpovedi agenta
 		*/
+		req_data->error = XML_MSG_ERR_SNMP;
 		req_data->snmp_err = 1;
 		req_data->snmp_err_str = snmp_errstring( response->errstat ) ;
 	}
