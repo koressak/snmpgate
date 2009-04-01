@@ -241,10 +241,16 @@ int SnmpModule::start_transform()
 		/*
 		Paklize je stejny jako jiny device, nechame to byt a budeme
 		urcovat vyhledavani az u prijimani zprav.
+		TODO: paklize je stejny, tak pointer z jeho dat presmerujeme
+		na dany device!!!!!!!!!!!!!!!!!!!!!
 		*/
 	}
 
 	transform->end_main_document();
+
+	//Tato funkce zajisti pripojeni vsech dat k hlavnimu dokumentu
+	//dle specifikace v navrzenem protokolu
+	transform->append_dev_data_to_maindoc();
 	
 
 	//parsovat uplne vsechna MIB, ktera jsou v jednotlivych zarizenich

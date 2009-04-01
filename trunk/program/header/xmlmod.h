@@ -132,7 +132,7 @@ inline void request_completed( void *cls, struct MHD_Connection *connection, voi
 
 inline int iterate_post( void *coninfo_cls, enum MHD_ValueKind kind, const char *key, 
 			const char *filename, const char *content_type, const char *transfer_encoding, 
-			const char *data, size_t off, size_t size)
+			const char *data, uint64_t off, size_t size)
 {
 	if ( xm != NULL )
 		return xm->post_iterate( coninfo_cls, kind, key, filename, content_type, transfer_encoding, data, off, size);

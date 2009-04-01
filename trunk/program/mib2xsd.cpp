@@ -1221,6 +1221,10 @@ void Mib2Xsd::create_device_element( SNMP_device *dev, DOMElement *r )
 	DOMElement *tmel;
 	DOMElement *info;
 	DOMElement *device;
+	DOMElement *notifications;
+	DOMElement *data;
+
+	DOMElement *xml_tree;
 
 	DOMAttr *attr;
 	DOMText *txt;
@@ -1254,16 +1258,28 @@ void Mib2Xsd::create_device_element( SNMP_device *dev, DOMElement *r )
 
 	tmel = main_doc->createElement( X("notifications") );
 	device->appendChild( tmel );
-	//TODO: sem dodat info z notifications,
+	notifications = tmel;
 
 	tmel = main_doc->createElement( X("data") );
 	device->appendChild( tmel );
+	data = tmel;
+
+	/*
+	Budovani XML dokumentu z vytvoreneho XSD
+	*/
+	log_message( log_file, "creating xml from xsd" );
+	xml_tree = create_xml_from_xsd( r, notifications );
+
+	data->appendChild( xml_tree );
+	
 
 	/*
 	Zde nacteme znova celej dokument pomoci parseru
 	a setDoNamespaces(true)
 	*/
 	//Nutno nejprve releasnout ten hlavni dokument
+	//TODO: je to opravdu nutne znovu nacitat, kdyz to budu
+	//vytvaret?
 	doc->release();
 
 	XercesDOMParser *conf_parser = new XercesDOMParser;
@@ -1289,6 +1305,7 @@ void Mib2Xsd::create_device_element( SNMP_device *dev, DOMElement *r )
 	}
 	catch ( ... )
 	{
+		log_message( log_file, "Cannot parse the xsd file" );
 	}
 
 }
@@ -1306,4 +1323,287 @@ void Mib2Xsd::end_main_document()
 
 	output_xml2file( str.c_str(), main_doc );
 
+}
+
+/*
+Pripoji vsechny xml dokumenty do hlavniho dokumentu.
+*/
+void Mib2Xsd::append_dev_data_to_maindoc()
+{
+}
+
+
+/*
+Create XML from XSD!!!!
+*/
+DOMElement * Mib2Xsd::create_xml_from_xsd( DOMElement *xsd_root, DOMElement *dev_notif )
+{
+	DOMDocument *doc = main_doc;
+
+	DOMNode *node;
+
+	DOMElement *element;
+	DOMElement *iso;
+
+	DOMAttr *attr;
+
+	DOMNodeList *children;
+
+	string tmp_str;
+
+
+	/*
+	TODO
+	- nejprve hlavni strom
+	- pak notifications
+	*/
+
+	children = xsd_root->getElementsByTagName( X( "xsd:element" ) );
+
+	//jediny dite je hlavni "iso" element
+	for ( unsigned int a = 0; a < children->getLength(); a++ )
+	{
+		node = children->item( a );
+		element = dynamic_cast<DOMElement *>(node);
+		
+		if ( XMLString::equals( element->getAttribute( X("name") ), X("iso") ) )
+			break;
+	}
+
+	//nyni zahajime rekurzivni budovani xml stromu
+	iso = doc->createElement( element->getAttribute( X( "name" ) ) );
+
+	attr = doc->createAttribute( X( "oid" ) );
+	attr->setNodeValue( X( "1" ) );
+
+	children = element->getChildNodes();
+	for ( unsigned int i=0; i < children->getLength(); i++ )
+	{
+		node = children->item( i );
+		if ( node->getNodeType() && node->getNodeType() == DOMNode::ELEMENT_NODE )
+		{
+			DOMElement *tmel = dynamic_cast<DOMElement *>(node);
+			//if ( XMLString::equals( tmel->getTagName(), X( "xsd:element" ) ) == 0 )
+			//{
+		log_message( log_file, XMLString::transcode( tmel->getTagName() ) );
+				//rekurzivni fce
+				create_xml_element( xsd_root, tmel, iso );
+			//}
+		}
+	}
+
+	log_message( log_file, "finished creating xml" );
+
+	return iso;
+
+}
+
+/*
+Vytvori element a pripoji jej do XML stromu
+*/
+void Mib2Xsd::create_xml_element( DOMElement *xsd_root, DOMElement *xsd, DOMElement *xml )
+{
+	DOMDocument *doc = main_doc;
+
+	DOMElement *tmel;
+	DOMElement *type_el;
+	DOMElement *new_xml;
+
+	DOMAttr *attr;
+
+	DOMNodeList *children;
+	DOMNode *node;
+
+	string tmp_str;
+	const XMLCh* value;
+
+	//TODO: predelat to tak, ze tady bude check na jednotlive elementy
+	//paklize element - new elmeent
+	//paklize oid - append oid, access apod
+
+	if ( XMLString::equals( xsd->getTagName(), X( "xsd:element" ) ) == 0 )
+	{
+		
+		//Process children
+		children = xsd->getChildNodes();
+		for ( unsigned int i = 0; i < children->getLength(); i++ )
+		{
+			node = children->item( i );
+			if ( node->getNodeType() && node->getNodeType() == DOMNode::ELEMENT_NODE )
+			{
+				DOMElement *tmel = dynamic_cast<DOMElement *>(node);
+
+		log_message( log_file, XMLString::transcode( tmel->getTagName() ) );
+				//rekurzivni fce
+				create_xml_element( xsd_root, tmel, xml );
+			}
+
+		}
+
+
+		return;
+	}
+
+	
+
+	//Nejprve vytvorime novy element
+	new_xml = doc->createElement( xsd->getAttribute( X( "name" ) ) );
+	xml->appendChild( new_xml );
+
+	/*
+	Nejprve zpracovani daneho elementu
+	- najdeme oid rovnou 
+	- if neexistuje -> get type
+		- if existuje typ, najdeme je, ziskame oid, access, restriction a processneme deti elementy
+	- if neexistuje typ - processneme deti elementy
+	*/
+	children = xsd->getElementsByTagName( X( "oid" ) );
+	if ( children->getLength() > 0 )
+	{
+		//pridame atribut oid
+		tmel = dynamic_cast<DOMElement *>( children->item(0) );
+		attr = doc->createAttribute( X( "oid" ) );
+		attr->setNodeValue( tmel->getTextContent() );
+		new_xml->setAttributeNode( attr );
+
+		//access
+		children = xsd->getElementsByTagName( X( "access" ) );
+		if ( children->getLength() > 0 )
+		{
+			tmel = dynamic_cast<DOMElement *>( children->item(0) );
+			attr = doc->createAttribute( X( "access" ) );
+			attr->setNodeValue( tmel->getTextContent() );
+			new_xml->setAttributeNode( attr );
+		}
+	//Process children
+	children = xsd->getChildNodes();
+	for ( unsigned int i = 0; i < children->getLength(); i++ )
+	{
+		node = children->item( i );
+		if ( node->getNodeType() && node->getNodeType() == DOMNode::ELEMENT_NODE )
+		{
+			DOMElement *tmel = dynamic_cast<DOMElement *>(node);
+
+			log_message( log_file, XMLString::transcode( tmel->getTagName() ) );
+
+			//rekurzivni fce
+			create_xml_element( xsd_root, tmel, new_xml );
+		}
+
+	}
+
+	}
+	else
+	{
+		//Checkneme na typ, jestli je, pak jej zpracujeme
+		value = xsd->getAttribute( X( "type" ) );
+
+		if ( !XMLString::equals( value, X("") ) )
+		{
+			//process type
+			type_el = find_xsd_type( xsd_root, value );
+
+			if ( type_el != NULL )
+			{
+				//get oid, access, restriction
+				children = type_el->getElementsByTagName( X( "oid" ) );
+				if ( children->getLength() > 0 )
+				{
+					//pridame atribut oid
+					tmel = dynamic_cast<DOMElement *>( children->item(0) );
+					attr = doc->createAttribute( X( "oid" ) );
+					attr->setNodeValue( tmel->getTextContent() );
+					new_xml->setAttributeNode( attr );
+				}
+
+				//access
+				children = type_el->getElementsByTagName( X( "access" ) );
+				if ( children->getLength() > 0 )
+				{
+					tmel = dynamic_cast<DOMElement *>( children->item(0) );
+					attr = doc->createAttribute( X( "access" ) );
+					attr->setNodeValue( tmel->getTextContent() );
+					new_xml->setAttributeNode( attr );
+				}
+
+				//restriction
+				children = type_el->getElementsByTagName( X( "xsd:restriction" ) );
+				if ( children->getLength() > 0 )
+				{
+					tmel = dynamic_cast<DOMElement *>( children->item(0) );
+					attr = doc->createAttribute( X( "restriction" ) );
+					attr->setNodeValue( tmel->getAttribute( X("base") ) );
+					new_xml->setAttributeNode( attr );
+				}
+
+				//process children, if any
+				/*children = type_el->getChildNodes();
+				for ( unsigned int i = 0; i < children->getLength(); i++ )
+				{
+					node = children->item( i );
+					if ( node->getNodeType() && node->getNodeType() == DOMNode::ELEMENT_NODE )
+					{
+						DOMElement *tmel = dynamic_cast<DOMElement *>(node);
+
+						//rekurzivni fce
+						create_xml_element( xsd_root, tmel, new_xml );
+					}
+
+				}*/
+			}
+		}
+	}
+
+
+
+}
+
+
+/*
+Nalezne xsd typ v XSD dokumentu a vrati tento element zpet ke zpracovani
+*/
+DOMElement* Mib2Xsd::find_xsd_type( DOMElement *xsd_root, const XMLCh* name )
+{
+	DOMNodeList *children;
+
+	DOMNode *node;
+
+	DOMElement *tmel;
+	
+	
+	children = xsd_root->getElementsByTagName( X( "xsd:simpleType" ) );
+
+	for ( unsigned int i = 0; i < children->getLength(); i++ )
+	{
+		node = children->item( i );
+
+		if ( node->getNodeType() && node->getNodeType() == DOMNode::ELEMENT_NODE )
+		{
+			tmel = dynamic_cast<DOMElement *>(node);
+
+			if ( XMLString::equals( tmel->getAttribute( X( "name" ) ), name ) )
+				return tmel;
+		}
+
+
+	}
+
+	children = xsd_root->getElementsByTagName( X( "xsd:complexType" ) );
+
+	for ( unsigned int i = 0; i < children->getLength(); i++ )
+	{
+		node = children->item( i );
+
+		if ( node->getNodeType() && node->getNodeType() == DOMNode::ELEMENT_NODE )
+		{
+			tmel = dynamic_cast<DOMElement *>(node);
+
+			if ( XMLString::equals( tmel->getAttribute( X( "name" ) ), name ) )
+				return tmel;
+		}
+
+
+	}
+
+	return NULL;
 }

@@ -109,6 +109,11 @@ DONE
 	- udelat vlastni transformacni tridu a zaclenit ji do demona
 	DONE
 
+-----------------------------
+	PRIORITY HIGH
+	- Vytvoreni XML dokumentu z XSD schematu pro vsechna zarizeni.
+-----------------------------
+
 	- Dodelat sortovani zarizeni v ramci devices_list dle id, aby tomu pak odpovidalo poradi xml dokumentu
 
 	- Dodelat promenne pro zakladni nazvy souboru "snmpxmld.xsd", aby to slo menit globalne
@@ -155,55 +160,34 @@ DONE
 
 		- get
 			- simple values
-			DONE
 
 			- Nutne dodelani objectId parametru do teto zpravy!
-			DONE
 
 			- tabulky
-			DONE
 
 		- set
 			-simple values 
-			DONE
 
 			- tabulky
-			DONE
 
 		- response
 			-report values
-			DONE
 
 			-error codes	
-			DONE
 
+--------------------------------------
+		PRIORITY HIGH
+		Komplet GET, SET messages se trosku meni. S tim, jak mame dokument jinak strukturovany
+		se nam zmeni xpath vyraz.
+		- Mel by pribyt check na access, jestli muze zapisovat, kdyz chce apod
+		- Pak by mel mozna nasledovat check na typ, ale to je k diskusi
+		
 
-	TODO 30.3.09
-		//- SET zprava - jednotlive nody
-		//- typy dat zpet - timetics apod vychytat.
-		//- definovat errory do struktury
-		//- checkovat errory pri build_response_string a manipulovat s nima
-		//- send_error_response
+		TODO:
+			- odpadne nutnost delat XalanDokumenty z kazdeho rootu.
+			(nyni uz jenom jedine mapovani na hlavni dokument!!!!)
+------------------------------------
 
-	//	- zacatek tabulek
-	//	- doimplementovat pouziti GETNETXT requestu
-	DONE
-
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-TABULKY
-
-- Jak nahradit GETNEXT - jedna varianta reseni je ta, ze budeme do XPath vyrazu pridavat za element //next, cimz vyjadrime to GETNEXT,
-nebo to nechame bez toho a je to proste GET Request.
-
-Pote, co jsme udelali takhle GET a GETNEXT, posilame vzdy nejakej retezec, on zjisti dany node. A to rekurzivne, ze odrezava postupne
-posledni casti dotazu. Kdyz to najde (tabulky jsou pouze 2D, takze zadne nested), tak se mrkne na typ a pak hleda dale ten element
-v podtypu (element v SEQUENCE). Kdyz jej najde, tak posle dotaz na agenta.
-Je zohlednen node bez indexu, s indexama a zaroven i GETNEXT.
-
-Zpet se navraci nazev hodnoty, kterou jsme ziskali s plnym indexem a zaroven hodnotou. To je pro pruchod cele tabukly.
-Tohle pak plati pro vsechny nody, ale u tabulek je to nejpotrebnejsi.
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 8. Pokrocila komunikace - notifications
@@ -298,7 +282,8 @@ Medium priority
 
 - Udelat lepsi parsovani XML dat z message, ktery prijmeme
 
-- Podivat se, jestli pri vraceni erroru po SET requestu ukladame do struktury i dany error, nejenom jeho string reprezentaci
+- DONE Podivat se, jestli pri vraceni erroru po SET requestu ukladame do struktury i dany error, nejenom jeho string reprezentaci
+
 
 
 High Priority
@@ -335,14 +320,9 @@ Nutno pro zpetne nacteni a parsovani (pro pozdejsi vyhledavani pomoci XPathu)
 
 - RESPONSE message se musi rozsirit i o ERROR element, kdy neco nevyjde
 
-- Problem s XPath. Jestli v te hnusne podobe ma posilat string manager, nebo se ma vytvorit az na miste
 
 - Thread Safe design - zamyslet se nad tim, jake operace by mohly byt pro thready spatne a tim padem
 by si mohli prepisovat data
-
-- Neni mozne se ptat na uzel, ktery ma podstrom pod sebou ( neni to tabulka ). Nebylo by mu mozne totiz servirovat
-zpet odpovedi. O to se musi postarat manager!!
-OTAZKA: slo by to udelat, paklize v response muze byt vice value
 
 - Osetrit chybu. Kdyz snmp zahlasi chybu, tak ten thread a connection nikdy neskonci. Kde se deje ten problem??@?@
 Dodelavky:

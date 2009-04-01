@@ -112,6 +112,16 @@ class Mib2Xsd
 		void create_main_document();
 		void create_device_element( SNMP_device *, DOMElement* );
 		void end_main_document();
+		void append_dev_data_to_maindoc();
+
+		/*
+		Vytvoreni XML dokumentu z XSD
+		*/
+		DOMElement* create_xml_from_xsd( DOMElement *, DOMElement *  );
+		void create_xml_element( DOMElement *, DOMElement *, DOMElement * );
+		DOMElement* find_xsd_type( DOMElement *, const XMLCh* );
+		DOMNodeList *get_child_elements( DOMElement * );
+		//TODO: nova fce na pridani pointeru na data mezi souhlasnymi devices
 
 		DOMDocument* get_main_doc()
 		{
