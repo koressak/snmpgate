@@ -61,6 +61,14 @@ class Mib2Xsd
 		DOMDocument *doc;
 		DOMElement *root;
 
+		//pro budovani xml dokumentu z XSD 
+		DOMElement *xml_root;
+
+		DOMDocument *xsd_main_doc;
+		DOMElement *xsd_main_root;
+		DOMElement *xsd_main_devices;
+
+
 		//Notifications elements
 		DOMElement *main_notif;
 		DOMElement *main_notif_seq;
@@ -92,17 +100,17 @@ class Mib2Xsd
 		void create_docum_tag( struct tree*, DOMElement* );
 		void create_main_notif_element();
 		void add_notif_element( string );
-		void write_object_group( struct tree*, DOMElement* );
-		void write_object_identity( struct tree*, DOMElement* );
-		void write_notif_group( struct tree*, DOMElement* );
-		DOMElement* write_complex_type( struct tree*, DOMElement* );
-		void write_notif_type( struct tree*, DOMElement* );
-		void write_annotation_part( struct tree*, DOMElement* );
-		void write_typeof_simple( struct tree* );
-		void write_simple_type( struct tree*, DOMElement* );
-		void write_sequence( struct tree *);
-		void write_sequence_of( struct tree*, DOMElement* );
-		void parse_node( struct tree*, DOMElement* );
+		void write_object_group( struct tree*, DOMElement*, DOMElement * );
+		void write_object_identity( struct tree*, DOMElement*, DOMElement * );
+		void write_notif_group( struct tree*, DOMElement*, DOMElement * );
+		list<DOMElement*> write_complex_type( struct tree*, DOMElement*, DOMElement * );
+		void write_notif_type( struct tree*, DOMElement*, DOMElement * );
+		void write_annotation_part( struct tree*, DOMElement*, DOMElement * );
+		void write_typeof_simple( struct tree*, DOMElement * );
+		void write_simple_type( struct tree*, DOMElement*, DOMElement* );
+		void write_sequence( struct tree *, DOMElement *);
+		void write_sequence_of( struct tree*, DOMElement*, DOMElement * );
+		void parse_node( struct tree*, DOMElement*, DOMElement * );
 		static void output_xml2file( const char*, DOMDocument* );
 		void write_header( DOMElement* );
 
@@ -112,14 +120,13 @@ class Mib2Xsd
 		void create_main_document();
 		void create_device_element( SNMP_device *, DOMElement* );
 		void end_main_document();
-		void append_dev_data_to_maindoc();
 
 		/*
 		Vytvoreni XML dokumentu z XSD
 		*/
-		DOMElement* create_xml_from_xsd( DOMElement *, DOMElement *  );
-		void create_xml_element( DOMElement *, DOMElement *, DOMElement * );
-		DOMElement* find_xsd_type( DOMElement *, const XMLCh* );
+		DOMElement* create_xml_from_xsd( DOMElement * );
+		void create_xml_element( const DOMElement *, DOMElement *, XalanDocument * );
+		const DOMElement* find_xsd_type( XalanDocument *, const XMLCh* );
 		DOMNodeList *get_child_elements( DOMElement * );
 		//TODO: nova fce na pridani pointeru na data mezi souhlasnymi devices
 

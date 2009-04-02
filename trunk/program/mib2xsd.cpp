@@ -55,6 +55,8 @@ void Mib2Xsd::parse_device_mib( SNMP_device *dev )
 	root = doc->createElement( X("xsd:schema") );
 	doc->appendChild( root );
 
+	xml_root = main_doc->createElement( X("data") );
+
 	//get headers
 	write_header( root );
 
@@ -82,7 +84,7 @@ void Mib2Xsd::parse_device_mib( SNMP_device *dev )
 	//Parsovani celeho stromu
 	mib_tree = get_tree_head();
 
-	parse_node( mib_tree, root );
+	parse_node( mib_tree, root, xml_root );
 
 	//END parsing
 
@@ -97,8 +99,7 @@ void Mib2Xsd::parse_device_mib( SNMP_device *dev )
 	shutdown_mib();
 
 	//Ukonceni prace s XML dokumentem. Nutno release
-	//TODO nereleasovat -> predat zpet do drzeni hlavni tride
-	//TODO nutno pridat tento device do hlavniho elementu
+	//TODO:release zde
 	//doc->release();
 }
 
@@ -283,13 +284,14 @@ void Mib2Xsd::add_notif_element( string name )
 Zapis skupiny objektu
 TODO : jak sakra najit ty objecty, na ktery linkuje?? ve strukture to vubec neni
 */
-void Mib2Xsd::write_object_group( struct tree* node, DOMElement *parent )
+void Mib2Xsd::write_object_group( struct tree* node, DOMElement *parent, DOMElement *xml_par )
 {
 	DOMElement* elem;
 	DOMAttr*	attr;
 	DOMElement* annot;
 	DOMElement* appinfo;
 	DOMElement* tmp;
+	DOMElement* xtmp;
 	DOMText*	txt;
 	string tmpstr;
 
@@ -299,6 +301,16 @@ void Mib2Xsd::write_object_group( struct tree* node, DOMElement *parent )
 	attr = doc->createAttribute( X("name") );
 	attr->setNodeValue( X( node->label ) );
 	elem->setAttributeNode( attr );
+
+	attr = doc->createAttribute( X("type") );
+	tmpstr = node->label;
+	tmpstr += "Type";
+	attr->setNodeValue( X( tmpstr.c_str() ) );
+	elem->setAttributeNode( attr );
+
+	//xml
+	xtmp = main_doc->createElement( X( node->label ) );
+	xml_par->appendChild( xtmp );
 
 	elem = doc->createElement( X("xsd:simpleType") );
 	root->appendChild( elem );
@@ -324,6 +336,11 @@ void Mib2Xsd::write_object_group( struct tree* node, DOMElement *parent )
 	tmp->appendChild(txt);
 
 	appinfo->appendChild( tmp );
+
+	//xml
+	attr = main_doc->createAttribute( X( "oid" ) );
+	attr->setNodeValue( X(tmpstr.c_str()) );
+	xtmp->setAttributeNode( attr );
 
 
 }
@@ -332,13 +349,14 @@ void Mib2Xsd::write_object_group( struct tree* node, DOMElement *parent )
 /*
 Zapis object Identity
 */
-void Mib2Xsd::write_object_identity( struct tree* node, DOMElement *parent )
+void Mib2Xsd::write_object_identity( struct tree* node, DOMElement *parent, DOMElement *xml_par )
 {
 	DOMElement* elem;
 	DOMAttr*	attr;
 	DOMElement* annot;
 	DOMElement* appinfo;
 	DOMElement* tmp;
+	DOMElement* xtmp;
 	DOMText*	txt;
 	string tmpstr;
 
@@ -348,6 +366,10 @@ void Mib2Xsd::write_object_identity( struct tree* node, DOMElement *parent )
 	attr = doc->createAttribute( X("name") );
 	attr->setNodeValue( X( node->label ) );
 	elem->setAttributeNode( attr );
+
+	//xml
+	xtmp = main_doc->createElement( X( node->label ) );
+	xml_par->appendChild( xtmp );
 
 	attr = doc->createAttribute( X("type") );
 	tmpstr = node->label;
@@ -378,12 +400,17 @@ void Mib2Xsd::write_object_identity( struct tree* node, DOMElement *parent )
 	tmp->appendChild(txt);
 
 	appinfo->appendChild( tmp );
+
+	//xml
+	attr = main_doc->createAttribute( X( "oid" ) );
+	attr->setNodeValue( X(tmpstr.c_str()) );
+	xtmp->setAttributeNode( attr );
 }
 
 /*
 Notification group type
 */
-void Mib2Xsd::write_notif_group( struct tree* node, DOMElement *parent )
+void Mib2Xsd::write_notif_group( struct tree* node, DOMElement *parent, DOMElement *xml_par )
 {
 	DOMElement* elem;
 	DOMAttr*	attr;
@@ -392,6 +419,7 @@ void Mib2Xsd::write_notif_group( struct tree* node, DOMElement *parent )
 	DOMElement* tmp;
 	DOMText*	txt;
 	DOMElement*	restr;
+	DOMElement* xtmp;
 	string tmpstr;
 
 	elem = doc->createElement( X("xsd:element") );
@@ -400,6 +428,10 @@ void Mib2Xsd::write_notif_group( struct tree* node, DOMElement *parent )
 	attr = doc->createAttribute( X("name") );
 	attr->setNodeValue( X( node->label ) );
 	elem->setAttributeNode( attr );
+
+	//xml
+	xtmp = main_doc->createElement( X( node->label ) );
+	xml_par->appendChild( xtmp );
 
 	attr = doc->createAttribute( X("type") );
 	tmpstr = node->label;
@@ -428,6 +460,11 @@ void Mib2Xsd::write_notif_group( struct tree* node, DOMElement *parent )
 	tmpstr = get_current_oid();
 	txt = doc->createTextNode( X( tmpstr.c_str() ) );
 	tmp->appendChild(txt);
+
+	//xml
+	attr = main_doc->createAttribute( X( "oid" ) );
+	attr->setNodeValue( X(tmpstr.c_str()) );
+	xtmp->setAttributeNode( attr );
 
 	appinfo->appendChild( tmp );
 
@@ -437,16 +474,24 @@ void Mib2Xsd::write_notif_group( struct tree* node, DOMElement *parent )
 	attr = doc->createAttribute( X("base") );
 	attr->setNodeValue( X("xsd:integer") );
 	restr->setAttributeNode( attr );
+
+	//xml
+	attr = main_doc->createAttribute( X( "restriction" ) );
+	attr->setNodeValue( X( "xsd:integer" ) );
+	xtmp->setAttributeNode( attr );
 }
 
 /*
 vytvoreni obecneho complex typu
 */
-DOMElement* Mib2Xsd::write_complex_type( struct tree* node, DOMElement *parent)
+list<DOMElement*> Mib2Xsd::write_complex_type( struct tree* node, DOMElement *parent, DOMElement *xml_par )
 {
 	DOMElement* tmel;
 	DOMElement* next_par;
+	DOMElement* xtmp;
 	DOMAttr* attr;
+
+	list<DOMElement *> mod_elements;
 
 	tmel = doc->createElement( X("xsd:element"));
 	parent->appendChild( tmel );
@@ -460,6 +505,10 @@ DOMElement* Mib2Xsd::write_complex_type( struct tree* node, DOMElement *parent)
 	attr = doc->createAttribute( X("name") );
 	attr->setNodeValue( X(node->label) );
 	tmel->setAttributeNode( attr );
+
+	//xml
+	xtmp = main_doc->createElement( X( node->label ) );
+	xml_par->appendChild( xtmp );
 
 	//pridat anotaci
 	tmel = doc->createElement( X("xsd:annotation") );
@@ -476,6 +525,13 @@ DOMElement* Mib2Xsd::write_complex_type( struct tree* node, DOMElement *parent)
 	app->appendChild(oid);
 	oid->appendChild(txt);
 
+	//xml
+	attr = main_doc->createAttribute( X( "oid" ) );
+	attr->setNodeValue( X( tmp.c_str() ) );
+	xtmp->setAttributeNode( attr );
+
+	mod_elements.push_back( xtmp );
+
 	//pridat complex type def
 	tmel = doc->createElement( X("xsd:complexType") );
 	parent->appendChild( tmel );
@@ -484,18 +540,23 @@ DOMElement* Mib2Xsd::write_complex_type( struct tree* node, DOMElement *parent)
 	next_par = doc->createElement( X("xsd:sequence") );
 	tmel->appendChild( next_par );
 
-	return next_par;
+	mod_elements.push_back( next_par );
+
+
+	//return next_par;
+	return mod_elements;
 }
 
 
 /*
 Notification type
 */
-void Mib2Xsd::write_notif_type( struct tree* node, DOMElement *parent )
+void Mib2Xsd::write_notif_type( struct tree* node, DOMElement *parent, DOMElement *xml_par )
 {
 	DOMElement* tmel;
 	DOMElement* elem;
 	DOMElement* restr;
+	DOMElement* xtmp;
 	DOMAttr*	attr;
 	DOMElement* annot;
 	DOMElement* appinfo;
@@ -509,6 +570,10 @@ void Mib2Xsd::write_notif_type( struct tree* node, DOMElement *parent )
 	attr = doc->createAttribute( X("name") );
 	attr->setNodeValue( X( node->label) );
 	tmel->setAttributeNode( attr );
+
+	//xml
+	xtmp = main_doc->createElement( X( node->label ) );
+	xml_par->appendChild( xtmp );
 
 	//Pak definujeme typ trapu a zaclenime jej do main_notif
 	add_notif_element( string(node->label) );
@@ -569,10 +634,12 @@ void Mib2Xsd::write_notif_type( struct tree* node, DOMElement *parent )
 /*
 Zapise spolecnou cast annotation elementu do definice typu
 */
-void Mib2Xsd::write_annotation_part( struct tree* node, DOMElement *annot )
+void Mib2Xsd::write_annotation_part( struct tree* node, DOMElement *annot, DOMElement *xml_par )
 {
 	DOMElement* appinfo;
 	DOMElement* tmp;
+
+
 	DOMAttr* attr;
 	DOMText* txt;
 	string tmpstr;
@@ -650,17 +717,27 @@ void Mib2Xsd::write_annotation_part( struct tree* node, DOMElement *annot )
 	tmp->appendChild( txt );
 	appinfo->appendChild( tmp );
 
+	//xml
+	attr = main_doc->createAttribute( X( "access" ) );
+	attr->setNodeValue( X( tmpstr.c_str() ) );
+	xml_par->setAttributeNode( attr );
+
 	tmp = doc->createElement( X("oid") );
 	tmpstr = get_current_oid();
 	txt = doc->createTextNode( X( tmpstr.c_str() ) );
 	tmp->appendChild( txt );
 	appinfo->appendChild( tmp );
+
+	//xml
+	attr = main_doc->createAttribute( X( "oid" ) );
+	attr->setNodeValue( X( tmpstr.c_str() ) );
+	xml_par->setAttributeNode( attr );
 }
 
 /*
 Zapise definici typu zakladniho elementu
 */
-void Mib2Xsd::write_typeof_simple( struct tree* node )
+void Mib2Xsd::write_typeof_simple( struct tree* node, DOMElement *xml_par )
 {
 	DOMElement* tmel;
 	DOMElement* annot;
@@ -684,7 +761,7 @@ void Mib2Xsd::write_typeof_simple( struct tree* node )
 	annot = doc->createElement( X("xsd:annotation") );
 	tmel->appendChild( annot );
 
-	write_annotation_part( node,  annot );
+	write_annotation_part( node,  annot, xml_par );
 
 	//nyni mame annotation hotovy
 	//zacina restriction
@@ -696,6 +773,11 @@ void Mib2Xsd::write_typeof_simple( struct tree* node )
 
 	tmpstr = get_node_type( node );
 	attr->setNodeValue( X( tmpstr.c_str() ));
+
+	//xml
+	attr = main_doc->createAttribute( X("restriction") );
+	attr->setNodeValue( X( tmpstr.c_str() ) );
+	xml_par->setAttributeNode( attr );
 
 	//Typ je slozen z nekolika definovanych elementu
 	if ( node->enums != NULL )
@@ -756,9 +838,10 @@ Doda do annotation element appinfo s oid elementem
 TODO
 nechce chodit description?!?!?!?!
 */
-void Mib2Xsd::write_simple_type( struct tree* node, DOMElement *parent )
+void Mib2Xsd::write_simple_type( struct tree* node, DOMElement *parent, DOMElement *xml_par )
 {
 	DOMElement* tmel;
+	DOMElement* xtmp;
 	DOMAttr* attr;
 	string tmpstr;
 
@@ -772,13 +855,17 @@ void Mib2Xsd::write_simple_type( struct tree* node, DOMElement *parent )
 	attr->setNodeValue( X(node->label) );
 	tmel->setAttributeNode( attr );
 
+	//xml
+	xtmp = main_doc->createElement( X( node->label ) );
+	xml_par->appendChild( xtmp );
+
 	attr = doc->createAttribute( X("type") );
 	tmpstr = node->label;
 	tmpstr += "Type";
 	attr->setNodeValue( X(tmpstr.c_str()) );
 	tmel->setAttributeNode( attr );
 
-	write_typeof_simple( node );
+	write_typeof_simple( node, xtmp );
 
 }
 
@@ -786,13 +873,14 @@ void Mib2Xsd::write_simple_type( struct tree* node, DOMElement *parent )
 /*
 Element SEQUENCE
 */
-void Mib2Xsd::write_sequence( struct tree *node )
+void Mib2Xsd::write_sequence( struct tree *node, DOMElement *xml_par )
 {
 	DOMElement* tmel;
 	DOMElement* annot;
 	DOMElement* appinfo;
 	DOMElement* tmp;
 	DOMElement* sequence;
+
 	DOMAttr* attr;
 	DOMText* txt;
 	string tmpstr;
@@ -813,7 +901,7 @@ void Mib2Xsd::write_sequence( struct tree *node )
 
 	root->appendChild( tmel );
 
-	write_annotation_part( node,  annot );
+	write_annotation_part( node,  annot, xml_par );
 
 	//indexes
 	struct index_list *index = node->indexes;
@@ -865,7 +953,7 @@ void Mib2Xsd::write_sequence( struct tree *node )
 
 	while ( children != NULL )
 	{
-		parse_node ( children, sequence);
+		parse_node ( children, sequence, xml_par);
 		children = children->next_peer;
 	}
 
@@ -876,10 +964,14 @@ void Mib2Xsd::write_sequence( struct tree *node )
 /*
 Zapise element SEQUENCE OF
 */
-void Mib2Xsd::write_sequence_of( struct tree *node, DOMElement* parent )
+void Mib2Xsd::write_sequence_of( struct tree *node, DOMElement* parent, DOMElement *xml_par )
 {
 	DOMElement* elem;
 	DOMElement* subel;
+
+	DOMElement* xtmp;
+	DOMElement* xsubtmp;
+
 	DOMAttr* attr;
 	string tmpstr;
 	char oid_tmp[10];
@@ -890,6 +982,10 @@ void Mib2Xsd::write_sequence_of( struct tree *node, DOMElement* parent )
 	attr = doc->createAttribute( X("name") );
 	attr->setNodeValue( X( node->label) );
 	elem->setAttributeNode( attr );
+
+	//xml
+	xtmp = main_doc->createElement( X( node->label ) );
+	xml_par->appendChild( xtmp );
 
 	subel = doc->createElement( X("xsd:complexType") );
 	elem->appendChild( subel );
@@ -907,6 +1003,9 @@ void Mib2Xsd::write_sequence_of( struct tree *node, DOMElement* parent )
 	attr = doc->createAttribute( X("name") );
 	attr->setNodeValue( X( entry->label ) );
 	subel->setAttributeNode( attr );
+
+	xsubtmp = main_doc->createElement( X( entry->label ) );
+	xtmp->appendChild( xsubtmp );
 
 	attr = doc->createAttribute( X("type") );
 	tmpstr = entry->label;
@@ -926,7 +1025,7 @@ void Mib2Xsd::write_sequence_of( struct tree *node, DOMElement* parent )
 	sprintf( oid_tmp, "%d",(int) entry->subid );
 	curr_oid.push_back( oid_tmp );
 
-	write_sequence( entry );
+	write_sequence( entry, xsubtmp );
 
 	curr_oid.pop_back();
 
@@ -937,7 +1036,7 @@ void Mib2Xsd::write_sequence_of( struct tree *node, DOMElement* parent )
 /*
 Parsuje node - dle toho zapise do xsd schematu dane veci
 */
-void Mib2Xsd::parse_node( struct tree* node, DOMElement *parent )
+void Mib2Xsd::parse_node( struct tree* node, DOMElement *parent, DOMElement *xml_par )
 {
 	struct tree *children;
 	char oid_tmp[10];
@@ -953,6 +1052,9 @@ void Mib2Xsd::parse_node( struct tree* node, DOMElement *parent )
 
 	DOMElement *tmel = NULL;
 	DOMAttr *attr = NULL;
+
+	DOMElement *xtmp = NULL;
+	DOMElement *next_xml_par = NULL;
 
 	//Zjistime, jaky typ nodu to je
 	if ( node->type == TYPE_OTHER )
@@ -973,6 +1075,11 @@ void Mib2Xsd::parse_node( struct tree* node, DOMElement *parent )
 			attr->setNodeValue( X(node->label) );
 			tmel->setAttributeNode( attr );
 
+			//XML dokument
+			xtmp = main_doc->createElement( X( node->label ) );
+			xml_par->appendChild( xtmp );
+
+
 			//pridat anotaci
 			tmel = doc->createElement( X("xsd:annotation") );
 			parent->appendChild( tmel );
@@ -988,6 +1095,11 @@ void Mib2Xsd::parse_node( struct tree* node, DOMElement *parent )
 			app->appendChild(oid);
 			oid->appendChild(txt);
 
+			//xml doc oid
+			attr = main_doc->createAttribute( X( "oid" ) );
+			attr->setNodeValue( X( tmp.c_str() ) );
+			xtmp->setAttributeNode( attr );
+
 			if ( node->child_list != NULL )
 			{
 				//pridat complex type def
@@ -997,6 +1109,9 @@ void Mib2Xsd::parse_node( struct tree* node, DOMElement *parent )
 				//pridat complex type def
 				next_par = doc->createElement( X("xsd:sequence") );
 				tmel->appendChild( next_par );
+
+				//xml next par
+				next_xml_par = xtmp;
 			}
 
 		}
@@ -1019,7 +1134,7 @@ void Mib2Xsd::parse_node( struct tree* node, DOMElement *parent )
 			}
 			else
 			{
-				write_sequence_of( node, parent );
+				write_sequence_of( node, parent, xml_par);
 			}
 
 		}
@@ -1032,27 +1147,32 @@ void Mib2Xsd::parse_node( struct tree* node, DOMElement *parent )
 	}
 	else
 	{
+		list<DOMElement *> mod_elements;
 		switch( node->type )
 		{
 			case TYPE_TRAPTYPE:
 				ignore = true;
-				write_notif_type( node, parent );
+				write_notif_type( node, parent, xml_par );
 				break;
 			case TYPE_NOTIFTYPE:
 				ignore = true;
-				write_notif_type( node, parent );
+				write_notif_type( node, parent, xml_par );
 				break;
 			case TYPE_OBJGROUP:
 				ignore = false;
-				write_object_group( node, parent );
+				write_object_group( node, parent, xml_par );
 				break;
 			case TYPE_MODID:
 				ignore = false;
-				next_par = write_complex_type( node, parent );
+				mod_elements = write_complex_type( node, parent, xml_par );
+				next_xml_par = mod_elements.front();
+				mod_elements.pop_front();
+				next_par = mod_elements.front();
+				mod_elements.pop_front();
 				break;
 			case TYPE_NOTIFGROUP:
 				ignore = true;
-				write_notif_group( node, parent );
+				write_notif_group( node, parent, xml_par );
 				break;
 			case TYPE_AGENTCAP:
 				ignore = true;
@@ -1062,11 +1182,11 @@ void Mib2Xsd::parse_node( struct tree* node, DOMElement *parent )
 				break;
 			case TYPE_OBJIDENTITY:
 				ignore = false;
-				write_object_identity( node, parent );
+				write_object_identity( node, parent, xml_par );
 				break;
 			default:
 				ignore = false;
-				write_simple_type( node, parent );
+				write_simple_type( node, parent, xml_par );
 		}
 
 		if (ignore)
@@ -1082,7 +1202,11 @@ void Mib2Xsd::parse_node( struct tree* node, DOMElement *parent )
 
 	while ( children != NULL && next_par != NULL)
 	{
-		parse_node ( children, next_par);
+		if ( next_xml_par != NULL )
+			parse_node ( children, next_par, next_xml_par);
+		else
+			parse_node( children, next_par, xml_par );
+
 		children = children->next_peer;
 	}
 
@@ -1183,6 +1307,8 @@ void Mib2Xsd::create_main_document()
 	DOMElement *services;
 	DOMElement *info;
 	DOMElement *device;
+	DOMElement *sequence;
+	DOMAttr* attr;
 
 	string tmpstr;
 	
@@ -1191,6 +1317,7 @@ void Mib2Xsd::create_main_document()
 	main_doc =  impl->createDocument() ;
 	main_root = main_doc->createElement( X("device") );
 	main_doc->appendChild( main_root );
+
 	
 	info = main_doc->createElement( X("info") );
 	main_root->appendChild( info );
@@ -1211,6 +1338,97 @@ void Mib2Xsd::create_main_document()
 	services->appendChild( device );
 	main_devices = device;
 
+	/*
+	XSD popis brany
+	*/
+	xsd_main_doc = impl->createDocument();
+	xsd_main_root = xsd_main_doc->createElement( X("xsd:schema" ) );
+	xsd_main_doc->appendChild( xsd_main_root );
+
+	attr = xsd_main_doc->createAttribute( X("attributeFromDefault") );
+	attr->setNodeValue( X("unqualified") );
+	xsd_main_root->setAttributeNode( attr );
+
+	attr = xsd_main_doc->createAttribute( X("elementFormDefault") );
+	attr->setNodeValue( X("qualified") );
+	xsd_main_root->setAttributeNode( attr );
+
+	attr = xsd_main_doc->createAttribute( X("xmlns:xsd") );
+	attr->setNodeValue( X("http://www.w3.org/2001/XMLSchema") );
+	xsd_main_root->setAttributeNode( attr );
+
+	attr = xsd_main_doc->createAttribute( X("xmlns:xsi") );
+	attr->setNodeValue( X("http://www.w3.org/2001/XMLSchema-instance") );
+	xsd_main_root->setAttributeNode( attr );
+
+	//xsd popis device
+	device = xsd_main_doc->createElement( X("xsd:element") );
+	attr = xsd_main_doc->createAttribute( X("name") );
+	attr->setNodeValue( X("device") );
+	device->setAttributeNode( attr );
+	xsd_main_root->appendChild( device );
+	xsd_main_root = device;
+
+	tmel = xsd_main_doc->createElement( X("xsd:complexType") );
+	device->appendChild( tmel );
+	sequence = xsd_main_doc->createElement( X("xsd:sequence") );
+	tmel->appendChild( sequence );
+	xsd_main_root = sequence;
+
+	info = xsd_main_doc->createElement( X("xsd:element") );
+	attr = xsd_main_doc->createAttribute( X("name") );
+	attr->setNodeValue( X("info") );
+	info->setAttributeNode( attr );
+	xsd_main_root->appendChild( info );
+	//TODO: dodat nejake info do elementu info
+
+	services = xsd_main_doc->createElement( X("xsd:element") );
+	attr = xsd_main_doc->createAttribute( X("name") );
+	attr->setNodeValue( X("services") );
+	services->setAttributeNode( attr );
+	xsd_main_root->appendChild( services );
+
+	tmel = xsd_main_doc->createElement( X("xsd:complexType") );
+	services->appendChild( tmel );
+	sequence = xsd_main_doc->createElement( X("xsd:sequence") );
+	tmel->appendChild( sequence );
+	services = sequence;
+
+	tmel = xsd_main_doc->createElement( X("xsd:element") );
+	attr = xsd_main_doc->createAttribute( X("name") );
+	attr->setNodeValue( X("xmlbnmgate") );
+	tmel->setAttributeNode( attr );
+	services->appendChild( tmel );
+
+	services = tmel;
+
+	tmel = xsd_main_doc->createElement( X("xsd:complexType") );
+	services->appendChild( tmel );
+	sequence = xsd_main_doc->createElement( X("xsd:sequence") );
+	tmel->appendChild( sequence );
+	services = sequence;
+
+	info = xsd_main_doc->createElement( X("xsd:element") );
+	attr = xsd_main_doc->createAttribute( X("name") );
+	attr->setNodeValue( X("info") );
+	info->setAttributeNode( attr );
+	services->appendChild( info );
+	//TODO: nejake info tady
+
+	device = xsd_main_doc->createElement( X("xsd:element") );
+	attr = xsd_main_doc->createAttribute( X("name") );
+	attr->setNodeValue( X("devices") );
+	device->setAttributeNode( attr );
+	services->appendChild( device );
+
+	tmel = xsd_main_doc->createElement( X("xsd:complexType") );
+	device->appendChild( tmel );
+	sequence = xsd_main_doc->createElement( X("xsd:sequence") );
+	tmel->appendChild( sequence );
+
+	xsd_main_devices = sequence;
+
+
 }
 
 /*
@@ -1222,9 +1440,8 @@ void Mib2Xsd::create_device_element( SNMP_device *dev, DOMElement *r )
 	DOMElement *info;
 	DOMElement *device;
 	DOMElement *notifications;
-	DOMElement *data;
 
-	DOMElement *xml_tree;
+	DOMElement *sequence;
 
 	DOMAttr *attr;
 	DOMText *txt;
@@ -1232,6 +1449,65 @@ void Mib2Xsd::create_device_element( SNMP_device *dev, DOMElement *r )
 	string tmpstr;
 	char out[20];
 
+	/*
+	Nejprve XSD popis zarzeni
+	*/
+	device = xsd_main_doc->createElement( X("xsd:element") );
+	attr = xsd_main_doc->createAttribute( X("name") );
+	attr->setNodeValue( X("device") );
+	device->setAttributeNode( attr );
+	xsd_main_devices->appendChild( device );
+
+	attr = xsd_main_doc->createAttribute( X("id") );
+	sprintf( out, "%d", dev->id );
+	attr->setNodeValue( X( out ) );
+	device->setAttributeNode( attr );
+
+	tmel = xsd_main_doc->createElement( X("xsd:complexType") );
+	device->appendChild( tmel );
+	sequence = xsd_main_doc->createElement( X("xsd:sequence") );
+	tmel->appendChild( sequence );
+	device = sequence;
+
+	info = xsd_main_doc->createElement( X("xsd:element") );
+	attr = xsd_main_doc->createAttribute( X("name") );
+	attr->setNodeValue( X("info") );
+	info->setAttributeNode( attr );
+	device->appendChild( info );
+
+	info = xsd_main_doc->createElement( X("xsd:element") );
+	attr = xsd_main_doc->createAttribute( X("name") );
+	attr->setNodeValue( X("name") );
+	info->setAttributeNode( attr );
+	device->appendChild( info );
+
+	txt = xsd_main_doc->createTextNode( X( dev->name ) );
+	info->appendChild( txt );
+
+	info = xsd_main_doc->createElement( X("xsd:element") );
+	attr = xsd_main_doc->createAttribute( X("name") );
+	attr->setNodeValue( X("description") );
+	info->setAttributeNode( attr );
+	device->appendChild( info );
+
+	txt = xsd_main_doc->createTextNode( X( dev->description ) );
+	info->appendChild( txt );
+
+	info = xsd_main_doc->createElement( X("xsd:element") );
+	attr = xsd_main_doc->createAttribute( X("name") );
+	attr->setNodeValue( X("data") );
+	info->setAttributeNode( attr );
+	device->appendChild( info );
+	
+	info = xsd_main_doc->createElement( X("xsd:element") );
+	attr = xsd_main_doc->createAttribute( X("name") );
+	attr->setNodeValue( X("notifications") );
+	info->setAttributeNode( attr );
+	device->appendChild( info );
+
+	/*
+	XML struktura pro interni potreby
+	*/
 	device = main_doc->createElement( X("device") );
 	main_devices->appendChild( device );
 
@@ -1256,30 +1532,11 @@ void Mib2Xsd::create_device_element( SNMP_device *dev, DOMElement *r )
 	tmel = main_doc->createElement( X("subscriptions") );
 	device->appendChild( tmel );
 
-	tmel = main_doc->createElement( X("notifications") );
-	device->appendChild( tmel );
-	notifications = tmel;
-
-	tmel = main_doc->createElement( X("data") );
-	device->appendChild( tmel );
-	data = tmel;
-
-	/*
-	Budovani XML dokumentu z vytvoreneho XSD
-	*/
-	log_message( log_file, "creating xml from xsd" );
-	xml_tree = create_xml_from_xsd( r, notifications );
-
-	data->appendChild( xml_tree );
-	
-
 	/*
 	Zde nacteme znova celej dokument pomoci parseru
 	a setDoNamespaces(true)
 	*/
 	//Nutno nejprve releasnout ten hlavni dokument
-	//TODO: je to opravdu nutne znovu nacitat, kdyz to budu
-	//vytvaret?
 	doc->release();
 
 	XercesDOMParser *conf_parser = new XercesDOMParser;
@@ -1289,6 +1546,7 @@ void Mib2Xsd::create_device_element( SNMP_device *dev, DOMElement *r )
 	conf_parser->setDoSchema( false );
 	conf_parser->setLoadExternalDTD( false );
 
+	
 	sprintf( out, "%d.xsd", dev->id );
 
 	try {
@@ -1301,12 +1559,24 @@ void Mib2Xsd::create_device_element( SNMP_device *dev, DOMElement *r )
 		if ( !rootElem )
 			throw (char *)"Empty config file.";
 
-		devices_root->push_back(rootElem);
+		/*
+		Budovani XML casti Notifications
+		*/
+		 notifications =  create_xml_from_xsd( rootElem );
+		 device->appendChild( notifications );
+
+		//devices_root->push_back(rootElem);
+
+		//Nyni muzeme dokument znicit, jiz jej nepotrebujeme.
+		xmlDoc->release();
 	}
 	catch ( ... )
 	{
 		log_message( log_file, "Cannot parse the xsd file" );
 	}
+
+	device->appendChild( xml_root );
+	
 
 }
 
@@ -1321,44 +1591,68 @@ void Mib2Xsd::end_main_document()
 	str = xsd_dir;
 	str += "snmpxmld.xsd";
 
-	output_xml2file( str.c_str(), main_doc );
+	output_xml2file( str.c_str(), xsd_main_doc );
 
-}
+	//xsd popis uz nebudeme potrebovat
+	xsd_main_doc->release();
 
-/*
-Pripoji vsechny xml dokumenty do hlavniho dokumentu.
-*/
-void Mib2Xsd::append_dev_data_to_maindoc()
-{
+	/*
+	Znovunacteme cely main dokument, abychom 
+	mohli pomoci Xalanu v nem vyhledavat.
+	*/
+	/*output_xml2file( "maintemp.xml", main_doc );
+	main_doc->release();
+
+	XercesDOMParser *conf_parser = new XercesDOMParser;
+
+	conf_parser->setValidationScheme( XercesDOMParser::Val_Never );
+	conf_parser->setDoNamespaces( true );
+	conf_parser->setDoSchema( false );
+	conf_parser->setLoadExternalDTD( false );
+
+	try {
+
+		conf_parser->parse( "maintemp.xml" );
+
+		main_doc = conf_parser->getDocument();
+
+	}
+	catch ( ... )
+	{
+		log_message( log_file, "Cannot parse the xsd file" );
+	}*/
+
 }
 
 
 /*
 Create XML from XSD!!!!
 */
-DOMElement * Mib2Xsd::create_xml_from_xsd( DOMElement *xsd_root, DOMElement *dev_notif )
+DOMElement * Mib2Xsd::create_xml_from_xsd( DOMElement *xsd_root )
 {
 	DOMDocument *doc = main_doc;
 
 	DOMNode *node;
 
 	DOMElement *element;
-	DOMElement *iso;
-
-	DOMAttr *attr;
+	DOMElement *notification;
 
 	DOMNodeList *children;
 
 	string tmp_str;
 
-
 	/*
-	TODO
-	- nejprve hlavni strom
-	- pak notifications
+	Vytvarime Xalan Document na xpath dotazy na typy
 	*/
+	XercesDOMSupport		theDOMSupport;
+	XercesParserLiaison	*theLiaison;
+	XalanDocument *theDocument;
 
-	children = xsd_root->getElementsByTagName( X( "xsd:element" ) );
+	theLiaison = new XercesParserLiaison( theDOMSupport );
+	theDocument = theLiaison->createDocument( xsd_root->getOwnerDocument(), true, true, true );
+
+
+	children = xsd_root->getElementsByTagName( X( "xsd:complexType" ) );
 
 	//jediny dite je hlavni "iso" element
 	for ( unsigned int a = 0; a < children->getLength(); a++ )
@@ -1366,15 +1660,12 @@ DOMElement * Mib2Xsd::create_xml_from_xsd( DOMElement *xsd_root, DOMElement *dev
 		node = children->item( a );
 		element = dynamic_cast<DOMElement *>(node);
 		
-		if ( XMLString::equals( element->getAttribute( X("name") ), X("iso") ) )
+		if ( XMLString::equals( element->getAttribute( X("name") ), X("MainNotificationType") ) )
 			break;
 	}
 
 	//nyni zahajime rekurzivni budovani xml stromu
-	iso = doc->createElement( element->getAttribute( X( "name" ) ) );
-
-	attr = doc->createAttribute( X( "oid" ) );
-	attr->setNodeValue( X( "1" ) );
+	notification = doc->createElement( X( "notifications") );
 
 	children = element->getChildNodes();
 	for ( unsigned int i=0; i < children->getLength(); i++ )
@@ -1383,31 +1674,26 @@ DOMElement * Mib2Xsd::create_xml_from_xsd( DOMElement *xsd_root, DOMElement *dev
 		if ( node->getNodeType() && node->getNodeType() == DOMNode::ELEMENT_NODE )
 		{
 			DOMElement *tmel = dynamic_cast<DOMElement *>(node);
-			//if ( XMLString::equals( tmel->getTagName(), X( "xsd:element" ) ) == 0 )
-			//{
-		log_message( log_file, XMLString::transcode( tmel->getTagName() ) );
-				//rekurzivni fce
-				create_xml_element( xsd_root, tmel, iso );
-			//}
+			create_xml_element( tmel, notification, theDocument );
 		}
 	}
 
-	log_message( log_file, "finished creating xml" );
+	delete( theLiaison );
 
-	return iso;
+	return notification;
 
 }
 
 /*
 Vytvori element a pripoji jej do XML stromu
 */
-void Mib2Xsd::create_xml_element( DOMElement *xsd_root, DOMElement *xsd, DOMElement *xml )
+void Mib2Xsd::create_xml_element( const DOMElement *xsd, DOMElement *xml, XalanDocument *theDoc )
 {
 	DOMDocument *doc = main_doc;
 
-	DOMElement *tmel;
-	DOMElement *type_el;
+	const DOMElement *type_el;
 	DOMElement *new_xml;
+	DOMElement *xtmp;
 
 	DOMAttr *attr;
 
@@ -1417,13 +1703,82 @@ void Mib2Xsd::create_xml_element( DOMElement *xsd_root, DOMElement *xsd, DOMElem
 	string tmp_str;
 	const XMLCh* value;
 
-	//TODO: predelat to tak, ze tady bude check na jednotlive elementy
-	//paklize element - new elmeent
-	//paklize oid - append oid, access apod
 
-	if ( XMLString::equals( xsd->getTagName(), X( "xsd:element" ) ) == 0 )
+	if ( XMLString::equals( xsd->getTagName(), X( "oid" ) ) )
+	{
+		attr = doc->createAttribute( X( "oid" ) );
+		attr->setNodeValue( xsd->getTextContent() );
+		xml->setAttributeNode( attr );
+	}
+	else if ( XMLString::equals( xsd->getTagName(), X( "access" ) ) )
+	{
+		attr = doc->createAttribute( X( "access" ) );
+		attr->setNodeValue( xsd->getTextContent() );
+		xml->setAttributeNode( attr );
+	}
+	else if ( XMLString::equals( xsd->getTagName(), X( "xsd:restriction" ) ) )
+	{
+		attr = doc->createAttribute( X( "restriction" ) );
+		attr->setNodeValue( xsd->getAttribute( X("base") ) );
+		xml->setAttributeNode( attr );
+	}
+	else if ( XMLString::equals( xsd->getTagName(), X( "variable" ) ) )
+	{
+		xtmp = doc->createElement( xsd->getTextContent() );
+
+		attr = doc->createAttribute( X( "oid" ) );
+		attr->setNodeValue( xsd->getAttribute( X("oid") ) );
+		xtmp->setAttributeNode( attr );
+
+		xml->appendChild( xtmp );
+	}
+	else if ( XMLString::equals( xsd->getTagName(), X( "xsd:element" ) ) )
 	{
 		
+		//Nejprve vytvorime novy element
+		new_xml = doc->createElement( xsd->getAttribute( X( "name" ) ) );
+		xml->appendChild( new_xml );
+
+		/*
+		Jestli nema deti, tak zkusime typ.
+		Paklize je typ, tak to uz se projede samo
+		*/
+		value = xsd->getAttribute( X( "type" ) );
+
+		if ( !XMLString::equals( value, X("") ) )
+		{
+			//process type
+			type_el = find_xsd_type( theDoc, value );
+
+			if ( type_el != NULL )
+			{
+				create_xml_element( type_el, new_xml, theDoc );
+			}
+		}
+		else
+		{
+			children = xsd->getChildNodes();
+			for ( unsigned int i = 0; i < children->getLength(); i++ )
+			{
+				node = children->item( i );
+				if ( node->getNodeType() && node->getNodeType() == DOMNode::ELEMENT_NODE )
+				{
+					DOMElement *tmel = dynamic_cast<DOMElement *>(node);
+
+					//rekurzivni fce
+					create_xml_element( tmel, new_xml, theDoc );
+				}
+
+			}
+		}
+
+
+	}
+	else
+	{
+		/*
+		Paklize je to cokoliv jineho, tak akorat projdeme o uroven nize
+		*/
 		//Process children
 		children = xsd->getChildNodes();
 		for ( unsigned int i = 0; i < children->getLength(); i++ )
@@ -1433,128 +1788,12 @@ void Mib2Xsd::create_xml_element( DOMElement *xsd_root, DOMElement *xsd, DOMElem
 			{
 				DOMElement *tmel = dynamic_cast<DOMElement *>(node);
 
-		log_message( log_file, XMLString::transcode( tmel->getTagName() ) );
 				//rekurzivni fce
-				create_xml_element( xsd_root, tmel, xml );
+				create_xml_element( tmel, xml, theDoc );
 			}
 
 		}
-
-
-		return;
 	}
-
-	
-
-	//Nejprve vytvorime novy element
-	new_xml = doc->createElement( xsd->getAttribute( X( "name" ) ) );
-	xml->appendChild( new_xml );
-
-	/*
-	Nejprve zpracovani daneho elementu
-	- najdeme oid rovnou 
-	- if neexistuje -> get type
-		- if existuje typ, najdeme je, ziskame oid, access, restriction a processneme deti elementy
-	- if neexistuje typ - processneme deti elementy
-	*/
-	children = xsd->getElementsByTagName( X( "oid" ) );
-	if ( children->getLength() > 0 )
-	{
-		//pridame atribut oid
-		tmel = dynamic_cast<DOMElement *>( children->item(0) );
-		attr = doc->createAttribute( X( "oid" ) );
-		attr->setNodeValue( tmel->getTextContent() );
-		new_xml->setAttributeNode( attr );
-
-		//access
-		children = xsd->getElementsByTagName( X( "access" ) );
-		if ( children->getLength() > 0 )
-		{
-			tmel = dynamic_cast<DOMElement *>( children->item(0) );
-			attr = doc->createAttribute( X( "access" ) );
-			attr->setNodeValue( tmel->getTextContent() );
-			new_xml->setAttributeNode( attr );
-		}
-	//Process children
-	children = xsd->getChildNodes();
-	for ( unsigned int i = 0; i < children->getLength(); i++ )
-	{
-		node = children->item( i );
-		if ( node->getNodeType() && node->getNodeType() == DOMNode::ELEMENT_NODE )
-		{
-			DOMElement *tmel = dynamic_cast<DOMElement *>(node);
-
-			log_message( log_file, XMLString::transcode( tmel->getTagName() ) );
-
-			//rekurzivni fce
-			create_xml_element( xsd_root, tmel, new_xml );
-		}
-
-	}
-
-	}
-	else
-	{
-		//Checkneme na typ, jestli je, pak jej zpracujeme
-		value = xsd->getAttribute( X( "type" ) );
-
-		if ( !XMLString::equals( value, X("") ) )
-		{
-			//process type
-			type_el = find_xsd_type( xsd_root, value );
-
-			if ( type_el != NULL )
-			{
-				//get oid, access, restriction
-				children = type_el->getElementsByTagName( X( "oid" ) );
-				if ( children->getLength() > 0 )
-				{
-					//pridame atribut oid
-					tmel = dynamic_cast<DOMElement *>( children->item(0) );
-					attr = doc->createAttribute( X( "oid" ) );
-					attr->setNodeValue( tmel->getTextContent() );
-					new_xml->setAttributeNode( attr );
-				}
-
-				//access
-				children = type_el->getElementsByTagName( X( "access" ) );
-				if ( children->getLength() > 0 )
-				{
-					tmel = dynamic_cast<DOMElement *>( children->item(0) );
-					attr = doc->createAttribute( X( "access" ) );
-					attr->setNodeValue( tmel->getTextContent() );
-					new_xml->setAttributeNode( attr );
-				}
-
-				//restriction
-				children = type_el->getElementsByTagName( X( "xsd:restriction" ) );
-				if ( children->getLength() > 0 )
-				{
-					tmel = dynamic_cast<DOMElement *>( children->item(0) );
-					attr = doc->createAttribute( X( "restriction" ) );
-					attr->setNodeValue( tmel->getAttribute( X("base") ) );
-					new_xml->setAttributeNode( attr );
-				}
-
-				//process children, if any
-				/*children = type_el->getChildNodes();
-				for ( unsigned int i = 0; i < children->getLength(); i++ )
-				{
-					node = children->item( i );
-					if ( node->getNodeType() && node->getNodeType() == DOMNode::ELEMENT_NODE )
-					{
-						DOMElement *tmel = dynamic_cast<DOMElement *>(node);
-
-						//rekurzivni fce
-						create_xml_element( xsd_root, tmel, new_xml );
-					}
-
-				}*/
-			}
-		}
-	}
-
-
 
 }
 
@@ -1562,48 +1801,104 @@ void Mib2Xsd::create_xml_element( DOMElement *xsd_root, DOMElement *xsd, DOMElem
 /*
 Nalezne xsd typ v XSD dokumentu a vrati tento element zpet ke zpracovani
 */
-DOMElement* Mib2Xsd::find_xsd_type( DOMElement *xsd_root, const XMLCh* name )
+const DOMElement* Mib2Xsd::find_xsd_type( XalanDocument *theDocument, const XMLCh* name )
 {
-	DOMNodeList *children;
+	const DOMElement *ret_elm;
 
-	DOMNode *node;
+	XercesDOMSupport				theDOMSupport;
+	XalanDocumentPrefixResolver		thePrefixResolver(theDocument);
+	XPathEvaluator					theEvaluator;
+	XalanNode*						theContextNode;
 
-	DOMElement *tmel;
-	
-	
-	children = xsd_root->getElementsByTagName( X( "xsd:simpleType" ) );
-
-	for ( unsigned int i = 0; i < children->getLength(); i++ )
+	if ( theDocument == NULL )
 	{
-		node = children->item( i );
-
-		if ( node->getNodeType() && node->getNodeType() == DOMNode::ELEMENT_NODE )
-		{
-			tmel = dynamic_cast<DOMElement *>(node);
-
-			if ( XMLString::equals( tmel->getAttribute( X( "name" ) ), name ) )
-				return tmel;
-		}
-
-
+		log_message( log_file, "Document is NULL. WTF???" );
+		return NULL;
 	}
 
-	children = xsd_root->getElementsByTagName( X( "xsd:complexType" ) );
+	try {
+	theContextNode = theDocument->getDocumentElement();
 
-	for ( unsigned int i = 0; i < children->getLength(); i++ )
+	if ( theContextNode == NULL )
+		return NULL;
+	
+	XalanDOMString search = XalanDOMString("xsd:simpleType[@name='");
+	search  += XalanDOMString( name );
+	search	+= XalanDOMString("']");
+
+
+	//Vyhledani daneho elementu
+	 const XObjectPtr result( theEvaluator.evaluate(
+				   theDOMSupport,        // DOMSupport
+				  theContextNode,       // context node
+				  search.c_str(),  // XPath expr
+				   thePrefixResolver));     // Namespace resolver
+
+	const NodeRefListBase&        nodeset = result->nodeset( );
+
+	if ( nodeset.getLength() == 1 )
 	{
-		node = children->item( i );
+		/*
+		Nasli jsme pomoci XPath vyrazu dany element
+		*/
+		XalanNode *n = nodeset.item(0);
 
-		if ( node->getNodeType() && node->getNodeType() == DOMNode::ELEMENT_NODE )
+		if ( n->getNodeType() && n->getNodeType() != XalanNode::ELEMENT_NODE)
 		{
-			tmel = dynamic_cast<DOMElement *>(node);
-
-			if ( XMLString::equals( tmel->getAttribute( X( "name" ) ), name ) )
-				return tmel;
+			log_message( log_file, "Cannot get the element node" );
+			return ret_elm;
 		}
 
+		//Z XalanElementu musime udelat DOMElement a ten vratit
+		XalanElement *elm = dynamic_cast<XalanElement *>(n);
+		XercesElementWrapper *wrap = dynamic_cast<XercesElementWrapper *>(elm);
+		ret_elm = wrap->getXercesNode();
 
+		return ret_elm;
+	}
+	else
+	{
+		XalanDOMString search2 = XalanDOMString("xsd:complexType[@name='");
+		search2  += XalanDOMString( name );
+		search2	+= XalanDOMString("']");
+
+
+		//Vyhledani daneho elementu
+		 const XObjectPtr result2( theEvaluator.evaluate(
+					   theDOMSupport,        // DOMSupport
+					  theContextNode,       // context node
+					  search2.c_str(),  // XPath expr
+					   thePrefixResolver));     // Namespace resolver
+
+		const NodeRefListBase&        nodeset2 = result2->nodeset( );
+		if ( nodeset2.getLength() == 1 )
+		{
+			/*
+			Nasli jsme pomoci XPath vyrazu dany element
+			*/
+			XalanNode *n = nodeset2.item(0);
+
+			if ( n->getNodeType() && n->getNodeType() != XalanNode::ELEMENT_NODE)
+			{
+				log_message( log_file, "Cannot get the element node" );
+				return ret_elm;
+			}
+
+			//Z XalanElementu musime udelat DOMElement a ten vratit
+			XalanElement *elm = dynamic_cast<XalanElement *>(n);
+			XercesElementWrapper *wrap = dynamic_cast<XercesElementWrapper *>(elm);
+			ret_elm = wrap->getXercesNode();
+
+			return ret_elm;
+		}
+	}
+
+	}
+	catch ( ... )
+	{
+		log_message( log_file, "Exception while finding node" );
 	}
 
 	return NULL;
+
 }

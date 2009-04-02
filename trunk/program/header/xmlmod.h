@@ -45,9 +45,10 @@ class XmlModule
 		DOMImplementation *impl;
 		DOMElement *main_root;
 
+		//TODO: asi nepotrebne
 		list<DOMElement *> *devices_root;
 
-		//xalanDocuments
+		//xalanDocuments TODO: asi nepotrebne
 		list<xalan_docs_list *> xalan_docs;
 		struct xalan_docs_list* main_xa_doc;
 
