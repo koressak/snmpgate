@@ -18,6 +18,7 @@ XmlModule::XmlModule()
 	//ziskame implementaci pro vytvareni dokumentu
 	impl = DOMImplementationRegistry::getDOMImplementation( XMLString::transcode("core") );
 
+	//Parser je urcen pro zpracovani message
 	parser = new XercesDOMParser;
 	parser->setValidationScheme( XercesDOMParser::Val_Never);
 	parser->setDoNamespaces( false );
@@ -35,10 +36,10 @@ Destruktor
 XmlModule::~XmlModule()
 {
 	//TODO delete all xalan documents
-	list< struct xalan_docs_list *>::iterator it;
+	/*list< struct xalan_docs_list *>::iterator it;
 
 	for( it = xalan_docs.begin(); it != xalan_docs.end(); it++ )
-		delete ((*it));
+		delete ((*it));*/
 	
 	delete( main_xa_doc );
 }
@@ -49,7 +50,7 @@ Nastaveni parametru
 void XmlModule::set_parameters( DOMElement *r, list<DOMElement *> *roots, char *log, char *xsd, SnmpModule *sn )
 {
 	main_root = r;
-	devices_root = roots;
+	//devices_root = roots;
 	log_file = log;
 	xsd_dir = xsd;
 	snmpmod = sn;
@@ -58,7 +59,7 @@ void XmlModule::set_parameters( DOMElement *r, list<DOMElement *> *roots, char *
 	/*
 	Build Xalan Documents
 	*/
-	list<DOMElement *>::iterator it; 
+	//list<DOMElement *>::iterator it; 
 
 	DOMDocument *doc;
 	XercesDOMSupport		theDOMSupport;
@@ -66,7 +67,7 @@ void XmlModule::set_parameters( DOMElement *r, list<DOMElement *> *roots, char *
 	XalanDocument *theDocument;
 	
 
-	for ( it= devices_root->begin(); it != devices_root->end(); it++ )
+	/*for ( it= devices_root->begin(); it != devices_root->end(); it++ )
 	{
 		doc = (*it)->getOwnerDocument();
 		struct xalan_docs_list *l = new xalan_docs_list;
@@ -79,7 +80,7 @@ void XmlModule::set_parameters( DOMElement *r, list<DOMElement *> *roots, char *
 		l->liaison = theLiaison;
 
 		xalan_docs.push_back( l );
-	}
+	}*/
 
 	/*
 	Jeste pro hlavni dokument
@@ -611,6 +612,8 @@ string * XmlModule::build_response_string( struct request_data *data )
 
 
 /*
+TODO
+zmena - tudiz toto smazat
 Vrati odkaz na DOMElement z devices_root
 */
 DOMElement* XmlModule::get_device_document( int position )
@@ -624,6 +627,8 @@ DOMElement* XmlModule::get_device_document( int position )
 }
 
 /*
+TODO
+zmena, tudiz toto smazat
 Vrati odkaz na XalanDokument z xalan_docs
 */
 XalanDocument* XmlModule::get_device_xalan_document( int position )
@@ -660,12 +665,13 @@ const DOMElement* XmlModule::find_element( const XMLCh* name, XalanDocument* the
 	XalanNode* theContextNode;
 
 	try {
-		theContextNode =
+		/*theContextNode =
 			theEvaluator.selectSingleNode(
 				theDOMSupport,
 				theDocument,
 				XalanDOMString("xsd:schema").c_str(),
-				thePrefixResolver);
+				thePrefixResolver);*/
+		theContextNode = theDocument->getDocumentElement();
 
 
 		//Vyhledani daneho elementu
@@ -704,8 +710,11 @@ const DOMElement* XmlModule::find_element( const XMLCh* name, XalanDocument* the
 		}
 		else
 		{
-			//TODO dodelat odsekavani cisilek v jmenu elementu
-			//Nenasli jsme, jdeme separovat zpet
+			/*
+			Nenasli jsme element. JE mozne, ze je to indexovana polozka.
+			Proto odsekneme pripadne cisla a podivame se znova.
+			Jinak vracime NULL, pac takovy element neexistuje
+			*/
 			if ( deep )
 			{
 				char *buf = XMLString::transcode( name );
@@ -723,10 +732,34 @@ const DOMElement* XmlModule::find_element( const XMLCh* name, XalanDocument* the
 				Nejprve se pokusime odstranit z nazvu cisilka (u posledniho elementu)
 				a pak teprve pujdeme rezat dany xpath
 				*/
-				pos1 = xp.rfind( "name='" );
+				pos1 = xp.rfind( "/" );
 				if ( pos1 != string::npos )
 				{
-					pos2 = xp.find( "']", pos1+1 );
+					pos2 = xp.size();
+
+					name = xp.substr( pos1+1, pos2 - (pos1+1) );
+
+					pos3 = name.find( "." );
+					if ( pos3 != string::npos )
+					{
+						req_data->snmp_indexed_name = name;
+						log_message( log_file, name.c_str() );
+
+						name = name.substr( 0, pos3 );
+
+						tmp_xp = xp.replace( pos1+1, pos2 - (pos1+1), name, 0, name.size() );
+
+						tmp_find = find_element( X( tmp_xp.c_str() ), theDocument, req_data, false );
+
+						if ( tmp_find != NULL )
+						{
+							req_data->xpath_end = "";
+							return tmp_find;
+						}
+					}
+
+
+					/*pos2 = xp.find( "']", pos1+1 );
 
 					name = xp.substr( pos1+6, pos2 - (pos1+6) );
 
@@ -746,11 +779,13 @@ const DOMElement* XmlModule::find_element( const XMLCh* name, XalanDocument* the
 							req_data->xpath_end = "";
 							return tmp_find;
 						}
-					}
+					}*/
 
 				}
 
-				pos1 = xp.rfind("//");
+				return ret_elm;
+
+				/*pos1 = xp.rfind("//");
 				//xpath string jde rozdelit na elementy. 
 				if ( pos1 != string::npos )
 				{
@@ -771,7 +806,7 @@ const DOMElement* XmlModule::find_element( const XMLCh* name, XalanDocument* the
 				}
 				//dosli jsme na zacatek stringu a uz nemame nic, kde bychom hledali
 				else
-					return ret_elm;
+					return ret_elm;*/
 			}
 			else 
 				return ret_elm;
@@ -844,6 +879,8 @@ struct request_data* XmlModule::process_get_set_message( DOMElement *elem, const
 	char *tmp_buf;
 	bool create_vp = true;
 
+	char tmpid[50];
+
 
 
 	log_message( log_file, "Dostali jsme GET/SET message" );
@@ -888,8 +925,18 @@ struct request_data* XmlModule::process_get_set_message( DOMElement *elem, const
 				value = el->getTextContent();
 
 
-				int pos = snmpmod->get_device_position( xr->object_id );
-				found_el = find_element( value, get_device_xalan_document( pos ), xr, true );
+				//TODO: zmeny GET SET 
+				//int pos = snmpmod->get_device_position( xr->object_id );
+				//found_el = find_element( value, get_device_xalan_document( pos ), xr, true );
+				sprintf( tmpid, "%d", xr->object_id );
+				tmp_str_xpath = "//device[@id='";
+				tmp_str_xpath += string( tmpid );
+				tmp_str_xpath +="']/data";
+				tmp_buf = XMLString::transcode( value );
+				tmp_str_xpath += string( tmp_buf );
+				XMLString::release( &tmp_buf );
+
+				found_el = find_element( X( tmp_str_xpath.c_str() ), main_xa_doc->doc, xr, true );
 
 				if ( found_el == NULL )
 				{
@@ -906,7 +953,7 @@ struct request_data* XmlModule::process_get_set_message( DOMElement *elem, const
 				Je to vetsinou u tabulek, kdy se musime podivat do typu elementu, jestli
 				to neni v nem
 				*/
-				if ( xr->xpath_end.compare( "" ) != 0 )
+				/*if ( xr->xpath_end.compare( "" ) != 0 )
 				{
 					//Nutno najit element typu a pak vyhledat znova
 					tmp_buf = XMLString::transcode( found_el->getAttribute( X("type") ) );
@@ -943,7 +990,7 @@ struct request_data* XmlModule::process_get_set_message( DOMElement *elem, const
 						return xr;
 					}
 
-				}
+				}*/
 
 				/*
 				Paklize je element korenovym elementem, je to zatim v TODO diskusi.
@@ -953,7 +1000,7 @@ struct request_data* XmlModule::process_get_set_message( DOMElement *elem, const
 
 				if ( found_el->hasChildNodes() )
 				{
-					//TODO Prodiskutovat tuto cast s Macejkem. Na tohle se proste ptat nemuze
+					//TODO Tady bude getnetxt request na cely podstrom!!!!!!
 					log_message( log_file, "This is not a leaf node. Canceling request" );
 					xr->error = XML_MSG_ERR_INTERNAL;
 					xr->error_str = "Cannot request this non-simple value node";
@@ -965,10 +1012,12 @@ struct request_data* XmlModule::process_get_set_message( DOMElement *elem, const
 					if ( xr->snmp_indexed_name.compare( "" ) == 0 )
 					{
 						// ziskame nazev typu elementu
-						value = found_el->getAttribute( X( "name" ) );
+						value = found_el->getTagName();
 						tmp_buf = XMLString::transcode( value );
 
 						vp->oid = string( tmp_buf );
+
+						//TOhle asi presunout do SnmpModule - pac toto xml vubec nezna
 						vp->oid += ".0";
 
 

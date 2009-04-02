@@ -105,19 +105,35 @@ DONE
 		DONE
 
 		- dodat informace z notifications!!
+		DONE
 
 	- udelat vlastni transformacni tridu a zaclenit ji do demona
 	DONE
 
------------------------------
-	PRIORITY HIGH
-	- Vytvoreni XML dokumentu z XSD schematu pro vsechna zarizeni.
------------------------------
+	- DONE Vytvoreni XML dokumentu z XSD schematu pro vsechna zarizeni.
+
+	- DONE Chyby ve vytvareni xsd, nektere elementy se nevytvori (snmpV2 ->dolu )
+		Blba chyba v pointerech
+
+	- DONE Dodelat spravne XSD format popisu brany ( snmpxmlgate.xsd ). Nyni je to normalni xml dokument
+
+
+
+
+	- Nyni tedy zrusit devices_root ukazatele a vyhledavani pozice device v XmlModule
+
 
 	- Dodelat sortovani zarizeni v ramci devices_list dle id, aby tomu pak odpovidalo poradi xml dokumentu
 
 	- Dodelat promenne pro zakladni nazvy souboru "snmpxmld.xsd", aby to slo menit globalne
 
+
+
+--------------------
+Poznamka:
+	net-snmp bohuzel nema dobrou strukturu parsovani snmp.
+	Neni tedy k dispozici moznost object group
+-------------------
 
 
 6. Nastartovani threadu pro poslouchani a vykonavani prikazu
@@ -160,33 +176,40 @@ DONE
 
 		- get
 			- simple values
+			DONE
 
 			- Nutne dodelani objectId parametru do teto zpravy!
+			DONE
 
 			- tabulky
 
 		- set
 			-simple values 
+			DONE
 
 			- tabulky
 
 		- response
 			-report values
+			DONE
 
 			-error codes	
+			DONE
 
---------------------------------------
-		PRIORITY HIGH
+		DONE
 		Komplet GET, SET messages se trosku meni. S tim, jak mame dokument jinak strukturovany
 		se nam zmeni xpath vyraz.
+
+		DONE
+			- odpadne nutnost delat XalanDokumenty z kazdeho rootu.
+			(nyni uz jenom jedine mapovani na hlavni dokument!!!!)
+
+		TODO:
 		- Mel by pribyt check na access, jestli muze zapisovat, kdyz chce apod
+
 		- Pak by mel mozna nasledovat check na typ, ale to je k diskusi
 		
 
-		TODO:
-			- odpadne nutnost delat XalanDokumenty z kazdeho rootu.
-			(nyni uz jenom jedine mapovani na hlavni dokument!!!!)
-------------------------------------
 
 
 
@@ -274,6 +297,7 @@ Medium priority
 ---------------
 
 - DONE Struktura elementu <trap></trap> v ramci konfiguraku
+- DONE Podivat se, jestli pri vraceni erroru po SET requestu ukladame do struktury i dany error, nejenom jeho string reprezentaci
 
 
 - Domyslet cesty pro mib, log soubory, xsd soubory, aby to v tom unix file tree nejak hezky sedelo a nebyla to prasarna.
@@ -282,7 +306,6 @@ Medium priority
 
 - Udelat lepsi parsovani XML dat z message, ktery prijmeme
 
-- DONE Podivat se, jestli pri vraceni erroru po SET requestu ukladame do struktury i dany error, nejenom jeho string reprezentaci
 
 
 
@@ -311,6 +334,9 @@ paklize se pak nekdo zepta na nejaka data, tak se mrkneme do prislusneho dokumen
 - INVALID Zamyslet se nad tim, proc mam vlastne xsd soubory, kdyz to stejne nacitam z pameti
 Nutno pro zpetne nacteni a parsovani (pro pozdejsi vyhledavani pomoci XPathu)
 
+- DONE Osetrit chybu. Kdyz snmp zahlasi chybu, tak ten thread a connection nikdy neskonci. Kde se deje ten problem??@?@
+	- pada to pri senmp_sess_error(). Netusim proc, ale ciste to spadne. Zatrsakr nekompatibilni api.
+
 
 
 
@@ -323,16 +349,12 @@ Nutno pro zpetne nacteni a parsovani (pro pozdejsi vyhledavani pomoci XPathu)
 
 - Thread Safe design - zamyslet se nad tim, jake operace by mohly byt pro thready spatne a tim padem
 by si mohli prepisovat data
-
-- Osetrit chybu. Kdyz snmp zahlasi chybu, tak ten thread a connection nikdy neskonci. Kde se deje ten problem??@?@
-Dodelavky:
-	udelat snmp_parse_oid pri nahravani oid do packetu. Tim se mozna zabrani nejakemu exceptionu
+	- Message PArser -> possible thread safe hazard
 
 - Mozna bychom meli presunout dodavani .0 k OID na managera
 
 - DULEZITE: kdyz mame nekolik devices se stejnym dokumentem - nutno upravit funkce na vraceni dokumentu pro vyhledavani, 
 aby opravdu vracely ten spravny dokument!!!
-
 
 - Subscribe - jak odpovidat na delete? Vsechno ostatni zvladne Distribution, ale delete???
 
