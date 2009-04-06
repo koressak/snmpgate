@@ -1,5 +1,7 @@
 #include "header/snmpmod.h"
 
+#include "header/xmlmod.h"
+
 /*
 Konstruktor
 */
@@ -16,6 +18,18 @@ SnmpModule::~SnmpModule()
 {
 	shutdown_mib();
 	delete( transform );
+
+	//delete mutexu
+	for ( int a =0; a < get_device_count(); a++ )
+	{
+		pthread_mutex_destroy( &req_locks[a] );
+	}
+
+	pthread_mutex_destroy( &cond_lock );
+
+	pthread_cond_destroy( &incom_cond );
+	
+	delete( request_queue );
 }
 
 /*
@@ -26,6 +40,16 @@ void SnmpModule::setParameters( char *log, char *mib, list<DOMElement*>* lis )
 	log_file = log;
 	mib_path = mib;
 	devices_root = lis;
+}
+
+
+/*
+Ziskani pointeru na XmlModule. Dulezite pro 
+prisup k odpovednim frontam.
+*/
+void SnmpModule::set_xmlmod( XmlModule *mod )
+{
+	xmlmod = mod;
 }
 
 /*
@@ -319,6 +343,22 @@ int SnmpModule::get_device_position( int dev_id )
 }
 
 
+/*
+Vrati pozici daneho zarizeni v seznamu devices.
+coz se rovna i pozici v seznamu rootu dokumentu
+*/
+SNMP_device* SnmpModule::get_device_by_position( int position )
+{
+
+	list<SNMP_device *>::iterator it = devices.begin();
+
+	for( int i=0; i < position; i++ )
+	{
+		it++;
+	}
+
+	return (*it);
+}
 
 /*
 Vrati pozici daneho zarizeni v seznamu devices.
@@ -338,8 +378,64 @@ SNMP_device* SnmpModule::get_device_ptr( int dev_id )
 	return NULL;
 }
 
+/*
+Vrati pocet zarizeni
+*/
+int SnmpModule::get_device_count( )
+{
+	return devices.size();
+}
 
 
+/*
+Inicializace threadu
+*/
+int SnmpModule::initialize_threads()
+{
+	int a;
+	int thr_ret;
+	int devices_no = get_device_count();
+
+	//inicializace mutexu
+	req_locks = new pthread_mutex_t[ devices_no ];
+	pthread_mutex_init( &cond_lock, NULL );
+
+	for( a = 0; a < devices_no; a++ )
+	{
+		pthread_mutex_init( &req_locks[a], NULL );
+	}
+
+	//inicializace condition
+	pthread_cond_init( &incom_cond, NULL );
+
+	//inicializace front
+	request_queue = new vector<struct request_data*>[ devices_no ];
+
+	//Startovani threadu
+	req_handlers = new pthread_t[ devices_no ];
+
+	for ( a=0; a < devices_no; a++ )
+	{
+		struct snmp_req_handler *rh = new snmp_req_handler;
+		rh->position = a;
+		rh->device = get_device_by_position( a );
+		rh->snmpmod = this;
+
+		if ( rh->device == NULL )
+			return -1;
+
+		thr_ret = pthread_create( &req_handlers[a], NULL, start_snmp_req_handler, (void *) rh );
+
+		if( thr_ret != 0 )
+		{
+			log_message( log_file, "cannot start new thread" );
+			return thr_ret;
+		}
+	}
+
+	return 0;
+
+}
 
 /*****************************
 *********************************/
@@ -347,23 +443,36 @@ SNMP_device* SnmpModule::get_device_ptr( int dev_id )
 
 
 /*
-Zaslani dotazu agentovi - volano XmlModulem
+Zaslani dotazu agentovi - handler, ktery si hlida svoji frontu
 */
-int SnmpModule::send_request( struct request_data* req_data, const char *password,  int msg_type )
+void SnmpModule::request_handler( struct snmp_req_handler *hr )
 {
+	/*
+	TODO:
+	ziskat poinery na mutex a frontu
+	spat na conditione
+	delete hr struktury
+
+	zasilat dotazy a odpovedi davat do response queue xmlmodulu
+	*/
+	
+	/*
+	SNMP stuff
+	*/
 	int liberr, syserr;
 	char *errstr;
 	bool error = false;
-
 	void *ss;
-	struct snmp_session session, *sptr;
-
+	struct snmp_session session, *sptr=NULL;
 	struct snmp_pdu *pdu, *response;
 
 	oid elem[MAX_OID_LEN];
 	size_t elem_len= MAX_OID_LEN;
 	int status;
 
+	/*
+	Ostatni struktury
+	*/
 	string error_msg;
 	SNMP_device *dev;
 
@@ -373,234 +482,322 @@ int SnmpModule::send_request( struct request_data* req_data, const char *passwor
 	struct variable_list *vars;
 	char *var_buf;
 
-	//Nejprve ziskame device, kteremu to budeme posilat
-	dev = get_device_ptr( req_data->object_id );
-	
-	if ( dev == NULL )
-	{
-		log_message( log_file, "SnmpModule: Cannot find device" );
-		return -1;
-	}
+	/*
+	mutex a fronta
+	*/
+	int dev_pos;
+	pthread_mutex_t *mutex;
+	vector<struct request_data*> *queue;
+	list<struct request_data*> requests;
 
-	//inicializace snmp session
-	snmp_sess_init( &session );
+	vector<struct request_data*>::iterator vec_it;
 
-	session.peername = dev->snmp_addr;
-
-	switch ( atoi( dev->protocol_version ) )
-	{
-		case 1:
-			session.version = SNMP_VERSION_1;
-			break;
-		case 2:
-			session.version = SNMP_VERSION_2c;
-			break;
-		default:
-			session.version = SNMP_VERSION_1;
-	}
-
-	session.community = (u_char *) password;
-	session.community_len = strlen( (const char *)session.community );
-
-	ss = snmp_sess_open( &session );
-
-	if ( ss == NULL )
-	{
-		snmp_error( &session, &liberr, &syserr, &errstr );
-		log_message( log_file, errstr );
-		delete( errstr );
-		errstr = NULL;
-		return -1;
-	}
-	
-	sptr = snmp_sess_session( ss );
+	struct request_data *req_data;
 
 	/*
-	Vytvoreni pdu a naplneni daty
+	Ziskani informaci z parametru
 	*/
-	switch ( msg_type )
+	dev_pos = hr->position;
+	dev = hr->device;
+
+	//smazani nepotrebnych dat.
+	delete( hr );
+
+	mutex = &req_locks[ dev_pos ];
+	queue = &request_queue[ dev_pos ];
+
+	log_message( log_file, "Thread - snmp request handler - started" );
+
+	/*
+	Nekoncici cyklus. Musel by jej zabit hlavni proces pri
+	konceni brany
+	*/
+	while ( 1 )
 	{
-		case XML_MSG_TYPE_GET:
-			if ( req_data->snmp_getnext == 1 )
-				pdu = snmp_pdu_create( SNMP_MSG_GETNEXT );
-			else
-				pdu = snmp_pdu_create( SNMP_MSG_GET );
-			break;
-
-		case XML_MSG_TYPE_SET:
-			pdu = snmp_pdu_create( SNMP_MSG_SET );
-			break;
-
-		default:
-			req_data->error = XML_MSG_ERR_INTERNAL;
-			req_data->error_str = "no such message type";
-			snmp_sess_close( ss );
-			return -1;
-
-	}
-
-	list<struct value_pair *>::iterator it;
-
-	//Pro pouziti vyhledavani typu a nazvu elementu
-	struct tree *head = get_tree_head();
-
-	for ( it = req_data->request_list.begin(); it != req_data->request_list.end(); it++ )
-	{
-		if ( !get_node( (*it)->oid.c_str(), elem, &elem_len ) )
+		pthread_mutex_lock( mutex );
+		if ( !queue->empty() )
 		{
-			//snmp_sess_error( &sptr, &liberr, &syserr, &errstr );
-			//log_message( log_file, errstr );
-			req_data->error = XML_MSG_ERR_INTERNAL;
-			req_data->error_str = "Cannot find node in MIB";
-			//delete( errstr );
-			error = true;
-		}
-
-		/*
-		Nejprve je nutne najit ten element podle oid a zjistit jeho typ,
-		ktery dosadime do pdu
-		*/
-		if ( !error )
-		{
-			struct tree *node = get_tree( elem, elem_len, head );
-
-			switch ( msg_type )
+			//vyjmeme vsechny pozadavky
+			for ( vec_it = queue->begin(); vec_it < queue->end(); vec_it++ )
 			{
-				case XML_MSG_TYPE_SET:
-					snmp_pdu_add_variable( pdu, elem, elem_len, map_type_to_pdu( node->type ), (const u_char*)(*it)->value.c_str(), (*it)->value.size() );
-					break;
-
-				case XML_MSG_TYPE_GET:
-				default:
-					snmp_add_null_var( pdu, elem, elem_len );
+				requests.push_back( (*vec_it) );
+				queue->erase( vec_it );
 			}
-		}
-	}
-
-	if ( !error )
-	{
-		status = snmp_sess_synch_response( ss, pdu, &response );
-	//status = snmp_sess_send( ss, pdu );
-
-		if ( status != STAT_SUCCESS )
-		{
-			//snmp_sess_error( &sptr, &liberr, &syserr, &errstr );
-				//log_message( log_file, errstr);
-
-			req_data->error = XML_MSG_ERR_INTERNAL;
-			req_data->error_str = "PDU couldn't be delivered";
 
 
 		}
-		else if ( response->errstat != SNMP_ERR_NOERROR )
+		pthread_mutex_unlock( mutex );
+
+		//Paklize nemame zadne pozadavky, jdeme spat
+		if ( requests.empty() )
 		{
-			/*
-			Zjistime jaky error prisel pri odpovedi agenta
-			*/
-			req_data->error = XML_MSG_ERR_SNMP;
-			req_data->snmp_err = 1;
-			req_data->snmp_err_str = snmp_errstring( response->errstat ) ;
+			//Ukoncit snmp session a jit spat
+			log_message( log_file, "request handler going to wait" );
+			
+			if ( sptr != NULL )
+			{
+				snmp_sess_close( ss );
+				sptr = NULL;
+			}
+
+			pthread_mutex_lock( &cond_lock );
+			pthread_cond_wait( &incom_cond, &cond_lock );
+			pthread_mutex_unlock( &cond_lock);
+
+			log_message( log_file, "request_handler awakened" );
 		}
 		else
 		{
-			//Prisle hodnoty vrazime zpet do request_data struktury
-			//a muzeme v klidu vratit
-
-			if ( msg_type == XML_MSG_TYPE_GET )
+			/*
+			Samotne zpracovani pozadavku!!!
+			*/
+			if ( sptr == NULL )
 			{
-				for ( it = req_data->request_list.begin(), vars = response->variables; it != req_data->request_list.end(); vars = vars->next_variable, it++ )
+				//Nutno inicializovat session
+				log_message( log_file, "Initializing snmp session" );
+
+				snmp_sess_init( &session );
+
+				session.peername = dev->snmp_addr;
+
+				switch ( atoi( dev->protocol_version ) )
 				{
-					if ( vars != NULL )
+					case 1:
+						session.version = SNMP_VERSION_1;
+						break;
+					case 2:
+						session.version = SNMP_VERSION_2c;
+						break;
+					default:
+						session.version = SNMP_VERSION_1;
+				}
+
+				//session.community = (u_char *) password;
+				//session.community_len = strlen( (const char *)session.community );
+
+				ss = snmp_sess_open( &session );
+
+				if ( ss == NULL )
+				{
+					//snmp_error( &session, &liberr, &syserr, &errstr );
+					log_message( log_file, "Cannot open snmp session" );
+					//delete( errstr );
+					errstr = NULL;
+					xmlmod->enqueue_response( req_data );
+					continue;
+				}
+				
+				sptr = snmp_sess_session( ss );
+			}
+
+			//ziskame prvni dotaz
+			req_data = requests.front();
+			requests.pop_front();
+
+			//nastavime pro nej community string
+			delete( sptr->community );
+			sptr->community = (u_char *) req_data->community;
+			sptr->community_len = strlen( (char *)sptr->community ) ;
+
+			/*
+			Vytvoreni pdu a naplneni daty
+			*/
+			switch ( req_data->msg_type )
+			{
+				case XML_MSG_TYPE_GET:
+					if ( req_data->snmp_getnext == 1 )
+						pdu = snmp_pdu_create( SNMP_MSG_GETNEXT );
+					else
+						pdu = snmp_pdu_create( SNMP_MSG_GET );
+					break;
+
+				case XML_MSG_TYPE_SET:
+					pdu = snmp_pdu_create( SNMP_MSG_SET );
+					break;
+
+				default:
+					req_data->error = XML_MSG_ERR_INTERNAL;
+					req_data->error_str = "no such message type";
+
+					//vratime response back
+					xmlmod->enqueue_response( req_data );					
+					error = true;
+					continue;
+
+			}
+
+			list<struct value_pair *>::iterator it;
+
+			//Pro pouziti vyhledavani typu a nazvu elementu
+			struct tree *head = get_tree_head();
+
+			for ( it = req_data->request_list.begin(); it != req_data->request_list.end(); it++ )
+			{
+				if ( !get_node( (*it)->oid.c_str(), elem, &elem_len ) )
+				{
+					//snmp_sess_error( &sptr, &liberr, &syserr, &errstr );
+					//log_message( log_file, errstr );
+					req_data->error = XML_MSG_ERR_INTERNAL;
+					req_data->error_str = "Cannot find node in MIB";
+					//delete( errstr );
+					error = true;
+				}
+
+				/*
+				Nejprve je nutne najit ten element podle oid a zjistit jeho typ,
+				ktery dosadime do pdu
+				*/
+				if ( !error )
+				{
+					struct tree *node = get_tree( elem, elem_len, head );
+
+					switch ( req_data->msg_type )
 					{
-						var_buf = new char[ 1 + vars->val_len ];
-						switch ( vars->type )
-						{
-							case ASN_OCTET_STR:
-							case ASN_OPAQUE:
-								memcpy( var_buf, vars->val.string, vars->val_len );
-								var_buf[ vars->val_len ] = '\0';
-								break;
+						case XML_MSG_TYPE_SET:
+							snmp_pdu_add_variable( pdu, elem, elem_len, map_type_to_pdu( node->type ), (const u_char*)(*it)->value.c_str(), (*it)->value.size() );
+							break;
 
-							case ASN_BIT_STR:
-							case ASN_IPADDRESS:
-								memcpy( var_buf, vars->val.bitstring, vars->val_len );
-								var_buf[ vars->val_len ] = '\0';
-								break;
-
-							case ASN_OBJECT_ID:
-								sprintf( var_buf, "%ld", *(vars->val.objid) );
-								break;
-
-							case ASN_INTEGER:
-							case ASN_UNSIGNED: //same as GAUGE
-							case ASN_TIMETICKS:
-								sprintf( var_buf, "%ld", *(vars->val.integer) );
-								break;
-
-							case ASN_COUNTER:
-							case ASN_APP_COUNTER64:
-							case ASN_INTEGER64:
-							case ASN_UNSIGNED64:
-								sprintf( var_buf, "%ld%ld", vars->val.counter64->high, vars->val.counter64->low );
-								break;
-
-							case ASN_APP_FLOAT:
-								sprintf( var_buf, "%f", *(vars->val.floatVal) );
-								break;
-
-							case ASN_APP_DOUBLE:
-								sprintf( var_buf, "%f", *(vars->val.doubleVal) );
-								break;
-
-						}
-
-						/*
-						navratime zaroven i platne jmeno s indexem polozky
-						*/
-						string ret_name = "";
-						u_char *buf = NULL;
-						size_t buf_len = 0;
-						size_t out_len = 0;
-						char *name_p = NULL;
-
-						struct tree *node = get_tree( vars->name_loc, MAX_OID_LEN, head );
-
-						ret_name = string( node->label );
-						ret_name += ".";
-
-
-						//dostane z toho ten index
-						sprint_realloc_objid( &buf, &buf_len, &out_len, 1, vars->name, vars->name_length);
-
-						name_p = (char *)buf + 1;
-						name_p = strchr( name_p, '.' )+1;
-
-						ret_name += string( name_p );
-
-						log_message( log_file, ret_name.c_str() );
-
-
-						(*it)->oid = ret_name;
-						(*it)->value = string( var_buf );
-						log_message( log_file, var_buf );
-
-						delete ( var_buf );
-						delete( buf );
-
+						case XML_MSG_TYPE_GET:
+						default:
+							snmp_add_null_var( pdu, elem, elem_len );
 					}
+				}
+			} //end for cycle
+
+			if ( !error )
+			{
+				status = snmp_sess_synch_response( ss, pdu, &response );
+			//status = snmp_sess_send( ss, pdu );
+
+				if ( status != STAT_SUCCESS )
+				{
+					//snmp_sess_error( &sptr, &liberr, &syserr, &errstr );
+						//log_message( log_file, errstr);
+
+					req_data->error = XML_MSG_ERR_INTERNAL;
+					req_data->error_str = "PDU couldn't be delivered";
+
 
 				}
-			}
-		}
+				else if ( response->errstat != SNMP_ERR_NOERROR )
+				{
+					/*
+					Zjistime jaky error prisel pri odpovedi agenta
+					*/
+					req_data->error = XML_MSG_ERR_SNMP;
+					req_data->snmp_err = 1;
+					req_data->snmp_err_str = snmp_errstring( response->errstat ) ;
+				}
+				else
+				{
+					//Prisle hodnoty vrazime zpet do request_data struktury
+					//a muzeme v klidu vratit
 
-	}
+					if ( req_data->msg_type == XML_MSG_TYPE_GET )
+					{
+						for ( it = req_data->request_list.begin(), vars = response->variables; it != req_data->request_list.end(); vars = vars->next_variable, it++ )
+						{
+							if ( vars != NULL )
+							{
+								var_buf = new char[ 1 + vars->val_len ];
+								switch ( vars->type )
+								{
+									case ASN_OCTET_STR:
+									case ASN_OPAQUE:
+										memcpy( var_buf, vars->val.string, vars->val_len );
+										var_buf[ vars->val_len ] = '\0';
+										break;
 
-	if ( !error && response )
-		snmp_free_pdu( response );
+									case ASN_BIT_STR:
+									case ASN_IPADDRESS:
+										memcpy( var_buf, vars->val.bitstring, vars->val_len );
+										var_buf[ vars->val_len ] = '\0';
+										break;
 
-	snmp_sess_close( ss );
+									case ASN_OBJECT_ID:
+										sprintf( var_buf, "%ld", *(vars->val.objid) );
+										break;
 
-	return 0;
+									case ASN_INTEGER:
+									case ASN_UNSIGNED: //same as GAUGE
+									case ASN_TIMETICKS:
+										sprintf( var_buf, "%ld", *(vars->val.integer) );
+										break;
+
+									case ASN_COUNTER:
+									case ASN_APP_COUNTER64:
+									case ASN_INTEGER64:
+									case ASN_UNSIGNED64:
+										sprintf( var_buf, "%ld%ld", vars->val.counter64->high, vars->val.counter64->low );
+										break;
+
+									case ASN_APP_FLOAT:
+										sprintf( var_buf, "%f", *(vars->val.floatVal) );
+										break;
+
+									case ASN_APP_DOUBLE:
+										sprintf( var_buf, "%f", *(vars->val.doubleVal) );
+										break;
+
+								}
+
+								/*
+								navratime zaroven i platne jmeno s indexem polozky
+								TODO: nevracet jemno s indexem!!!!
+								*/
+								string ret_name = "";
+								u_char *buf = NULL;
+								size_t buf_len = 0;
+								size_t out_len = 0;
+								char *name_p = NULL;
+
+								struct tree *node = get_tree( vars->name_loc, MAX_OID_LEN, head );
+
+								ret_name = string( node->label );
+								ret_name += ".";
+
+
+								//dostane z toho ten index
+								sprint_realloc_objid( &buf, &buf_len, &out_len, 1, vars->name, vars->name_length);
+
+								name_p = (char *)buf + 1;
+								name_p = strchr( name_p, '.' )+1;
+
+								ret_name += string( name_p );
+
+								log_message( log_file, ret_name.c_str() );
+
+
+								(*it)->oid = ret_name;
+								(*it)->value = string( var_buf );
+								log_message( log_file, var_buf );
+
+								delete ( var_buf );
+								delete( buf );
+
+							}
+
+						}
+					}
+				}
+
+			} //end of !error
+
+			if ( response )
+				snmp_free_pdu( response );
+
+			//TODO: mel bych mazat i to request PDU???
+
+			xmlmod->enqueue_response( req_data );
+
+
+
+		} //end of process requests
+	} //end of while(1)
+
+
+
+
 }
 
 
@@ -664,4 +861,30 @@ u_char SnmpModule::map_type_to_pdu( int node_type )
 	return ret;
 
 }
+
+
+/*******************************
+****Dispatch the request
+********************************/
+int SnmpModule::dispatch_request( struct request_data *req_data )
+{
+	//TODO udelat pro vice messages najednou
+	int pos = get_device_position( req_data->object_id );
+
+	if ( pos == -1 )
+		return -1;
+	
+	pthread_mutex_lock( &req_locks[ pos ] );
+
+	request_queue[pos].push_back( req_data );
+
+	pthread_mutex_unlock( &req_locks[ pos ] );
+
+	pthread_mutex_lock( &cond_lock );
+	pthread_cond_broadcast( &incom_cond );
+	pthread_mutex_unlock( &cond_lock );
+
+	return 0;
+}
+
 

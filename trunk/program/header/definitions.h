@@ -25,6 +25,7 @@ Timestamp for log
 STL struktury
 */
 #include <list>
+#include <vector>
 
 
 /*
@@ -129,8 +130,9 @@ XML typy zprav
 #define XML_MSG_TYPE_SUBSCRIBE		4
 
 
-#define XML_MSG_ERR_INTERNAL		1
-#define XML_MSG_ERR_SNMP			2
+#define XML_MSG_ERR_INTERNAL		1 //interni chyby
+#define XML_MSG_ERR_SNMP			2 //snmp chyby od agenta
+#define XML_MSG_ERR_XML				3 //pro chyby v xml message
 
 /*
 HTTP parametry
@@ -147,6 +149,7 @@ Plus logovani zprav do log souboru
 */
 inline void log_message(char *filename, const char* message)
 {
+	pthread_mutex_lock( &lg_msg );
 	time_t rawtime;
 	struct tm * timeinfo;
 
@@ -164,6 +167,7 @@ inline void log_message(char *filename, const char* message)
 	outf << "----------\n";
 
 	outf.close();
+	pthread_mutex_unlock( &lg_msg );
 }
 
 
@@ -361,11 +365,19 @@ ktera chceme ziskat od agenta
 */
 struct request_data {
 
+	pthread_t *thread_id;
+
 	//obecne hodnoty
 	int msgid;
 	string msg_context;
-	int msg_type;
+	int msg_type; //for snmp_module
+	int resp_msg_type; //for building response string
 	int object_id;
+
+	/*
+	snmp community
+	*/
+	const char* community;
 
 	//GET list
 	list<value_pair *> request_list;
@@ -378,9 +390,8 @@ struct request_data {
 	int snmp_err;
 	string snmp_err_str;
 
-	//pro vyhledavani elementu tabulek
-	string xpath_end;
 	int snmp_getnext;
+	string xpath_end;
 	//jako temporary ulozeni jmena do tabulky, ktere u sebe
 	//ma mnoho indexu
 	string snmp_indexed_name;
@@ -394,7 +405,7 @@ struct request_data {
 	request_data()
 	{
 		msgid = 0;
-		msg_type = -1;
+		resp_msg_type = msg_type = -1;
 
 		object_id = -1;
 

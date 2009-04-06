@@ -28,6 +28,8 @@ XmlModule::XmlModule()
 
 	//proc_req_ptr = &XmlModule::process_request;
 
+	response_queue.clear();
+
 }
 
 /*
@@ -42,6 +44,22 @@ XmlModule::~XmlModule()
 		delete ((*it));*/
 	
 	delete( main_xa_doc );
+
+	/*
+	Smazeme vsechny mutexy
+	*/
+	for( int a = 0; a < devices_no; a++ )
+	{
+		pthread_mutex_destroy( queue_mutex[a]);
+	}
+
+	delete( queue_mutex );
+
+	pthread_mutex_destroy( &subscr_lock );
+	pthread_mutex_destroy( &response_lock );
+	pthread_mutex_destroy( &condition_lock );
+
+	pthread_cond_destroy( &resp_cond );
 }
 
 /*
@@ -94,6 +112,28 @@ void XmlModule::set_parameters( DOMElement *r, list<DOMElement *> *roots, char *
 	main_xa_doc->doc = theDocument;
 	main_xa_doc->liaison = theLiaison;
 
+	/*
+	Vybudujeme si mutexy na zamykani front
+	*/
+	devices_no = snmpmod->get_device_count();
+	queue_mutex = new pthread_mutex_t*[ devices_no ];
+
+	for( int a = 0; a < devices_no; a++ )
+	{
+		queue_mutex[a] = new pthread_mutex_t;
+		pthread_mutex_init( queue_mutex[a], NULL );
+	}
+
+	pthread_mutex_init( &subscr_lock, NULL );
+	pthread_mutex_init( &response_lock, NULL );
+	pthread_mutex_init( &condition_lock, NULL );
+
+
+	/*
+	Inicializace condition promenne
+	*/
+	pthread_cond_init( &resp_cond, NULL );
+
 }
 
 /*
@@ -145,7 +185,6 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 		else
 		{
 			//parsujeme zpravu - ziskani XML struktury
-			//TODO: validovat zpravu pri parsovani!!!
 
 			MemBufInputSource *mem_buf = new  MemBufInputSource( (const XMLByte *) con_info->data.c_str(), strlen(con_info->data.c_str()),
 					"message", NULL);
@@ -156,6 +195,14 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 			char* msg_context;
 			string *response_string;
 			char* password;
+
+
+			//pocty zprav
+			bool finished = false;
+			int msg_count = 0;
+			int msg_tmp = 0;
+			list<struct request_data *> responses;
+			list<struct request_data *>::iterator res_it;
 
 			try {
 				parser->parse( *mem_buf );
@@ -211,36 +258,45 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 			for( XMLSize_t i = 0; i < children->getLength(); i++ )
 			{
 				DOMNode *node = children->item(i);
-
 				
 				if ( node->getNodeType() && node->getNodeType() == DOMNode::ELEMENT_NODE)
 				{
 					DOMElement *elem = dynamic_cast<DOMElement *>(node);
 
-					struct request_data *xr;
+					//struct request_data *xr;
 
 					//zpracovani nejake zpravy
 					if ( XMLString::equals( elem->getTagName(), X( "discovery" ) ) )
 					{
-						xr = process_discovery_message( connection, elem );
+						//xr = process_discovery_message( connection, elem );
+						process_discovery_message( elem );
+						msg_count++;
 					}
 					else if ( XMLString::equals( elem->getTagName(), X( "get" ) ) )
 					{
-						xr = process_get_set_message( elem, password, XML_MSG_TYPE_GET );
+						//xr = process_get_set_message( elem, password, XML_MSG_TYPE_GET );
+						process_get_set_message( elem, password, XML_MSG_TYPE_GET );
+						msg_count++;
 					}
 					else if ( XMLString::equals( elem->getTagName(), X( "set" ) ) )
 					{
-						xr = process_get_set_message( elem, password, XML_MSG_TYPE_SET );
+						//xr = process_get_set_message( elem, password, XML_MSG_TYPE_SET );
+						process_get_set_message( elem, password, XML_MSG_TYPE_SET );
+						msg_count++;
 					}
 					else if ( XMLString::equals( elem->getTagName(), X( "subscribe" ) ) )
 					{
-						xr = process_subscribe_message( elem, password );
+						//xr = process_subscribe_message( elem, password );
+						process_subscribe_message( elem, password );
+						msg_count++;
 					}
 					else
 					{
 						//Neznama zprava -> error
 						log_message( log_file, "element error");
 						//send_error_response( connection, XML_ERR_UNKNOWN_MSG );
+						//TODO: nesmime vratit hodnotu
+						//Nutno pockat na vsechny odpovedi, aby se nam tu neztracela data. A az pote muzememe navratit velky error
 						message->release();
 						delete( mem_buf );
 						return MHD_NO;
@@ -251,7 +307,7 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 					je nutne ukoncit prubeh a poslat zpet zpravu o chybe.
 					Pouze INTERNAL error. Klasicke SNMP errory handlujeme jako normalni odpoved
 					*/
-					if ( xr->error == XML_MSG_ERR_INTERNAL )
+					/*if ( xr->error == XML_MSG_ERR_INTERNAL )
 					{
 						int ret = send_error_response( connection, 0, xr->error_str.c_str() );
 						XMLString::release ( &password );
@@ -261,12 +317,12 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 						delete( xr );
 
 						return ret;
-					}
+					}*/
 
-					string *out = build_response_string( xr );
+					/*string *out = build_response_string( xr );
 					*response_string += *out;
 					delete( out );
-					delete( xr );
+					delete( xr );*/
 
 				}
 
@@ -274,13 +330,87 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 
 		 message->release();
 
+		 /*
+		 Zde se thread koukne do fronty odpovedi a kdyz tam neco je, vezme si to.
+		 Paklize tam nic neni, tak se uspime na nejake condition a cekame na probuzeni.
+		 Az mame vsechny responses, volame opakovane build_response_string() a pak send response
+		 TODO Error checking - jestli je to INTERNAL, musim skoncit hned a ne buildovat odpovedi
+		 */
+
+		 char ooo[10];
+		 while ( !finished )
+		 {
+			 //Nejprve se podivame, jestli nemame nejakou odpoved (treba discovery message)
+			 log_message( log_file, "Client thread: cycle while" );
+			 pthread_mutex_lock( &response_lock );
+
+			 res_it = response_queue.begin();
+
+			 while ( res_it != response_queue.end() )
+			 {
+				 log_message( log_file, "getting response" );
+				 if ( *((*res_it)->thread_id) == pthread_self() ) //check na moje thread ID
+				 {
+					 //vybereme zpravu a ulozime si ji k dalsimu zpracovani
+					 responses.push_back( (*res_it) );
+					 res_it = response_queue.erase( res_it );
+					 msg_tmp++;
+				 }
+				 else
+				 {
+					 res_it++;
+				 }
+
+			 }
+
+			 pthread_mutex_unlock( &response_lock );
+
+			 sprintf( ooo, "%d - %d", msg_count, msg_tmp );
+			 log_message( log_file, ooo );
+
+			 //Paklize nejsou vsechny odpovedi, tak se uspime na conditione
+			 if ( msg_tmp != msg_count )
+			 {
+				 log_message( log_file, "Client thread: going to sleep" );
+				 pthread_mutex_lock( &condition_lock );
+				 pthread_cond_wait( &resp_cond, &condition_lock );
+				 pthread_mutex_unlock( &condition_lock );
+				 log_message( log_file, "Client thread: waking up" );
+			 }
+			 else
+			 {
+				 log_message( log_file, "Client thread: finishing, has got all responses" );
+				 finished = true;
+				 // Process building string for all messages
+				 res_it = responses.begin();
+				 list<struct request_data*>::iterator tmp_it;
+				 while( res_it != responses.end() )
+				 {
+					 log_message( log_file, "building string" );
+					string *out = build_response_string( (*res_it) );
+					*response_string += *out;
+
+					tmp_it = res_it;
+					res_it++;
+
+					responses.pop_front();
+
+					delete( out );
+					delete( (*tmp_it) );
+				 }
+			 }
+
+		 }
+
 		 //odeslani odpovedi
 		 int ret =  send_response( connection, msg_context,  response_string );
+		 log_message( log_file, "after sending response" );
 
 		 delete( response_string );
 		 XMLString::release( &password );
 		 XMLString::release( &msg_context );
 		 delete( mem_buf );
+		 log_message( log_file, "after deleting other stuff" );
 
 		 return ret;
 		}
@@ -830,7 +960,7 @@ const DOMElement* XmlModule::find_element( const XMLCh* name, XalanDocument* the
 /*
 DISCOVERY MESSAGE
 */
-struct request_data* XmlModule::process_discovery_message( struct MHD_Connection *connection, DOMElement *elem )
+int XmlModule::process_discovery_message( DOMElement *elem )
 {
 	struct request_data *xr = new request_data;
 	const XMLCh* value;
@@ -839,8 +969,10 @@ struct request_data* XmlModule::process_discovery_message( struct MHD_Connection
 	TODO:
 	protocolVersion check - nastavi error v request datech
 
-	proc mame v parametrech to connection???
+	dodelat checky na jednotlive atributy
 	*/
+
+	*(xr->thread_id) = pthread_self();
 
 	log_message( log_file, "Dostali jsme DISCOVERY message" );
 
@@ -855,15 +987,17 @@ struct request_data* XmlModule::process_discovery_message( struct MHD_Connection
 		xr->object_id = atoi( XMLString::transcode( value ) );
 	}
 
+	//TODO zavolat fci xmlmodule enqueue_response
+	enqueue_response( xr );
 
-	return xr;
+	return 0;
 }
 
 
 /*
 GET / SET MESSAGE
 */
-struct request_data* XmlModule::process_get_set_message( DOMElement *elem, const char *password, int msg_type )
+int XmlModule::process_get_set_message( DOMElement *elem, const char *password, int msg_type )
 {
 	struct request_data *xr = new request_data;
 	const XMLCh* value;
@@ -881,7 +1015,20 @@ struct request_data* XmlModule::process_get_set_message( DOMElement *elem, const
 
 	char tmpid[50];
 
+	/*
+	serach_id vyjadruje, ve kterem stromu se bude vyhledavat
+	Je to z duvodu setreni pameti, kdy jestlize ukazuje na stejny strom
+	jako nekdo, tak musime hledat tam.
+	*/
+	int search_id;
+	SNMP_device *dev;
 
+	*(xr->thread_id) = pthread_self();
+
+	/*
+	TODO ACCESS CONTROL
+	*/
+	xr->community = password;
 
 	log_message( log_file, "Dostali jsme GET/SET message" );
 
@@ -900,6 +1047,24 @@ struct request_data* XmlModule::process_get_set_message( DOMElement *elem, const
 		XMLString::release( &tmp_buf );
 	}
 	else xr->object_id = 0;
+
+	/*
+	Nastaveni search_id
+	*/
+	dev = snmpmod->get_device_ptr( xr->object_id );
+	if ( dev == NULL )
+	{
+		//Internal ERROR
+	}
+	else
+	{
+		if ( dev->similar_as != -1 )
+		{
+			search_id = dev->similar_as;
+		}
+		else
+			search_id = xr->object_id;
+	}
 
 	//Parsovani <xpath> elementu
 	children = elem->getChildNodes();
@@ -925,10 +1090,10 @@ struct request_data* XmlModule::process_get_set_message( DOMElement *elem, const
 				value = el->getTextContent();
 
 
-				//TODO: zmeny GET SET 
 				//int pos = snmpmod->get_device_position( xr->object_id );
 				//found_el = find_element( value, get_device_xalan_document( pos ), xr, true );
-				sprintf( tmpid, "%d", xr->object_id );
+				//Search id je kvuli pametovemu zlepseni.
+				sprintf( tmpid, "%d", search_id );
 				tmp_str_xpath = "//device[@id='";
 				tmp_str_xpath += string( tmpid );
 				tmp_str_xpath +="']/data";
@@ -936,7 +1101,13 @@ struct request_data* XmlModule::process_get_set_message( DOMElement *elem, const
 				tmp_str_xpath += string( tmp_buf );
 				XMLString::release( &tmp_buf );
 
+				//TODO maybe dodelat lock na vyhledavani ve spolecne strukture
+
 				found_el = find_element( X( tmp_str_xpath.c_str() ), main_xa_doc->doc, xr, true );
+
+				/*
+				TODO: dodelat ke vsem vracenim erroru volani enquque_response, kde to neni INTERNAL ERROR
+				*/
 
 				if ( found_el == NULL )
 				{
@@ -945,7 +1116,8 @@ struct request_data* XmlModule::process_get_set_message( DOMElement *elem, const
 					xr->error_str = "Such element cannot be found in managed data tree.";
 					
 					delete( vp );
-					return xr;
+					//return xr;
+					return 0;
 				}
 
 				/*
@@ -993,7 +1165,7 @@ struct request_data* XmlModule::process_get_set_message( DOMElement *elem, const
 				}*/
 
 				/*
-				Paklize je element korenovym elementem, je to zatim v TODO diskusi.
+				Paklize je element korenovym elementem, budeme generovat GETNEXT dotazy na cely podstrom.
 
 				Jestli je to koncovym elementem, nastavime jmeno a hodnotu.
 				*/
@@ -1005,7 +1177,8 @@ struct request_data* XmlModule::process_get_set_message( DOMElement *elem, const
 					xr->error = XML_MSG_ERR_INTERNAL;
 					xr->error_str = "Cannot request this non-simple value node";
 					delete( vp );
-					return xr;
+					//return xr;
+					return 0;
 				}
 				else
 				{
@@ -1056,7 +1229,9 @@ struct request_data* XmlModule::process_get_set_message( DOMElement *elem, const
 				xr->error = XML_MSG_ERR_INTERNAL;
 				xr->error_str = "Unknown element in GET/SET message";
 				delete ( vp );
-				return xr;
+				//return xr;
+				return 0;
+
 			}
 		}
 	}
@@ -1065,20 +1240,23 @@ struct request_data* XmlModule::process_get_set_message( DOMElement *elem, const
 	Zavolame snmp funkci, ktera dana data zpracuje a odesle agentovi
 	zaroven prijme odpoved a zpracuje data zpet
 	*/
-	if ( snmpmod->send_request( xr, password,  msg_type ) != 0 )
+	/*if ( snmpmod->send_request( xr, password,  msg_type ) != 0 )
 	{
 		log_message( log_file, "XmlMod: snmp module returned error" );
-	}
+	}*/
 
+	// zavolat dispatch_request
+	log_message( log_file, "Dispatching get/set request" );
+	snmpmod->dispatch_request( xr );
 
-	return xr;
+	return 0;
 }
 
 
 /*
 SUBSCRIBE message
 */
-struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, const char* password )
+int XmlModule::process_subscribe_message( DOMElement *elem, const char* password )
 {
 	/*
 	Podivame se, jestli je pritomen atribut distrId a delete.
@@ -1112,6 +1290,7 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 	DOMElement *subscriptions;
 	
 
+	//TODO; dodelat error cally
 
 
 	log_message( log_file, "Dostali jsme SUBSCRIBE message" );
@@ -1144,10 +1323,11 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 			xr->error = XML_MSG_ERR_INTERNAL;
 			xr->error_str = "Such subscription does not exist.";
 
-			return xr;
+			return 0;
 		}
 
 		//TODO:  delete! 
+		//Zavolat funkci enququq, pac vracime prazdna data
 
 
 	}
@@ -1158,7 +1338,7 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 	Nechame tedy ziskat data pomoci GET message, cimz se overi, ze je vse v poradku
 	a teprve pote budeme s daty vice manipulovat.
 	*/
-	xr = process_get_set_message( elem, password, XML_MSG_TYPE_GET );
+	process_get_set_message( elem, password, XML_MSG_TYPE_GET );
 
 	//Nyni mame data ziskana.
 	if ( xr->error == XML_MSG_ERR_INTERNAL || xr->error == XML_MSG_ERR_SNMP )
@@ -1168,7 +1348,8 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 		Posleme zpet error
 		*/
 		xr->msg_type = XML_MSG_TYPE_SUBSCRIBE;
-		return xr;
+		//return xr;
+		return 0;
 	}
 
 	//Data jsou v poradku, nez je vratime zpet, zapiseme tento element do
@@ -1247,7 +1428,33 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 
 	//TODO probudit thread, aby si to zpracoval
 
-	return xr;
+	//return xr;
+	return 0;
 }
 
+/****************************************************
+********** Enqueue a probouzeni threadu
+******************************************************/
 
+/*
+Zaradime strukturu do odpovedni fronty a probudime vsechny spici thready
+*/
+void XmlModule::enqueue_response( struct request_data * xr )
+{
+	log_message( log_file, "enqueing message" );
+	//Zamkneme pristup do fronty
+	pthread_mutex_lock( &response_lock );
+	//pridame odpoved
+	response_queue.push_back( xr );
+	pthread_mutex_unlock( &response_lock );
+	log_message( log_file, "after enqueing response" );
+
+
+	log_message( log_file, "waking up threads" );
+	pthread_mutex_lock( &condition_lock );
+	//Probudime vsechny, kteri cekaji na nejakou odpoved
+	pthread_cond_broadcast( &resp_cond );
+	pthread_mutex_unlock( &condition_lock );
+	log_message( log_file, "after waking up threads" );
+
+}

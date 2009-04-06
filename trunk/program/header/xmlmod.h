@@ -52,19 +52,32 @@ class XmlModule
 		list<xalan_docs_list *> xalan_docs;
 		struct xalan_docs_list* main_xa_doc;
 
+		//odpovedni fronta
+		list<struct request_data*> response_queue;
+
 
 		/*
 		Pointer to SNMP module - to send requests
 		*/
 		SnmpModule *snmpmod;
+		int devices_no;
 
 		/*
 		POSIX thread
 		*/
 		pthread_mutex_t subscr_lock; //zamyka pristup pro zmenu subscriptions
+		pthread_mutex_t response_lock; //vstup do response fronty
+		pthread_mutex_t condition_lock;
+
+		//mutexy pro jednotlive fronty
+		pthread_mutex_t **queue_mutex;
+
+		//response condition
+		pthread_cond_t resp_cond;
 
 
 	public:
+
 		XmlModule();
 		~XmlModule();
 
@@ -98,9 +111,17 @@ class XmlModule
 		/*
 		Funkce na handlovani jednotlivych typu zprav
 		*/
-		struct request_data* process_discovery_message( struct MHD_Connection *, DOMElement * );
+		/*struct request_data* process_discovery_message( struct MHD_Connection *, DOMElement * );
 		struct request_data* process_get_set_message( DOMElement *, const char*, int );
-		struct request_data* process_subscribe_message( DOMElement *, const char* );
+		struct request_data* process_subscribe_message( DOMElement *, const char* );*/
+		int process_discovery_message( DOMElement * );
+		int process_get_set_message( DOMElement *, const char*, int );
+		int process_subscribe_message( DOMElement *, const char* );
+
+		/*
+		Funkce, ktera zaradi odpoved do fronty a vzbudi vsechny thready
+		*/
+		void enqueue_response( struct request_data* );
 
 
 };
