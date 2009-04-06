@@ -32,6 +32,8 @@ int main( int argc, char** argv)
 		log_message( (char *) LOG, (char *)"Unknown error occured while initializing gate." );
 	}
 
+	pthread_mutex_init( &lg_msg, NULL );
+
 	gate->run();
 
 	delete(gate);

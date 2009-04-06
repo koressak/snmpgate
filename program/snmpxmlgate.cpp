@@ -144,10 +144,18 @@ void SnmpXmlGate::run()
 		exit(1);
 	}
 
+	//spustime handlovaci thready
+	if ( snmpmod->initialize_threads() != 0 )
+	{
+		log_message( log_file, (char *)"Error during snmp thread handlers initialization. Exitting." );
+		exit(1);
+	}
+
 	//nastavime parametry xmlmodulu
 	doc = snmpmod->get_doc();
 	root = snmpmod->get_root();
 	xmlmod->set_parameters( root, devices_root, log_file, gate->xsd_path, snmpmod );
+	snmpmod->set_xmlmod( xmlmod );
 	
 	http_server = MHD_start_daemon( MHD_USE_THREAD_PER_CONNECTION, gate->xml_listen_port,
 					NULL, NULL, &process_request, NULL,

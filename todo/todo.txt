@@ -40,7 +40,13 @@ DONE
 		- dodelat elementy address, port do elementu manager (v ramci traps)
 		DONE
 
+
 		- dodelat element protocolVersion -  do hlavniho elementu Gate (pro Discovery message)
+
+		- Dodelat elementy pro read and write access na snmp zarizeni!!
+		ACCESS CONTROL
+
+
 
 4. check na dostupnost jednotlivych zarizeni
 	- vytvorit celou SNMP tridu 
@@ -122,9 +128,6 @@ DONE
 
 	- Nyni tedy zrusit devices_root ukazatele a vyhledavani pozice device v XmlModule
 
-
-	- Dodelat sortovani zarizeni v ramci devices_list dle id, aby tomu pak odpovidalo poradi xml dokumentu
-
 	- Dodelat promenne pro zakladni nazvy souboru "snmpxmld.xsd", aby to slo menit globalne
 
 
@@ -159,13 +162,22 @@ Poznamka:
 		- generovani odpovedi
 		DONE
 	
-	- kazdy http thread bude volat snmp fci -> send meesgae
-		Tato fce bude cekat thread-safe synch response na odpoved a rovnou
-		se pak vygeneruje odpoved.
+	- FRONTY - nutno implementovat
+		- meni se kompletne nize popsana funkcnost. Kazdy thread bude volat funkci,
+		ale pro zapsani zpravy do fronty a vzbuzeni daneho threadu.
+		DONE
 
-		Mezi tridami se nebudou predavat xml-specific/snmp-specific informace.
-		Pouze to nejnutnejsi. Snmp vyparsuje data a preda je pak xml, ktera z toho
-		udela odpoved a konec. Striktne oddelena funkcnost!!!!
+		- INTERNAL Error handling
+		PROBLEM: Pri vyskytnuti INTERNAL erroru je nutne pockat na vsechny jiz odelsane zadosti
+		a pak odpovedet nejakym error_responsem.
+		Ostatni errory jsou soucasti odpovedi na danou get/set/subscr zpravu!!
+
+	
+
+	- Mezi tridami se nebudou predavat xml-specific/snmp-specific informace.
+	  Pouze to nejnutnejsi. Snmp vyparsuje data a preda je pak xml, ktera z toho
+	  udela odpoved a konec. Striktne oddelena funkcnost!!!!
+	  DONE
 	
 	- jednotlive zpravy
 		- discovery
@@ -182,33 +194,39 @@ Poznamka:
 			DONE
 
 			- tabulky
+			NEDELAT!!!
+			DONE
 
 		- set
 			-simple values 
 			DONE
 
 			- tabulky
+			NEDELAT!!!!
+			DONE
 
 		- response
 			-report values
 			DONE
 
 			-error codes	
-			DONE
+			TODO - nutno generovat errory zpet hezky a ne jen tak nejakou vetu
 
-		DONE
 		Komplet GET, SET messages se trosku meni. S tim, jak mame dokument jinak strukturovany
 		se nam zmeni xpath vyraz.
-
 		DONE
 			- odpadne nutnost delat XalanDokumenty z kazdeho rootu.
 			(nyni uz jenom jedine mapovani na hlavni dokument!!!!)
+			DONE
+
+
 
 		TODO:
-		- Mel by pribyt check na access, jestli muze zapisovat, kdyz chce apod
+		ACCESS CONTROL - dodelat mapovani xml hesla na snmp community string.
+		A dle toho pak vyvodit, jestli ma pravo zapisovat, nebo ne
 
-		- Pak by mel mozna nasledovat check na typ, ale to je k diskusi
 		
+		- dodelat spravne generovani XML odpovedi!!!!
 
 
 
@@ -283,6 +301,9 @@ Low priority
 
 - Do textu zmenit analyzu -> Description message - optional atribut objectId
 
+- Do textu napsat pojednani o frontach a o tom, jak get set message se neprekryvaji, paklize jsou v ramci jednoho device.
+Cimz je zarucena integrita dat.
+
 - Udelat snmpxmlgate jako global promennou -> pri odchytnuti sigterm se zavola stop a ukonci se jeho funkce hezky a nikoliv
 nasilnym smazanim vsech struktur.
 
@@ -337,6 +358,12 @@ Nutno pro zpetne nacteni a parsovani (pro pozdejsi vyhledavani pomoci XPathu)
 - DONE Osetrit chybu. Kdyz snmp zahlasi chybu, tak ten thread a connection nikdy neskonci. Kde se deje ten problem??@?@
 	- pada to pri senmp_sess_error(). Netusim proc, ale ciste to spadne. Zatrsakr nekompatibilni api.
 
+- XmlModule: dodelat fci, ktera vrati pozici device v device_list. Dle toho pak budeme vybirat
+mutexy a fronty, do ktere zapisovat. (abychom si ulehcili praci s STL vectorem)
+DONE - je to v snmpmodule
+
+- Do Request_data struktury - doplnit thread ID
+DONE
 
 
 
@@ -351,13 +378,19 @@ Nutno pro zpetne nacteni a parsovani (pro pozdejsi vyhledavani pomoci XPathu)
 by si mohli prepisovat data
 	- Message PArser -> possible thread safe hazard
 
-- Mozna bychom meli presunout dodavani .0 k OID na managera
-
-- DULEZITE: kdyz mame nekolik devices se stejnym dokumentem - nutno upravit funkce na vraceni dokumentu pro vyhledavani, 
-aby opravdu vracely ten spravny dokument!!!
-
 - Subscribe - jak odpovidat na delete? Vsechno ostatni zvladne Distribution, ale delete???
+RESENI: budeme posilat nulova data. Still work in progress
 
+- Nutno do request_Data struktury namlatit i read/write permission, dle ktereho se pak 
+vezme dane community string - nebo tam ukladat uz rovnou to. 
+
+- Predelat get_set message -> vlozit password do request_data (po access control rutine);
+
+- DULEZITE: abychom zachovali "atomicitu". Vsechny zpravy get/set z jedne message bychom meli napred shromazdit
+a pak najednou vsechny rozhodit. Aby jeden manager mel sve message pohromade.
+
+- Thready - problemy se synchronizaci. Nekde to segfaulti a ja nevim proc :(((
+- log_message : zamykat
 
 
 
