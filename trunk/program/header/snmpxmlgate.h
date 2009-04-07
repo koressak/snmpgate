@@ -11,6 +11,7 @@
 #include "xmlmod.h"
 
 extern XmlModule *xm;
+extern pthread_mutex_t lg_msg;
 
 
 class ConfigErrorHandler : public ErrorHandler

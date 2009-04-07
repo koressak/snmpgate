@@ -127,6 +127,7 @@ void XmlModule::set_parameters( DOMElement *r, list<DOMElement *> *roots, char *
 	pthread_mutex_init( &subscr_lock, NULL );
 	pthread_mutex_init( &response_lock, NULL );
 	pthread_mutex_init( &condition_lock, NULL );
+	pthread_mutex_init( &getset_lock, NULL );
 
 
 	/*
@@ -143,6 +144,9 @@ Process message
 int XmlModule::process_request( void *cls, struct MHD_Connection *connection, const char *url, const char *method, 
 			const char *version, const char *upload_data, size_t *upload_data_size, void **con_cls )
 {
+	if ( NULL == method )
+		return MHD_NO;
+
 	if ( NULL == *con_cls )
 	{
 		struct connection_info *con_info = new connection_info;
@@ -171,12 +175,16 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 
 	}
 
+
 	if ( strcmp( method, "POST") == 0 )
 	{
 		struct connection_info *con_info = (struct connection_info *) *con_cls;
 
 		if ( *upload_data_size != 0 )
 		{
+			if ( upload_data == NULL)
+				return MHD_NO;
+
 			MHD_post_process( con_info->post_processor, upload_data, *upload_data_size );
 			*upload_data_size = 0;
 
@@ -185,12 +193,27 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 		else
 		{
 			//parsujeme zpravu - ziskani XML struktury
+		 char thid[100];
 
-			MemBufInputSource *mem_buf = new  MemBufInputSource( (const XMLByte *) con_info->data.c_str(), strlen(con_info->data.c_str()),
+		 sprintf( thid, "Thread id: %ld", pthread_self() );
+		 log_message( log_file, thid );
+
+		//pthread_mutex_lock( &getset_lock );
+			MemBufInputSource *mem_buf;
+
+			try
+			{
+			 mem_buf = new  MemBufInputSource( (const XMLByte *) con_info->data.c_str(), strlen(con_info->data.c_str()),
 					"message", NULL);
+			}
+			catch ( ... )
+			{
+				log_message( log_file, "Exception parsing message!!!" );
+				return MHD_NO;
+			}
 
 			//Zakladni promenne
-			DOMDocument *message;
+			DOMDocument *message = NULL;
 			const XMLCh* value;
 			char* msg_context;
 			string *response_string;
@@ -199,35 +222,48 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 
 			//pocty zprav
 			bool finished = false;
+			bool internal_error = false;
 			int msg_count = 0;
 			int msg_tmp = 0;
 			list<struct request_data *> responses;
 			list<struct request_data *>::iterator res_it;
 
+			DOMElement *msg_root = NULL;
+
+			/*
+			Get/Set message a pak i subscribe navrati
+			strukturu dat, kterou musime pak najednou rozhodit
+			mezi vsechny zarizeni.
+
+			Paklize navrati NULL, tak je to asi error a uz je to v response
+			*/
+			struct request_data* xr;
+			list<struct request_data*> req_to_dev[ devices_no ]; 
+
 			try {
+				log_message( log_file, "Parsing message" );
 				parser->parse( *mem_buf );
 				message = parser->getDocument();
+				//Zjistime, jestli je message root elementem
+				if ( message )
+					msg_root = message->getDocumentElement();
 			}
 			catch ( const XMLException &e )
 			{
 				log_message( log_file, "Error parsing buffer" );
 				log_message( log_file, XMLString::transcode( e.getMessage() ) );
-				send_error_response( connection, XML_ERR_UNKNOWN, NULL );
 				delete( mem_buf );
-				return MHD_NO;
+				return send_error_response( connection, XML_ERR_UNKNOWN, NULL );
 			}
 
-			//Zjistime, jestli je message root elementem
-			DOMElement *msg_root = message->getDocumentElement();
 
 			if ( !msg_root )
 			{
 				log_message( log_file, "No root element in message" );
 				//odesilame error
-				send_error_response( connection, XML_ERR_UNKNOWN, NULL );
 				message->release();
 				delete( mem_buf );
-				return MHD_NO;
+				return send_error_response( connection, XML_ERR_UNKNOWN, NULL );
 			}
 
 			//paklize neni root == message, tak spatnej format zpravy
@@ -235,10 +271,9 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 			{
 				log_message( log_file, "No message element in message" );
 				//spatny format zpravy
-				send_error_response( connection, XML_ERR_WRONG_MSG, NULL );
 				message->release();
 				delete( mem_buf );
-				return MHD_NO;
+				return send_error_response( connection, XML_ERR_WRONG_MSG, NULL );
 			}
 
 			//Ulozime password = community string
@@ -249,11 +284,21 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 			value = msg_root->getAttribute( X( "context" ) );
 			msg_context = XMLString::transcode( value );
 
-			response_string = new string;;
+			response_string = new string;
 
 			//Nasleduje cyklus pro kazdy podelement rootu -> jeden prikaz na zpracovani
-			DOMNodeList *children = msg_root->getChildNodes();
-
+			DOMNodeList *children;
+			try
+			{
+				children = msg_root->getChildNodes();
+			}
+			catch (...)
+			{
+				log_message( log_file, "Cannot get child nodes of the message" );
+				message->release();
+				delete( mem_buf);
+				return MHD_NO;
+			}
 
 			for( XMLSize_t i = 0; i < children->getLength(); i++ )
 			{
@@ -275,18 +320,27 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 					else if ( XMLString::equals( elem->getTagName(), X( "get" ) ) )
 					{
 						//xr = process_get_set_message( elem, password, XML_MSG_TYPE_GET );
-						process_get_set_message( elem, password, XML_MSG_TYPE_GET );
+						xr = process_get_set_message( elem, password, XML_MSG_TYPE_GET );
 						msg_count++;
+
+						//Zaradime to do fronty pro dany device
+						if ( xr != NULL )
+							req_to_dev[ xr->object_id ].push_back( xr );
 					}
 					else if ( XMLString::equals( elem->getTagName(), X( "set" ) ) )
 					{
 						//xr = process_get_set_message( elem, password, XML_MSG_TYPE_SET );
-						process_get_set_message( elem, password, XML_MSG_TYPE_SET );
+						xr = process_get_set_message( elem, password, XML_MSG_TYPE_SET );
 						msg_count++;
+
+						//Zaradime to do fronty pro dany device
+						if ( xr != NULL )
+							req_to_dev[ xr->object_id ].push_back( xr );
 					}
 					else if ( XMLString::equals( elem->getTagName(), X( "subscribe" ) ) )
 					{
 						//xr = process_subscribe_message( elem, password );
+						//TODO: taky to bude vracet hodnotu jako get_set_message()
 						process_subscribe_message( elem, password );
 						msg_count++;
 					}
@@ -294,62 +348,64 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 					{
 						//Neznama zprava -> error
 						log_message( log_file, "element error");
-						//send_error_response( connection, XML_ERR_UNKNOWN_MSG );
-						//TODO: nesmime vratit hodnotu
-						//Nutno pockat na vsechny odpovedi, aby se nam tu neztracela data. A az pote muzememe navratit velky error
-						message->release();
-						delete( mem_buf );
-						return MHD_NO;
+						internal_error = true;
+						break;
 					}
-
-					/*
-					Jestli zjistime nejaky error pri parsovani ci provadeni prikazu
-					je nutne ukoncit prubeh a poslat zpet zpravu o chybe.
-					Pouze INTERNAL error. Klasicke SNMP errory handlujeme jako normalni odpoved
-					*/
-					/*if ( xr->error == XML_MSG_ERR_INTERNAL )
-					{
-						int ret = send_error_response( connection, 0, xr->error_str.c_str() );
-						XMLString::release ( &password );
-						XMLString::release ( &msg_context );
-						delete( response_string );
-						delete( mem_buf );
-						delete( xr );
-
-						return ret;
-					}*/
-
-					/*string *out = build_response_string( xr );
-					*response_string += *out;
-					delete( out );
-					delete( xr );*/
 
 				}
 
-			}
+			} //end of FOR
 
-		 message->release();
+			
+
+		 if ( message )
+			 message->release();
+		 //pthread_mutex_unlock( &getset_lock );
+
+		 /*
+		 Rozhozeni jednotlivych messages jako celky do jednotlivych zarizeni
+		 */
+		 for( int i = 0; i < devices_no; i++ )
+		 {
+			 if (  (!req_to_dev[i].empty()) )
+			 {
+				if (  snmpmod->dispatch_request( &req_to_dev[i] ) != 0 )
+					internal_error = true;
+
+				req_to_dev[i].clear();
+			 }
+		 }
 
 		 /*
 		 Zde se thread koukne do fronty odpovedi a kdyz tam neco je, vezme si to.
 		 Paklize tam nic neni, tak se uspime na nejake condition a cekame na probuzeni.
 		 Az mame vsechny responses, volame opakovane build_response_string() a pak send response
-		 TODO Error checking - jestli je to INTERNAL, musim skoncit hned a ne buildovat odpovedi
 		 */
 
 		 char ooo[10];
+
+		 struct timespec ts;
+
+		 ts.tv_sec = time(NULL) + 2;
+		 ts.tv_nsec = 0;
+
+		 //income = NULL;
 		 while ( !finished )
 		 {
+			 ts.tv_sec = time(NULL) + 2;
+			 ts.tv_nsec = 0;
 			 //Nejprve se podivame, jestli nemame nejakou odpoved (treba discovery message)
-			 log_message( log_file, "Client thread: cycle while" );
 			 pthread_mutex_lock( &response_lock );
 
 			 res_it = response_queue.begin();
 
+			 sprintf( ooo, "%d", response_queue.size() );
+			 log_message( log_file, ooo );
+
 			 while ( res_it != response_queue.end() )
 			 {
-				 log_message( log_file, "getting response" );
-				 if ( *((*res_it)->thread_id) == pthread_self() ) //check na moje thread ID
+				 log_message( log_file, thid );
+				 if ( (*res_it)->thread_id == pthread_self() ) //check na moje thread ID
 				 {
 					 //vybereme zpravu a ulozime si ji k dalsimu zpracovani
 					 responses.push_back( (*res_it) );
@@ -373,7 +429,8 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 			 {
 				 log_message( log_file, "Client thread: going to sleep" );
 				 pthread_mutex_lock( &condition_lock );
-				 pthread_cond_wait( &resp_cond, &condition_lock );
+				 //pthread_cond_wait( &resp_cond, &condition_lock );
+				pthread_cond_timedwait( &resp_cond, &condition_lock, &ts);
 				 pthread_mutex_unlock( &condition_lock );
 				 log_message( log_file, "Client thread: waking up" );
 			 }
@@ -381,12 +438,14 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 			 {
 				 log_message( log_file, "Client thread: finishing, has got all responses" );
 				 finished = true;
+
+				 msg_count = 0;
+				 msg_tmp = 0;
 				 // Process building string for all messages
 				 res_it = responses.begin();
 				 list<struct request_data*>::iterator tmp_it;
 				 while( res_it != responses.end() )
 				 {
-					 log_message( log_file, "building string" );
 					string *out = build_response_string( (*res_it) );
 					*response_string += *out;
 
@@ -403,14 +462,16 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 		 }
 
 		 //odeslani odpovedi
-		 int ret =  send_response( connection, msg_context,  response_string );
-		 log_message( log_file, "after sending response" );
+		 int ret;
+		 if ( !internal_error )
+			 ret =  send_response( connection, msg_context,  response_string );
+		 else
+			 ret = send_error_response( connection, 0, "Internal server error" );
 
 		 delete( response_string );
 		 XMLString::release( &password );
 		 XMLString::release( &msg_context );
 		 delete( mem_buf );
-		 log_message( log_file, "after deleting other stuff" );
 
 		 return ret;
 		}
@@ -443,6 +504,7 @@ void XmlModule::request_completed( void *cls, struct MHD_Connection *connection,
 	delete(con_info);
 
 	*con_cls = NULL;
+
 }
 
 /*
@@ -463,7 +525,7 @@ int XmlModule::post_iterate( void *coninfo_cls, enum MHD_ValueKind kind, const c
 		return MHD_NO;
 	}
 
-	string tmp = data;
+	string tmp = string(data);
 
 	int message_start = tmp.find( XML_MSG_ROOT, 0 );
 	int message_end = tmp.find( XML_MSG_ROOT_END, 0 );
@@ -514,6 +576,7 @@ int XmlModule::send_response( struct MHD_Connection *connection, const char* msg
 
 	ret = MHD_queue_response( connection, MHD_HTTP_OK, response );
 	MHD_destroy_response( response);
+
 
 	return ret;
 }
@@ -631,7 +694,6 @@ string * XmlModule::build_response_string( struct request_data *data )
 		if ( xsd != NULL )
 		{
 
-			//TODO: zamyslet se, jestli budeme posilat i neco s xquery nebo nechame xpath
 			*out += "<info><xpath>1.0</xpath></info>\n";
 			*out += "<dataModel>";
 
@@ -643,7 +705,8 @@ string * XmlModule::build_response_string( struct request_data *data )
 
 			//log_message( log_file, out->c_str() );
 
-			delete ( buf );
+			//delete ( buf );
+			XMLString::release( &buf );
 		
 			XMLString::release( &xsd );
 		}
@@ -671,15 +734,32 @@ string * XmlModule::build_response_string( struct request_data *data )
 		*out += tmpid;
 		*out += "\">\n";
 
-		list<struct value_pair *>::iterator rit;
-
-		for ( rit = data->request_list.begin(); rit != data->request_list.end(); rit++ )
+		if ( data->error == XML_MSG_ERR_XML )
 		{
-			*out += "<value name=\"";
-			*out += (*rit)->oid;
-			*out += "\">\n";
-			*out += (*rit)->value;
-			*out += "</value>\n";
+			*out += "<error>";
+			*out += data->error_str;
+			*out += "</error>\n";
+
+		}
+		else if ( data->snmp_err )
+		{
+			*out += "<error>";
+			*out += data->snmp_err_str;
+			*out += "</error>\n";
+		}
+		else
+		{
+			//TODO: zde bude muset byt generator celych podstromu!!!
+			list<struct value_pair *>::iterator rit;
+
+			for ( rit = data->request_list.begin(); rit != data->request_list.end(); rit++ )
+			{
+				*out += "<value name=\"";
+				*out += (*rit)->oid;
+				*out += "\">\n";
+				*out += (*rit)->value;
+				*out += "</value>\n";
+			}
 		}
 
 		*out += "</response>\n";
@@ -697,7 +777,16 @@ string * XmlModule::build_response_string( struct request_data *data )
 		*out += tmpid;
 
 		//Paklize vznikl error, zasleme jej managerovi
-		if ( data->snmp_err )
+		if ( data->error == XML_MSG_ERR_XML )
+		{
+			*out += "\">\n";
+
+			*out += "<error>";
+			*out += data->error_str;
+			*out += "</error>\n</response>\n";
+
+		}
+		else if ( data->snmp_err )
 		{
 			*out += "\">\n";
 
@@ -972,7 +1061,7 @@ int XmlModule::process_discovery_message( DOMElement *elem )
 	dodelat checky na jednotlive atributy
 	*/
 
-	*(xr->thread_id) = pthread_self();
+	xr->thread_id = pthread_self();
 
 	log_message( log_file, "Dostali jsme DISCOVERY message" );
 
@@ -997,7 +1086,7 @@ int XmlModule::process_discovery_message( DOMElement *elem )
 /*
 GET / SET MESSAGE
 */
-int XmlModule::process_get_set_message( DOMElement *elem, const char *password, int msg_type )
+struct request_data * XmlModule::process_get_set_message( DOMElement *elem, const char *password, int msg_type )
 {
 	struct request_data *xr = new request_data;
 	const XMLCh* value;
@@ -1023,12 +1112,12 @@ int XmlModule::process_get_set_message( DOMElement *elem, const char *password, 
 	int search_id;
 	SNMP_device *dev;
 
-	*(xr->thread_id) = pthread_self();
+	xr->thread_id = pthread_self();
 
 	/*
 	TODO ACCESS CONTROL
 	*/
-	xr->community = password;
+	xr->community = string(password);
 
 	log_message( log_file, "Dostali jsme GET/SET message" );
 
@@ -1112,12 +1201,13 @@ int XmlModule::process_get_set_message( DOMElement *elem, const char *password, 
 				if ( found_el == NULL )
 				{
 					log_message( log_file, "NULL found element" );
-					xr->error = XML_MSG_ERR_INTERNAL;
+					xr->error = XML_MSG_ERR_XML;
 					xr->error_str = "Such element cannot be found in managed data tree.";
 					
 					delete( vp );
+					enqueue_response( xr );
 					//return xr;
-					return 0;
+					return NULL;
 				}
 
 				/*
@@ -1174,11 +1264,14 @@ int XmlModule::process_get_set_message( DOMElement *elem, const char *password, 
 				{
 					//TODO Tady bude getnetxt request na cely podstrom!!!!!!
 					log_message( log_file, "This is not a leaf node. Canceling request" );
-					xr->error = XML_MSG_ERR_INTERNAL;
+					xr->error = XML_MSG_ERR_XML;
 					xr->error_str = "Cannot request this non-simple value node";
 					delete( vp );
 					//return xr;
-					return 0;
+
+					enqueue_response( xr );
+					//return 0;
+					return NULL;
 				}
 				else
 				{
@@ -1226,30 +1319,26 @@ int XmlModule::process_get_set_message( DOMElement *elem, const char *password, 
 			}
 			else
 			{
-				xr->error = XML_MSG_ERR_INTERNAL;
+				xr->error = XML_MSG_ERR_XML;
 				xr->error_str = "Unknown element in GET/SET message";
 				delete ( vp );
+				enqueue_response( xr );
+				return NULL;
 				//return xr;
-				return 0;
+				//return 0;
 
 			}
 		}
 	}
 
 	/*
-	Zavolame snmp funkci, ktera dana data zpracuje a odesle agentovi
-	zaroven prijme odpoved a zpracuje data zpet
+	Zavolame snmp funkci, ktera dana data zpracuje a od agenta ziska odpoved
+	My ale necekame, jdeme zpracovavat dalsi veci
 	*/
-	/*if ( snmpmod->send_request( xr, password,  msg_type ) != 0 )
-	{
-		log_message( log_file, "XmlMod: snmp module returned error" );
-	}*/
+	//snmpmod->dispatch_request( xr );
 
-	// zavolat dispatch_request
-	log_message( log_file, "Dispatching get/set request" );
-	snmpmod->dispatch_request( xr );
-
-	return 0;
+	//return 0;
+	return xr;
 }
 
 
@@ -1441,20 +1530,16 @@ Zaradime strukturu do odpovedni fronty a probudime vsechny spici thready
 */
 void XmlModule::enqueue_response( struct request_data * xr )
 {
-	log_message( log_file, "enqueing message" );
 	//Zamkneme pristup do fronty
 	pthread_mutex_lock( &response_lock );
 	//pridame odpoved
 	response_queue.push_back( xr );
 	pthread_mutex_unlock( &response_lock );
-	log_message( log_file, "after enqueing response" );
 
 
-	log_message( log_file, "waking up threads" );
 	pthread_mutex_lock( &condition_lock );
 	//Probudime vsechny, kteri cekaji na nejakou odpoved
 	pthread_cond_broadcast( &resp_cond );
 	pthread_mutex_unlock( &condition_lock );
-	log_message( log_file, "after waking up threads" );
 
 }
