@@ -273,6 +273,7 @@ int SnmpModule::start_transform()
 	transform->end_main_document();
 
 	//parsovat uplne vsechna MIB, ktera jsou v jednotlivych zarizenich
+	//init_snmp( "snmpapp" );
 	init_mib();
 	struct tree *tr;
 	string mi = "";
@@ -463,8 +464,13 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 	char *errstr;
 	bool error = false;
 	void *ss;
+	//netsnmp_session *ss;
 	struct snmp_session session, *sptr=NULL;
 	struct snmp_pdu *pdu, *response;
+
+	ss = NULL;
+	pdu = NULL;
+	response = NULL;
 
 	oid elem[MAX_OID_LEN];
 	size_t elem_len= MAX_OID_LEN;
@@ -492,7 +498,7 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 
 	vector<struct request_data*>::iterator vec_it;
 
-	struct request_data *req_data;
+	struct request_data *req_data = NULL;
 
 	/*
 	Ziskani informaci z parametru
@@ -518,13 +524,12 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 		if ( !queue->empty() )
 		{
 			//vyjmeme vsechny pozadavky
-			for ( vec_it = queue->begin(); vec_it < queue->end(); vec_it++ )
+			vec_it = queue->begin();
+			while( vec_it < queue->end())
 			{
 				requests.push_back( (*vec_it) );
-				queue->erase( vec_it );
+				vec_it = queue->erase( vec_it );
 			}
-
-
 		}
 		pthread_mutex_unlock( mutex );
 
@@ -533,7 +538,8 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 		{
 			//Ukoncit snmp session a jit spat
 			log_message( log_file, "request handler going to wait" );
-			
+
+			//Zavreme session
 			if ( sptr != NULL )
 			{
 				snmp_sess_close( ss );
@@ -551,11 +557,10 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 			/*
 			Samotne zpracovani pozadavku!!!
 			*/
+			//Nutno inicializovat session
 			if ( sptr == NULL )
 			{
-				//Nutno inicializovat session
-				log_message( log_file, "Initializing snmp session" );
-
+				log_message( log_file, "starting snmp session" );
 				snmp_sess_init( &session );
 
 				session.peername = dev->snmp_addr;
@@ -571,8 +576,9 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 					default:
 						session.version = SNMP_VERSION_1;
 				}
+				
 
-				//session.community = (u_char *) password;
+				//session.community = (const u_char *) (req_data->community.c_str());
 				//session.community_len = strlen( (const char *)session.community );
 
 				ss = snmp_sess_open( &session );
@@ -590,13 +596,15 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 				sptr = snmp_sess_session( ss );
 			}
 
+			log_message( log_file, "getting request" );
 			//ziskame prvni dotaz
 			req_data = requests.front();
 			requests.pop_front();
+			log_message( log_file, "after getting request" );
 
 			//nastavime pro nej community string
 			delete( sptr->community );
-			sptr->community = (u_char *) req_data->community;
+			sptr->community = (u_char *) strdup(req_data->community.c_str());
 			sptr->community_len = strlen( (char *)sptr->community ) ;
 
 			/*
@@ -667,7 +675,6 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 			if ( !error )
 			{
 				status = snmp_sess_synch_response( ss, pdu, &response );
-			//status = snmp_sess_send( ss, pdu );
 
 				if ( status != STAT_SUCCESS )
 				{
@@ -786,10 +793,15 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 			if ( response )
 				snmp_free_pdu( response );
 
+			/*log_message( log_file, "before delete pdu" );*/
 			//TODO: mel bych mazat i to request PDU???
+			/*if ( pdu )
+				snmp_free_pdu( pdu );*/
+
+			//Nechame otevrenou sessnu, kdyby jeste neco bylo
 
 			xmlmod->enqueue_response( req_data );
-
+			req_data = NULL;
 
 
 		} //end of process requests
@@ -866,24 +878,28 @@ u_char SnmpModule::map_type_to_pdu( int node_type )
 /*******************************
 ****Dispatch the request
 ********************************/
-int SnmpModule::dispatch_request( struct request_data *req_data )
+int SnmpModule::dispatch_request( list<struct request_data *> *req_data_list )
 {
-	//TODO udelat pro vice messages najednou
-	int pos = get_device_position( req_data->object_id );
+	list<struct request_data *>::iterator it = req_data_list->begin();
+	int pos = get_device_position( (*it)->object_id );
 
 	if ( pos == -1 )
 		return -1;
-	
+
 	pthread_mutex_lock( &req_locks[ pos ] );
 
-	request_queue[pos].push_back( req_data );
+	while ( it != req_data_list->end() )
+	{
+		request_queue[pos].push_back( (*it) );
+
+		it = req_data_list->erase( it );
+	}
 
 	pthread_mutex_unlock( &req_locks[ pos ] );
 
 	pthread_mutex_lock( &cond_lock );
 	pthread_cond_broadcast( &incom_cond );
 	pthread_mutex_unlock( &cond_lock );
-
 	return 0;
 }
 

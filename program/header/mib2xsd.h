@@ -3,6 +3,7 @@
 
 #include "definitions.h"
 
+extern pthread_mutex_t lg_msg;
 
 /*
 Pomocna trida pro prevod XML stringu na char *

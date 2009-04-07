@@ -4,6 +4,8 @@
 #include "definitions.h"
 #include "snmpmod.h"
 
+extern pthread_mutex_t lg_msg;
+
 
 class WriterErrHandler : public DOMErrorHandler
 {
@@ -69,6 +71,8 @@ class XmlModule
 		pthread_mutex_t response_lock; //vstup do response fronty
 		pthread_mutex_t condition_lock;
 
+		pthread_mutex_t getset_lock;
+
 		//mutexy pro jednotlive fronty
 		pthread_mutex_t **queue_mutex;
 
@@ -111,11 +115,11 @@ class XmlModule
 		/*
 		Funkce na handlovani jednotlivych typu zprav
 		*/
-		/*struct request_data* process_discovery_message( struct MHD_Connection *, DOMElement * );
+		//struct request_data* process_discovery_message( struct MHD_Connection *, DOMElement * );
 		struct request_data* process_get_set_message( DOMElement *, const char*, int );
-		struct request_data* process_subscribe_message( DOMElement *, const char* );*/
+		//struct request_data* process_subscribe_message( DOMElement *, const char* );
 		int process_discovery_message( DOMElement * );
-		int process_get_set_message( DOMElement *, const char*, int );
+		//int process_get_set_message( DOMElement *, const char*, int );
 		int process_subscribe_message( DOMElement *, const char* );
 
 		/*

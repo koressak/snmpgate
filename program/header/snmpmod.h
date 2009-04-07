@@ -8,6 +8,7 @@
 	Ma za ukol overit existenci zarizeni a pritomnych MIB.
 	Pak zpracovava vsechny pozadavky od manazeru
 */
+extern pthread_mutex_t lg_msg;
 
 class XmlModule;
 
@@ -87,7 +88,7 @@ class SnmpModule {
 		/*
 		Zapsani requestu do fronty a probuzeni daneho threadu pro obsluhu
 		*/
-		int dispatch_request( struct request_data* );
+		int dispatch_request( list<struct request_data*> * );
 
 		DOMDocument *get_doc()
 		{

@@ -123,10 +123,10 @@ DONE
 
 	- DONE Dodelat spravne XSD format popisu brany ( snmpxmlgate.xsd ). Nyni je to normalni xml dokument
 
+	- DONE Nyni tedy zrusit devices_root ukazatele a vyhledavani pozice device v XmlModule
 
 
 
-	- Nyni tedy zrusit devices_root ukazatele a vyhledavani pozice device v XmlModule
 
 	- Dodelat promenne pro zakladni nazvy souboru "snmpxmld.xsd", aby to slo menit globalne
 
@@ -171,8 +171,7 @@ Poznamka:
 		PROBLEM: Pri vyskytnuti INTERNAL erroru je nutne pockat na vsechny jiz odelsane zadosti
 		a pak odpovedet nejakym error_responsem.
 		Ostatni errory jsou soucasti odpovedi na danou get/set/subscr zpravu!!
-
-	
+		DONE
 
 	- Mezi tridami se nebudou predavat xml-specific/snmp-specific informace.
 	  Pouze to nejnutnejsi. Snmp vyparsuje data a preda je pak xml, ktera z toho
@@ -210,15 +209,17 @@ Poznamka:
 			DONE
 
 			-error codes	
-			TODO - nutno generovat errory zpet hezky a ne jen tak nejakou vetu
+			DONE
 
-		Komplet GET, SET messages se trosku meni. S tim, jak mame dokument jinak strukturovany
+		- Komplet GET, SET messages se trosku meni. S tim, jak mame dokument jinak strukturovany
 		se nam zmeni xpath vyraz.
 		DONE
 			- odpadne nutnost delat XalanDokumenty z kazdeho rootu.
 			(nyni uz jenom jedine mapovani na hlavni dokument!!!!)
 			DONE
 
+		- dodelat spravne generovani XML odpovedi!!!!
+		DONE
 
 
 		TODO:
@@ -226,7 +227,6 @@ Poznamka:
 		A dle toho pak vyvodit, jestli ma pravo zapisovat, nebo ne
 
 		
-		- dodelat spravne generovani XML odpovedi!!!!
 
 
 
@@ -327,6 +327,7 @@ Medium priority
 
 - Udelat lepsi parsovani XML dat z message, ktery prijmeme
 
+- v kazde zprave je msgid - kdyz tam nebude, tak zaradime nejakou nahodnou hodnotu ci vyhodime error!!
 
 
 
@@ -365,14 +366,21 @@ DONE - je to v snmpmodule
 - Do Request_data struktury - doplnit thread ID
 DONE
 
+- DONE log_message : zamykat
+
+- RESPONSE message se musi rozsirit i o ERROR element, kdy neco nevyjde
+DONE
+
+- DULEZITE: abychom zachovali "atomicitu". Vsechny zpravy get/set z jedne message bychom meli napred shromazdit
+a pak najednou vsechny rozhodit. Aby jeden manager mel sve message pohromade.
+DONE
+
+
 
 
 - Device id = 0, paklize je duplikat, spadne to na segfaultu, pac to chce pristoupit nekam, co tam neni
 
 - HTTP server -> nutno doplnit do konfiguraku neco ohledne bezpecnostiho certifikatu pro https
-
-- RESPONSE message se musi rozsirit i o ERROR element, kdy neco nevyjde
-
 
 - Thread Safe design - zamyslet se nad tim, jake operace by mohly byt pro thready spatne a tim padem
 by si mohli prepisovat data
@@ -381,16 +389,8 @@ by si mohli prepisovat data
 - Subscribe - jak odpovidat na delete? Vsechno ostatni zvladne Distribution, ale delete???
 RESENI: budeme posilat nulova data. Still work in progress
 
-- Nutno do request_Data struktury namlatit i read/write permission, dle ktereho se pak 
-vezme dane community string - nebo tam ukladat uz rovnou to. 
-
 - Predelat get_set message -> vlozit password do request_data (po access control rutine);
 
-- DULEZITE: abychom zachovali "atomicitu". Vsechny zpravy get/set z jedne message bychom meli napred shromazdit
-a pak najednou vsechny rozhodit. Aby jeden manager mel sve message pohromade.
-
-- Thready - problemy se synchronizaci. Nekde to segfaulti a ja nevim proc :(((
-- log_message : zamykat
 
 
 

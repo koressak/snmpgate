@@ -1,5 +1,6 @@
 #include "header/snmpxmlgate.h"
 
+pthread_mutex_t lg_msg;
 
 /*
  Hlavni spousteci funkce
@@ -35,6 +36,8 @@ int main( int argc, char** argv)
 	pthread_mutex_init( &lg_msg, NULL );
 
 	gate->run();
+
+	pthread_mutex_destroy( &lg_msg );
 
 	delete(gate);
 

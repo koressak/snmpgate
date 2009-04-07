@@ -15,6 +15,7 @@ Standard includes
 #include <fstream>
 #include <ctype.h>
 #include <pthread.h>
+#include <time.h>
 
 /*
 Timestamp for log
@@ -147,6 +148,7 @@ HTTP parametry
 Par standardnich funkci, ktere zajisti chovani demona.
 Plus logovani zprav do log souboru
 */
+extern pthread_mutex_t lg_msg;
 inline void log_message(char *filename, const char* message)
 {
 	pthread_mutex_lock( &lg_msg );
@@ -168,6 +170,7 @@ inline void log_message(char *filename, const char* message)
 
 	outf.close();
 	pthread_mutex_unlock( &lg_msg );
+	
 }
 
 
@@ -365,7 +368,7 @@ ktera chceme ziskat od agenta
 */
 struct request_data {
 
-	pthread_t *thread_id;
+	pthread_t thread_id;
 
 	//obecne hodnoty
 	int msgid;
@@ -377,7 +380,7 @@ struct request_data {
 	/*
 	snmp community
 	*/
-	const char* community;
+	string community;
 
 	//GET list
 	list<value_pair *> request_list;
@@ -421,10 +424,16 @@ struct request_data {
 
 	~request_data()
 	{
-		list<value_pair *>::iterator it;
-		for ( it = request_list.begin(); it != request_list.end(); it++ )
+		if ( !request_list.empty() )
 		{
-			delete( (*it) );
+			list<value_pair *>::iterator it = request_list.begin();
+			while ( it != request_list.end() )
+			{
+				if ( (*it) )
+					delete( (*it) );
+
+				it = request_list.erase( it );
+			}
 		}
 	}
 };
