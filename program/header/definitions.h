@@ -135,6 +135,13 @@ XML typy zprav
 #define XML_MSG_ERR_SNMP			2 //snmp chyby od agenta
 #define XML_MSG_ERR_XML				3 //pro chyby v xml message
 
+
+/*
+ACCESS constrol - permissions
+*/
+#define XML_PERM_READ				1
+#define XML_PERM_WRITE				2
+
 /*
 HTTP parametry
 */
@@ -274,6 +281,7 @@ struct SNMP_device {
 	int				id;
 	char *			snmp_addr;
 	char *			protocol_version;
+	char *			xml_protocol_version;
 	char *			name;
 	char *			description;
 	list<char *>	mibs;
@@ -292,6 +300,14 @@ struct SNMP_device {
 	//stejne mib jako jiny device - budou sdilet xml strom
 	int				similar_as;
 
+	/*
+	Access control
+	*/
+	char *			snmp_read;
+	char *			snmp_write;
+	char *			xml_read;
+	char *			xml_write;
+
 
 	SNMP_device()
 	{
@@ -305,6 +321,12 @@ struct SNMP_device {
 		log_file = NULL;
 		mib_path = NULL;
 		xsd_path = NULL;
+
+		snmp_read = NULL;
+		snmp_write = NULL;
+		xml_read = NULL;
+		xml_write = NULL;
+		xml_protocol_version = NULL;
 	}
 
 	~SNMP_device()
@@ -316,6 +338,12 @@ struct SNMP_device {
 		if ( log_file != NULL ) 		XMLString::release( &log_file );
 		if ( mib_path != NULL )			XMLString::release( &mib_path );
 		if ( xsd_path != NULL )			XMLString::release( &xsd_path );
+
+		if ( snmp_read != NULL )			XMLString::release( &xsd_path );
+		if ( snmp_write != NULL )			XMLString::release( &xsd_path );
+		if ( xml_read != NULL )			XMLString::release( &xsd_path );
+		if ( xml_write != NULL )			XMLString::release( &xsd_path );
+		if ( xml_protocol_version != NULL )			XMLString::release( &xsd_path );
 
 		
 		for ( list<char *>::iterator it = mibs.begin(); it != mibs.end(); it++ )
@@ -403,7 +431,13 @@ struct request_data {
 	//SUBSCRIBE
 	int distr_id;
 
-	//TODO dodefinovat vsechny podstatne seznamy
+	/*
+	Element found by xpath
+	Pouzite pro generovani odpovedi, kdy je vice
+	odpovednich hodnot (generujeme xml doc)
+	*/
+	const DOMElement *found_el;
+
 
 	request_data()
 	{
@@ -420,6 +454,8 @@ struct request_data {
 		snmp_indexed_name = "";
 
 		distr_id = 0;
+
+		found_el = NULL;
 	}
 
 	~request_data()

@@ -107,6 +107,7 @@ class XmlModule
 		int send_error_response( struct MHD_Connection *, int error, const char *err_msg );
 
 		string * build_response_string( struct request_data* );
+		string build_out_xml( const DOMElement *, list<struct value_pair*> *, list<struct value_pair*>::iterator it );
 
 		DOMElement* get_device_document( int );
 		XalanDocument* get_device_xalan_document( int );
@@ -126,6 +127,14 @@ class XmlModule
 		Funkce, ktera zaradi odpoved do fronty a vzbudi vsechny thready
 		*/
 		void enqueue_response( struct request_data* );
+
+		/*
+		Access Control - mapovani xml read/write na snmp community
+		a zjisteni, jestli ma vubec pravo get/set
+		*/
+		int operation_permitted( const char *, SNMP_device *, int );
+		string get_snmp_community( int, SNMP_device * );
+
 
 
 };

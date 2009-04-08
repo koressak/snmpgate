@@ -90,6 +90,16 @@ class SnmpModule {
 		*/
 		int dispatch_request( list<struct request_data*> * );
 
+		/*
+		Vytvori dalsi getnext snmp pdu
+		*/
+		struct snmp_pdu* create_next_pdu( oid *, size_t );
+
+		/*
+		Dostane z response vars hodnotu a nazev
+		*/
+		void get_response_value( struct variable_list*, struct value_pair *, struct tree * );
+
 		DOMDocument *get_doc()
 		{
 			return transform->get_main_doc();

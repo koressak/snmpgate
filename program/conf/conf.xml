@@ -15,6 +15,10 @@
 				<port>1048</port>
 			</manager>
 		</traps>
+		<access>
+			<read>public</read>
+			<write>private</write>
+		</access>
 
 		<!--
 		 Gate specific elements
@@ -29,6 +33,11 @@
 			<xsdPath>/tmp/</xsdPath>
 			<listenPort>8888</listenPort>
 			<transmitPort>2055</transmitPort>
+			<access>
+				<read>cteni</read>
+				<write>zapis</write>
+			</access>
+			<protocolVersion>1</protocolVersion>
 		</xml>
 	</device>
 	<!-- Monitorovany notebook -->
