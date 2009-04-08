@@ -384,11 +384,47 @@ void SnmpXmlGate::getDeviceInfo( DOMElement *device, SNMP_device *info )
 								{
 									manager->port = XMLString::transcode( tmp2->getTextContent() );
 								}
+								/*else
+								{
+									log_message( log_file, XMLString::transcode(tmp2->getTextContent()) );
+									throw (char *)"Illegal element in trap definition";
+								}*/
 
 							}
 						}
 
 						info->traps.push_back( manager );
+					}
+
+				}
+			}
+			else if ( XMLString::equals( currElem->getTagName(), XMLString::transcode( "access" ) ) )
+			{
+				//Vyber vsech mib souboru
+				DOMNodeList *ach = currElem->getChildNodes();
+				XMLSize_t count = ach->getLength();
+
+				for ( XMLSize_t m = 0; m < count; m++ )
+				{
+					DOMNode* achNode  = ach->item(m);
+					if ( achNode->getNodeType() && achNode->getNodeType() == DOMNode::ELEMENT_NODE )
+					{
+						DOMElement *achElem = dynamic_cast<DOMElement *>( achNode );
+
+						if ( XMLString::equals( achElem->getTagName(), XMLString::transcode( "read" ) ) )
+						{
+							info->snmp_read = XMLString::transcode( achElem->getTextContent() );
+						}
+						else if ( XMLString::equals( achElem->getTagName(), XMLString::transcode( "write" ) ) )
+						{
+							info->snmp_write = XMLString::transcode( achElem->getTextContent() );
+						}
+						/*else
+						{
+							//Error
+							throw (char *)"Unknown access element in configuration file";
+						}*/
+
 					}
 
 				}
@@ -424,6 +460,10 @@ void SnmpXmlGate::getDeviceInfo( DOMElement *device, SNMP_device *info )
 							info->snmp_trans_port = atoi( XMLString::transcode( elem->getTextContent() ) );
 							//info->snmp_trans_port = 0;
 						}
+						/*else
+						{
+							throw (char *)"Illegal element in SNMP configuration of the gate";
+						}*/
 
 					}
 
@@ -456,6 +496,46 @@ void SnmpXmlGate::getDeviceInfo( DOMElement *device, SNMP_device *info )
 							info->xml_trans_port = atoi( XMLString::transcode( elem->getTextContent() ) );
 							//info->xml_trans_port = 0;
 						}
+						else if ( XMLString::equals( elem->getTagName(), XMLString::transcode( "protocolVersion" )) )
+						{
+							info->xml_protocol_version = XMLString::transcode( elem->getTextContent() ) ;
+							//info->xml_trans_port = 0;
+						}
+						else if ( XMLString::equals( elem->getTagName(), XMLString::transcode( "access" ) ) )
+						{
+							//Vyber vsech mib souboru
+							DOMNodeList *ach = elem->getChildNodes();
+							XMLSize_t count = ach->getLength();
+
+							for ( XMLSize_t m = 0; m < count; m++ )
+							{
+								DOMNode* achNode  = ach->item(m);
+								if ( achNode->getNodeType() && achNode->getNodeType() == DOMNode::ELEMENT_NODE )
+								{
+									DOMElement *achElem = dynamic_cast<DOMElement *>( achNode );
+
+									if ( XMLString::equals( achElem->getTagName(), XMLString::transcode( "read" ) ) )
+									{
+										info->xml_read = XMLString::transcode( achElem->getTextContent() );
+									}
+									else if ( XMLString::equals( achElem->getTagName(), XMLString::transcode( "write" ) ) )
+									{
+										info->xml_write = XMLString::transcode( achElem->getTextContent() );
+									}
+									/*else
+									{
+										//Error
+										throw (char *)"Unknown access element in configuration file";
+									}*/
+
+								}
+
+							}
+						} //end of last else if
+						/*else
+						{
+							throw (char *)"Illegal element in XML configuration of the gate";
+						}*/
 
 					}
 

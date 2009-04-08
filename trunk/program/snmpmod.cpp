@@ -9,6 +9,7 @@ SnmpModule::SnmpModule()
 {
 	//inicializace snmp knihovny
 	init_snmp( "snmpapp" );
+
 }
 
 /*
@@ -450,48 +451,53 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 {
 	/*
 	TODO:
-	ziskat poinery na mutex a frontu
-	spat na conditione
-	delete hr struktury
-
-	zasilat dotazy a odpovedi davat do response queue xmlmodulu
+	Rekurzivni dotaz - getnext na vsechny podlisty
 	*/
 	
 	/*
 	SNMP stuff
 	*/
-	int liberr, syserr;
-	char *errstr;
-	bool error = false;
-	void *ss;
+	//int liberr, syserr;
+	char		*errstr;
+	bool		error = false;
+	void 		*ss;
 	//netsnmp_session *ss;
-	struct snmp_session session, *sptr=NULL;
-	struct snmp_pdu *pdu, *response;
+	struct 		snmp_session session, *sptr=NULL;
+	struct 		snmp_pdu *pdu, *response;
+	bool		is_getnext_finished = true;
 
-	ss = NULL;
-	pdu = NULL;
-	response = NULL;
+	ss 			= NULL;
+	pdu 		= NULL;
+	response 	= NULL;
 
-	oid elem[MAX_OID_LEN];
-	size_t elem_len= MAX_OID_LEN;
-	int status;
+	oid 		elem[MAX_OID_LEN];
+	size_t 		elem_len= MAX_OID_LEN;
+	oid 		root[MAX_OID_LEN];
+	size_t 		root_len= MAX_OID_LEN;
+	int 		status;
 
 	/*
 	Ostatni struktury
 	*/
-	string error_msg;
+	string 		error_msg;
 	SNMP_device *dev;
 
 	/*
 	Variable list pro odpoved
 	*/
-	struct variable_list *vars;
-	char *var_buf;
+	struct 		variable_list *vars;
+	char 		*var_buf;
+
+	/*
+	Indexed name pro GETNEXT dotaz
+	*/
+	string 		indexed_name;
+	string		prev_indexed_name;
 
 	/*
 	mutex a fronta
 	*/
-	int dev_pos;
+	int 		dev_pos;
 	pthread_mutex_t *mutex;
 	vector<struct request_data*> *queue;
 	list<struct request_data*> requests;
@@ -551,6 +557,7 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 			pthread_mutex_unlock( &cond_lock);
 
 			log_message( log_file, "request_handler awakened" );
+			is_getnext_finished = true;
 		}
 		else
 		{
@@ -614,7 +621,10 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 			{
 				case XML_MSG_TYPE_GET:
 					if ( req_data->snmp_getnext == 1 )
+					{
 						pdu = snmp_pdu_create( SNMP_MSG_GETNEXT );
+						is_getnext_finished = false;
+					}
 					else
 						pdu = snmp_pdu_create( SNMP_MSG_GET );
 					break;
@@ -649,7 +659,14 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 					req_data->error_str = "Cannot find node in MIB";
 					//delete( errstr );
 					error = true;
+
+					snmp_free_pdu( pdu );
 				}
+
+				//Nastavime si korenovy node pro getnext zarazku
+				memcpy( (char *)root, (char *)elem, elem_len * sizeof(oid) );
+				root_len = elem_len;
+
 
 				/*
 				Nejprve je nutne najit ten element podle oid a zjistit jeho typ,
@@ -674,129 +691,129 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 
 			if ( !error )
 			{
-				status = snmp_sess_synch_response( ss, pdu, &response );
-
-				if ( status != STAT_SUCCESS )
+				/*
+				Tento cyklus se vykona minimalne 1 - pro klasicke GET/SET
+				Pro getnext se musi vykonat nekolikrat
+				*/
+				do 
 				{
-					//snmp_sess_error( &sptr, &liberr, &syserr, &errstr );
-						//log_message( log_file, errstr);
+					status = snmp_sess_synch_response( ss, pdu, &response );
 
-					req_data->error = XML_MSG_ERR_INTERNAL;
-					req_data->error_str = "PDU couldn't be delivered";
-
-
-				}
-				else if ( response->errstat != SNMP_ERR_NOERROR )
-				{
-					/*
-					Zjistime jaky error prisel pri odpovedi agenta
-					*/
-					req_data->error = XML_MSG_ERR_SNMP;
-					req_data->snmp_err = 1;
-					req_data->snmp_err_str = snmp_errstring( response->errstat ) ;
-				}
-				else
-				{
-					//Prisle hodnoty vrazime zpet do request_data struktury
-					//a muzeme v klidu vratit
-
-					if ( req_data->msg_type == XML_MSG_TYPE_GET )
+					if ( status != STAT_SUCCESS )
 					{
-						for ( it = req_data->request_list.begin(), vars = response->variables; it != req_data->request_list.end(); vars = vars->next_variable, it++ )
+						//snmp_sess_error( &sptr, &liberr, &syserr, &errstr );
+							//log_message( log_file, errstr);
+
+						req_data->error = XML_MSG_ERR_INTERNAL;
+						req_data->error_str = "PDU couldn't be delivered";
+
+
+					}
+					else if ( response->errstat != SNMP_ERR_NOERROR )
+					{
+						/*
+						Zjistime jaky error prisel pri odpovedi agenta
+						*/
+						req_data->error = XML_MSG_ERR_SNMP;
+						//req_data->snmp_err = 1;
+						req_data->error_str = snmp_errstring( response->errstat ) ;
+					}
+					else
+					{
+						//Prisle hodnoty vrazime zpet do request_data struktury
+						//a muzeme v klidu vratit
+
+						if ( req_data->msg_type == XML_MSG_TYPE_GET )
 						{
-							if ( vars != NULL )
+							if ( req_data->snmp_getnext == 0 )
 							{
-								var_buf = new char[ 1 + vars->val_len ];
-								switch ( vars->type )
+								for ( it = req_data->request_list.begin(), vars = response->variables; it != req_data->request_list.end(); vars = vars->next_variable, it++ )
 								{
-									case ASN_OCTET_STR:
-									case ASN_OPAQUE:
-										memcpy( var_buf, vars->val.string, vars->val_len );
-										var_buf[ vars->val_len ] = '\0';
-										break;
-
-									case ASN_BIT_STR:
-									case ASN_IPADDRESS:
-										memcpy( var_buf, vars->val.bitstring, vars->val_len );
-										var_buf[ vars->val_len ] = '\0';
-										break;
-
-									case ASN_OBJECT_ID:
-										sprintf( var_buf, "%ld", *(vars->val.objid) );
-										break;
-
-									case ASN_INTEGER:
-									case ASN_UNSIGNED: //same as GAUGE
-									case ASN_TIMETICKS:
-										sprintf( var_buf, "%ld", *(vars->val.integer) );
-										break;
-
-									case ASN_COUNTER:
-									case ASN_APP_COUNTER64:
-									case ASN_INTEGER64:
-									case ASN_UNSIGNED64:
-										sprintf( var_buf, "%ld%ld", vars->val.counter64->high, vars->val.counter64->low );
-										break;
-
-									case ASN_APP_FLOAT:
-										sprintf( var_buf, "%f", *(vars->val.floatVal) );
-										break;
-
-									case ASN_APP_DOUBLE:
-										sprintf( var_buf, "%f", *(vars->val.doubleVal) );
-										break;
+									if ( vars != NULL )
+									{
+										if ( (vars->type == SNMP_ENDOFMIBVIEW) ||
+											( vars->type == SNMP_NOSUCHOBJECT ) ||
+											(vars->type == SNMP_NOSUCHINSTANCE ) 
+											)
+										{
+											req_data->error = XML_MSG_ERR_XML;
+											req_data->error_str = string( "No such instance, object or end of mib view" );
+										}
+										else
+										{
+											get_response_value( vars, (*it), head );
+										}
+									}
 
 								}
-
-								/*
-								navratime zaroven i platne jmeno s indexem polozky
-								TODO: nevracet jemno s indexem!!!!
-								*/
-								string ret_name = "";
-								u_char *buf = NULL;
-								size_t buf_len = 0;
-								size_t out_len = 0;
-								char *name_p = NULL;
-
-								struct tree *node = get_tree( vars->name_loc, MAX_OID_LEN, head );
-
-								ret_name = string( node->label );
-								ret_name += ".";
-
-
-								//dostane z toho ten index
-								sprint_realloc_objid( &buf, &buf_len, &out_len, 1, vars->name, vars->name_length);
-
-								name_p = (char *)buf + 1;
-								name_p = strchr( name_p, '.' )+1;
-
-								ret_name += string( name_p );
-
-								log_message( log_file, ret_name.c_str() );
-
-
-								(*it)->oid = ret_name;
-								(*it)->value = string( var_buf );
-								log_message( log_file, var_buf );
-
-								delete ( var_buf );
-								delete( buf );
-
 							}
+							else
+							{
+								//SNMP GETNEXT
+								struct value_pair *vp = new value_pair;
 
-						}
-					}
-				}
+								vars = response->variables;
+								
+								if ( vars != NULL )
+								{
+									//if ( indexed_name.compare( prev_indexed_name ) == 0 )
+									if ( (vars->type == SNMP_ENDOFMIBVIEW) ||
+										( vars->type == SNMP_NOSUCHOBJECT ) ||
+										(vars->type == SNMP_NOSUCHINSTANCE ) 
+										)
+									{
+										log_message( log_file, "ending getnext" );
+										is_getnext_finished = true;
+										delete ( vp );
+									}
+									else if ( (vars->name_length < root_len) || 
+											( memcmp(root, vars->name, root_len * sizeof(oid)) != 0 ) 
+										)
+									{
+										log_message( log_file, "we reached end of the subtree" );
+										is_getnext_finished = true;
+										delete ( vp );
+									}
+									else
+									{
+										get_response_value( vars, vp, head );
+
+										//prev_indexed_name = indexed_name;
+										memcpy( (char *)elem, (char *)vars->name, vars->name_length * sizeof(oid) );
+										elem_len = vars->name_length;
+
+
+										req_data->request_list.push_back( vp );
+
+										if ( response ) 
+											snmp_free_pdu( response );
+										response = NULL;
+
+										pdu = create_next_pdu( elem, elem_len );
+
+										if ( pdu == NULL )
+										{
+											log_message( log_file, "Something went wrong. Next pdu does not exist" );
+											is_getnext_finished = true;
+
+											req_data->error = XML_MSG_ERR_SNMP;
+											req_data->error_str = string( "Error occured while processing request" );
+										}
+									}
+								}
+
+							} //end of getnext
+						} // end of get type message
+					} //else zpracovani message
+
+				}//end of do
+				while ( is_getnext_finished == false );
 
 			} //end of !error
 
 			if ( response )
 				snmp_free_pdu( response );
 
-			/*log_message( log_file, "before delete pdu" );*/
-			//TODO: mel bych mazat i to request PDU???
-			/*if ( pdu )
-				snmp_free_pdu( pdu );*/
 
 			//Nechame otevrenou sessnu, kdyby jeste neco bylo
 
@@ -901,6 +918,127 @@ int SnmpModule::dispatch_request( list<struct request_data *> *req_data_list )
 	pthread_cond_broadcast( &incom_cond );
 	pthread_mutex_unlock( &cond_lock );
 	return 0;
+}
+
+/*
+Create next pdu vytvori dalsi pdu pro potreby
+opakovaneho volani GETNEXT
+*/
+struct snmp_pdu* SnmpModule::create_next_pdu( oid *elem, size_t elem_len )
+{
+	struct snmp_pdu *pdu;
+	/*oid 		elem[MAX_OID_LEN];
+	size_t 		elem_len= MAX_OID_LEN;*/
+
+	pdu = snmp_pdu_create( SNMP_MSG_GETNEXT );
+
+	/*if ( !get_node( curr_node, elem, &elem_len ) )
+	{
+		snmp_free_pdu( pdu );
+		return NULL;
+	}*/
+
+	snmp_add_null_var( pdu, elem, elem_len );
+
+	return pdu;
+
+}
+
+/*
+Vyparsuje hodnotu navracenou agentem a vlozi ji
+do struktury value_pair
+*/
+void SnmpModule::get_response_value( struct variable_list* vars, struct value_pair *vp, struct tree *head )
+{
+	char 	*var_buf;
+	string 	ret_name = "";
+	u_char 	*buf = NULL;
+	size_t 	buf_len = 0;
+	size_t 	out_len = 0;
+	char 	*name_p = NULL;
+
+	//dostane z toho ten index
+	struct tree *node = get_tree( vars->name_loc, MAX_OID_LEN, head );
+
+	ret_name = string( node->label );
+
+	sprint_realloc_objid( &buf, &buf_len, &out_len, 1, vars->name, vars->name_length);
+
+	name_p = (char *)buf + 1;
+	if ( strchr( name_p, '.') != NULL )
+	{
+		name_p = strchr( name_p, '.' )+1;
+	}
+
+	//log_message( log_file, indexed_name.c_str() );
+	//delete (buf);
+
+	//buf = NULL;
+
+	/*sprint_realloc_value( &buf, &buf_len, &out_len, 1, vars->name, vars->name_length, vars);
+	vp->value = string( (char *)buf );*/
+	var_buf = new char[ 1 + vars->val_len ];
+	switch ( vars->type )
+	{
+		case ASN_OCTET_STR:
+		case ASN_OPAQUE:
+			memcpy( var_buf, vars->val.string, vars->val_len );
+			var_buf[ vars->val_len ] = '\0';
+			break;
+
+		case ASN_BIT_STR:
+		case ASN_IPADDRESS:
+			memcpy( var_buf, vars->val.bitstring, vars->val_len );
+			var_buf[ vars->val_len ] = '\0';
+			break;
+
+		case ASN_OBJECT_ID:
+			sprint_realloc_objid( &buf, &buf_len, &out_len, 1, vars->val.objid, vars->val_len);
+			delete (var_buf);
+			var_buf = new char[1 + out_len];
+			memcpy( var_buf, buf, out_len );
+			var_buf[ out_len ] = '\0';
+
+			break;
+
+		case ASN_INTEGER:
+		case ASN_UNSIGNED: //same as GAUGE
+			sprintf( var_buf, "%ld", *(vars->val.integer) );
+			break;
+
+		case ASN_TIMETICKS:
+			sprintf( var_buf, "%ld", *(vars->val.integer) );
+			break;
+
+		case ASN_COUNTER:
+		case ASN_APP_COUNTER64:
+		case ASN_INTEGER64:
+		case ASN_UNSIGNED64:
+			sprintf( var_buf, "%ld%ld", vars->val.counter64->high, vars->val.counter64->low );
+			break;
+
+		case ASN_APP_FLOAT:
+			sprintf( var_buf, "%f", *(vars->val.floatVal) );
+			break;
+
+		case ASN_APP_DOUBLE:
+			sprintf( var_buf, "%f", *(vars->val.doubleVal) );
+			break;
+
+	}
+
+
+
+
+
+
+	vp->oid = ret_name;
+	vp->value = string( var_buf );
+	//log_message( log_file, vp->value.c_str() );
+
+	delete ( var_buf );
+	delete( buf );
+
 }
 
 

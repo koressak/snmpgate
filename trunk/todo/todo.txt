@@ -40,11 +40,12 @@ DONE
 		- dodelat elementy address, port do elementu manager (v ramci traps)
 		DONE
 
-
 		- dodelat element protocolVersion -  do hlavniho elementu Gate (pro Discovery message)
+		DONE
 
-		- Dodelat elementy pro read and write access na snmp zarizeni!!
-		ACCESS CONTROL
+		- Dodelat elementy pro Access Control (read / write permissions)
+		DONE
+		
 
 
 
@@ -221,11 +222,12 @@ Poznamka:
 		- dodelat spravne generovani XML odpovedi!!!!
 		DONE
 
-
-		TODO:
-		ACCESS CONTROL - dodelat mapovani xml hesla na snmp community string.
+		- ACCESS CONTROL - dodelat mapovani xml hesla na snmp community string.
 		A dle toho pak vyvodit, jestli ma pravo zapisovat, nebo ne
-
+		DONE
+	
+		- rekurzivni dotazy na nejaky korenovy uzel + generovani prislusne odpovedi
+		DONE
 		
 
 
@@ -329,6 +331,11 @@ Medium priority
 
 - v kazde zprave je msgid - kdyz tam nebude, tak zaradime nejakou nahodnou hodnotu ci vyhodime error!!
 
+- dodelat opravdu reakci na nastavene porty v konfiguraku
+
+- zkontrolovat a kdyztak dodelat checkovani na povinne elementy v ramci device v konfiguraku
+- Zkurveny XML Xerces, netusim, proc to v xml elementu najednou najde name, ci popis brany... WTF???
+
 
 
 High Priority
@@ -375,6 +382,8 @@ DONE
 a pak najednou vsechny rozhodit. Aby jeden manager mel sve message pohromade.
 DONE
 
+- Predelat get_set message -> vlozit password do request_data (po access control rutine);
+DONE
 
 
 
@@ -389,7 +398,7 @@ by si mohli prepisovat data
 - Subscribe - jak odpovidat na delete? Vsechno ostatni zvladne Distribution, ale delete???
 RESENI: budeme posilat nulova data. Still work in progress
 
-- Predelat get_set message -> vlozit password do request_data (po access control rutine);
+- Discovery message - predelat, jak jsme zmenily system xml souboru a ukazatelu, musi se to nacitat ze souboru.!!
 
 
 

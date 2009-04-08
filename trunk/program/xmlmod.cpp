@@ -734,7 +734,7 @@ string * XmlModule::build_response_string( struct request_data *data )
 		*out += tmpid;
 		*out += "\">\n";
 
-		if ( data->error == XML_MSG_ERR_XML )
+		if ( data->error == XML_MSG_ERR_XML || data->error == XML_MSG_ERR_SNMP )
 		{
 			*out += "<error>";
 			*out += data->error_str;
@@ -751,14 +751,42 @@ string * XmlModule::build_response_string( struct request_data *data )
 		{
 			//TODO: zde bude muset byt generator celych podstromu!!!
 			list<struct value_pair *>::iterator rit;
+			string oid;
 
-			for ( rit = data->request_list.begin(); rit != data->request_list.end(); rit++ )
+			if ( data->snmp_getnext == 0 )
 			{
-				*out += "<value name=\"";
-				*out += (*rit)->oid;
-				*out += "\">\n";
-				*out += (*rit)->value;
+				for ( rit = data->request_list.begin(); rit != data->request_list.end(); rit++ )
+				{
+					*out += "<value>\n";
+					*out += (*rit)->value;
+					*out += "</value>\n";
+				}
+			}
+			else
+			{
+				//Generujeme cely podstrom, co jsme dostali za hodnoty
+				//nejspise rekurzivne, pac uroven podstromu je "nekonecna"
+
+				//prvni value_pair znaci korenovy node
+				*out += "<value>\n";
+				rit = data->request_list.begin();
+				oid = (*rit)->oid;
+				data->request_list.pop_front();
+
+				*out += "<";
+				*out += oid;
+				*out += ">\n";
+
+				//rekurzivni sestup
+				*out += build_out_xml( data->found_el, &(data->request_list), rit);
+
+				*out += "</";
+				*out += oid;
+				*out += ">\n";
+
 				*out += "</value>\n";
+
+
 			}
 		}
 
@@ -827,6 +855,92 @@ string * XmlModule::build_response_string( struct request_data *data )
 	}
 
 	return out;
+}
+
+
+/*
+Build out xml
+Rekurzivni fce pro vybudovani odpovedi, kdy hodnotou
+je cely xml dokument (podstrom nejakeho elementu)
+*/
+string XmlModule::build_out_xml( const DOMElement *el, list<struct value_pair*> *list, list<struct value_pair*>::iterator it )
+{
+	string 			ret = "";
+	DOMNodeList 	*children = el->getChildNodes();
+	DOMNode 		*node;
+	DOMElement 		*elem;
+
+	char 			*buf;
+	bool 			has_value;
+
+	//list<struct value_pair *>::iterator it;
+
+	for( unsigned int i = 0; i < children->getLength(); i++ )
+	{
+		node = children->item( i );
+		has_value = false;
+
+		if ( node->getNodeType() && node->getNodeType() == DOMNode::ELEMENT_NODE )
+		{
+			elem = dynamic_cast<DOMElement *>(node);
+
+			buf = XMLString::transcode( elem->getTagName() );
+
+
+			it = list->begin();
+
+			while ( it != list->end() )
+			{
+				//Paklize mame v seznamu hodnotu, dosadime a vracime se
+				if ( strcmp( buf, (*it)->oid.c_str() ) == 0 )
+				{
+					log_message( log_file, "We have the value!!!!" );
+					log_message( log_file, buf );
+					has_value = true;
+
+					ret += "<";
+					ret += string( buf );
+					ret += ">\n";
+
+					ret += (*it)->value;
+					ret += "\n";
+
+					ret += "</";
+					ret += string( buf );
+					ret += ">\n";
+
+					delete( (*it) );
+					it = list->erase( it );
+				}
+				else
+					it++;
+			}
+
+			if ( !has_value )
+			{
+				ret += "<";
+				ret += string( buf );
+				ret += ">\n";
+
+				ret += build_out_xml( elem, list, it );
+
+				ret += "</";
+				ret += string( buf );
+				ret += ">\n";
+			}
+
+
+
+
+
+
+			XMLString::release( &buf );
+
+		}
+
+	}
+
+	return ret;
 }
 
 
@@ -1103,6 +1217,9 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 	bool create_vp = true;
 
 	char tmpid[50];
+	
+	//prava k pristupu k device
+	int permission;
 
 	/*
 	serach_id vyjadruje, ve kterem stromu se bude vyhledavat
@@ -1114,10 +1231,6 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 
 	xr->thread_id = pthread_self();
 
-	/*
-	TODO ACCESS CONTROL
-	*/
-	xr->community = string(password);
 
 	log_message( log_file, "Dostali jsme GET/SET message" );
 
@@ -1144,6 +1257,10 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 	if ( dev == NULL )
 	{
 		//Internal ERROR
+		xr->error = XML_MSG_ERR_XML;
+		xr->error_str = string("Cannot fulfil the request. Internal server error");
+		enqueue_response( xr );
+		return NULL;
 	}
 	else
 	{
@@ -1154,6 +1271,23 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 		else
 			search_id = xr->object_id;
 	}
+
+	/*
+	ACCESS CONTROL
+	*/
+	if ( (permission=operation_permitted( password, dev, msg_type )) == 0 )
+	{
+		xr->error = XML_MSG_ERR_XML;
+		xr->error_str = string( "You have no permission for this operation" );
+		enqueue_response( xr );
+		return NULL;
+	}
+	else
+	{
+		xr->community = get_snmp_community( permission, dev );
+		log_message( log_file, xr->community.c_str() );
+	}
+
 
 	//Parsovani <xpath> elementu
 	children = elem->getChildNodes();
@@ -1263,7 +1397,7 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 				if ( found_el->hasChildNodes() )
 				{
 					//TODO Tady bude getnetxt request na cely podstrom!!!!!!
-					log_message( log_file, "This is not a leaf node. Canceling request" );
+					/*log_message( log_file, "This is not a leaf node. Canceling request" );
 					xr->error = XML_MSG_ERR_XML;
 					xr->error_str = "Cannot request this non-simple value node";
 					delete( vp );
@@ -1271,7 +1405,17 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 
 					enqueue_response( xr );
 					//return 0;
-					return NULL;
+					return NULL;*/
+
+					xr->snmp_getnext = 1;
+					value = found_el->getTagName();
+					tmp_buf = XMLString::transcode( value );
+
+					vp->oid = string( tmp_buf );
+					XMLString::release( &tmp_buf );
+
+					xr->found_el = found_el;
+
 				}
 				else
 				{
@@ -1543,3 +1687,73 @@ void XmlModule::enqueue_response( struct request_data * xr )
 	pthread_mutex_unlock( &condition_lock );
 
 }
+
+/************************************************
+********* Access Control
+************************************************/
+int XmlModule::operation_permitted( const char *passwd, SNMP_device *dev, int msg_type)
+{
+	bool write_perm = false;
+	bool read_perm = false;
+
+	//Nejprve porovname xml passwords
+	if ( strcmp( passwd, dev->xml_read ) == 0 )
+	{
+		read_perm = true;
+	}
+	else if( strcmp( passwd, dev->xml_write ) == 0 )
+	{
+		write_perm = true;
+	}
+	else
+	{
+		//nema pravo jakehokoliv pristupu. Heslo je spatne
+		return 0;
+	}
+
+	//o jakou operaci jde
+	switch ( msg_type )
+	{
+		case XML_MSG_TYPE_GET:
+			if ( read_perm )
+				return XML_PERM_READ;
+			else if ( write_perm )
+				return XML_PERM_WRITE;
+			break;
+
+		case XML_MSG_TYPE_SET:
+			if ( write_perm )
+				return XML_PERM_WRITE;
+			else
+				return 0;
+			break;
+	}
+
+}
+
+
+/*
+Vrati snmp community dle typu message, ktery provozujeme
+*/
+string XmlModule::get_snmp_community( int perm_type, SNMP_device *dev)
+{
+	string ret;
+
+	switch ( perm_type )
+	{
+		case XML_PERM_READ:
+			ret = string( dev->snmp_read );
+			break;
+
+		case XML_PERM_WRITE:
+			ret = string( dev->snmp_write );
+			break;
+
+		default:
+			ret = "";
+	}
+
+	return ret;
+}
+
+
