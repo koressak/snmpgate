@@ -57,6 +57,9 @@ class XmlModule
 		//odpovedni fronta
 		list<struct request_data*> response_queue;
 
+		//informace pro distribution thread - zmenily se informace
+		bool subscriptions_changed;
+
 
 		/*
 		Pointer to SNMP module - to send requests
@@ -65,11 +68,16 @@ class XmlModule
 		int devices_no;
 
 		/*
+		Identifikace distribution threadu
+		*/
+		pthread_t distribution_th;
+
+		/*
 		POSIX thread
 		*/
-		pthread_mutex_t subscr_lock; //zamyka pristup pro zmenu subscriptions
 		pthread_mutex_t response_lock; //vstup do response fronty
 		pthread_mutex_t condition_lock;
+		pthread_mutex_t subscr_cond_lock;
 
 		pthread_mutex_t getset_lock;
 
@@ -78,6 +86,7 @@ class XmlModule
 
 		//response condition
 		pthread_cond_t resp_cond;
+		pthread_cond_t subscr_wait;
 
 
 	public:
@@ -117,11 +126,11 @@ class XmlModule
 		Funkce na handlovani jednotlivych typu zprav
 		*/
 		//struct request_data* process_discovery_message( struct MHD_Connection *, DOMElement * );
-		struct request_data* process_get_set_message( DOMElement *, const char*, int );
-		//struct request_data* process_subscribe_message( DOMElement *, const char* );
+		struct request_data* process_get_set_message( DOMElement *, const char*, int , int);
+		struct request_data* process_subscribe_message( DOMElement *, const char*, string );
 		int process_discovery_message( DOMElement * );
 		//int process_get_set_message( DOMElement *, const char*, int );
-		int process_subscribe_message( DOMElement *, const char* );
+		//int process_subscribe_message( DOMElement *, const char* );
 
 		/*
 		Funkce, ktera zaradi odpoved do fronty a vzbudi vsechny thready
@@ -134,6 +143,20 @@ class XmlModule
 		*/
 		int operation_permitted( const char *, SNMP_device *, int );
 		string get_snmp_community( int, SNMP_device * );
+
+		/*
+		DISTRIBUTION handler
+		*/
+		int distribution_handler( );
+		int recalculate_sleep( list<struct subscription_element *> *list, list<struct subscription_element *>::iterator it );
+		void recreate_xalan_doc( );
+
+		pthread_t *get_distr_thread_id();
+
+		/*
+		Startovani threadu
+		*/
+		int initialize_threads();
 
 
 
@@ -173,6 +196,19 @@ inline int iterate_post( void *coninfo_cls, enum MHD_ValueKind kind, const char 
 		return xm->post_iterate( coninfo_cls, kind, key, filename, content_type, transfer_encoding, data, off, size);
 	else
 		return MHD_NO;
+}
+
+/*
+Spousti thread na obsluhu vsech distributions
+*/
+inline void *distrib_handle( void *arg )
+{
+	XmlModule *xm = (XmlModule *) arg;
+
+	if ( xm != NULL )
+		return (void *) xm->distribution_handler( );
+	
+	return 0;
 }
 
 

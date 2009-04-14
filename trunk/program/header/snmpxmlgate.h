@@ -80,13 +80,6 @@ class SnmpXmlGate
 		*/
 		MHD_Daemon *http_server;
 
-		/*
-		Threads information
-		*/
-		pthread_t snmp_trap_th;
-		pthread_t distribution_th;
-		pthread_t xml_inform_th;
-
 
 	public:
 		SnmpXmlGate(char *);

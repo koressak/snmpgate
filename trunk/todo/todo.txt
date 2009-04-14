@@ -246,33 +246,66 @@ Poznamka:
 	- thread na vyrizovani techto pozadavku
 
 	- fce process_subsribe_message
+
 		- identifikace odesilatele ( ipaddr/name )
+		DONE
 		- check na jednotlive nody (existuji?)
+		DONE
 		- ziskani frekvence posilani dat ( frequency je optional ?? - tak dame nejakou
 		defaultni hodnotu - treba par minut )
+		DONE
 
 		- mutex!!
+		DONE
+
 		- process_get_set_message na jednotlive nody
 			-> potvrzeni daneho subscriptionu managerovi
+		DONE
 		
 		- zapis do tabulky /device/subscriptions
 			- tam bude ulozeno vsechno
+		DONE
 
 		- vzbudime thread - on si to prebere a zacne vykonavat
+		DONE
 		
 		- POZOR: kdyz je pritomno distrId - bude se upravovat nebo mazat subscriptiona.
 		Tudiz musime checknout, jestli je to vsechno v pohode a potvrdit/zrusit
 
 	- distr. thread
 		- vezme vsechny hodnoty intervalu -> dle toho naplanuje spani.
-		- pro jednotlive nody - vygeneruje request_data strukturu a preda
-			process_get_set_message();
+		DONE
+		- pro jednotlive nody - tento node bude predan
+			process_get_set_message(); a ta navrati vsechny mozne dobre hodnoty
+		DONE
+
+		- deklarovat struktury, kde se bude pocitat distr_id a pocet nedojitych zprav.
+		Paklize tento pocet stoupne az na hranici X, bude tento subscription smazan
+		DONE
+
+		- deklarovat strukturu, kde budou info o distr_id, last_msgid, manager_ip
+		Abychom to pak nemuseli hledat vsechno znova (coz by nam bralo cas) 
+		Spojit to s bodem vyse.
+		DONE
+
+
 
 		- mereni casu pri zpracovavani novych pozadavku, abychom si to odecetli od
 		dalsiho spanku
 
-		- deklarovat struktury, kde se bude pocitat distr_id a pocet nedojitych zprav.
-		Paklize tento pocet stoupne az na hranici X, bude tento subscription smazan
+		- odecitat cas, co jsme spali a nekdo nas probudil (necely timeout interval se odehral)
+
+		- vzit v potaz, ze tam mame vice subscriptions v ramci celeho dokumentu
+		(kazdy device ma vlastni!!!!!)
+
+		- Udelat XMLDOC lock -> v subscriptions musime mazat a vytvaret dokument. Tak na vsechny find_elementy
+		je nutno zamykat mutex
+
+-------------------
+Pozn:
+Delete subscriptionu - muze udelat pouze ten manager (stejna ip), jako ji zalozil.
+-------------------
+
 
 
 10. Zabezpeceni
@@ -385,6 +418,12 @@ DONE
 - Predelat get_set message -> vlozit password do request_data (po access control rutine);
 DONE
 
+- Subscribe - jak odpovidat na delete? Vsechno ostatni zvladne Distribution, ale delete???
+RESENI: budeme posilat nulova data. Still work in progress
+DONE
+
+
+
 
 
 - Device id = 0, paklize je duplikat, spadne to na segfaultu, pac to chce pristoupit nekam, co tam neni
@@ -395,14 +434,21 @@ DONE
 by si mohli prepisovat data
 	- Message PArser -> possible thread safe hazard
 
-- Subscribe - jak odpovidat na delete? Vsechno ostatni zvladne Distribution, ale delete???
-RESENI: budeme posilat nulova data. Still work in progress
 
 - Discovery message - predelat, jak jsme zmenily system xml souboru a ukazatelu, musi se to nacitat ze souboru.!!
+
+- Subscribe - delete - dela to nekde segfault!!
+Tuseni: je to v tom, jak mame odkaz na element v ramci subscription_element a ten v tu chvili ukazuje na NULL!!
+pote, co to odebereme.
+
+- Osetrit recreate_xalan_doc - na ruzne zamykani a pak, jestli uz ten najitej element neni nahodou v prdeli, kdyz
+predelame cely xalan document
 
 
 
 
 MACEJKOVI - konzultace:
 --------------------------
+- Subscribe: budeme definovat na brane, na ktery port pak zpet posleme distribution
+(je to proto, ze subscribe neudava zadnou definici managera)
 

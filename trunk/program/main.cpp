@@ -19,7 +19,6 @@ int main( int argc, char** argv)
 
 	log_message( (char *)LOG, (char *)"Starting daemon" );
 
-	//TODO: sem inicializace a run hlavni tridy Gate
 	try {
 		gate = new SnmpXmlGate(argv[1]);
 	}

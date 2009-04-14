@@ -55,11 +55,12 @@ XmlModule::~XmlModule()
 
 	delete( queue_mutex );
 
-	pthread_mutex_destroy( &subscr_lock );
 	pthread_mutex_destroy( &response_lock );
 	pthread_mutex_destroy( &condition_lock );
+	pthread_mutex_destroy( &subscr_cond_lock );
 
 	pthread_cond_destroy( &resp_cond );
+	pthread_cond_destroy( &subscr_wait );
 }
 
 /*
@@ -124,16 +125,22 @@ void XmlModule::set_parameters( DOMElement *r, list<DOMElement *> *roots, char *
 		pthread_mutex_init( queue_mutex[a], NULL );
 	}
 
-	pthread_mutex_init( &subscr_lock, NULL );
 	pthread_mutex_init( &response_lock, NULL );
 	pthread_mutex_init( &condition_lock, NULL );
 	pthread_mutex_init( &getset_lock, NULL );
+	pthread_mutex_init( &subscr_cond_lock, NULL );
 
 
 	/*
 	Inicializace condition promenne
 	*/
 	pthread_cond_init( &resp_cond, NULL );
+	pthread_cond_init( &subscr_wait, NULL );
+
+	/*
+	Nemame zadne subscriptions
+	*/
+	subscriptions_changed = false;
 
 }
 
@@ -169,6 +176,29 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 			log_message( log_file, "GET request cancelled" );
 			send_error_response( connection, XML_ERR_NO_HTTP_POST, NULL );
 		}
+
+		/*
+		Ziskavame adresu klienta
+		*/
+		const union MHD_ConnectionInfo *connInfo = MHD_get_connection_info( connection, MHD_CONNECTION_INFO_CLIENT_ADDRESS );
+		char ip_addr[ INET_ADDRSTRLEN ];
+		const char *buf;
+		struct sockaddr_in *addr = connInfo->client_addr;
+
+		buf = inet_ntop( addr->sin_family, &(addr->sin_addr), ip_addr, INET_ADDRSTRLEN );
+
+		if ( buf == NULL )
+		{
+			//Error - cannot get the ip address
+			log_message( log_file, "Cannot get the client IP address" );
+			send_error_response( connection, XML_ERR_UNKNOWN, NULL );
+		}
+		else
+		{
+			con_info->ip_addr = string( buf );
+		}
+
+
 
 		*con_cls = (void *)con_info;
 		return MHD_YES;
@@ -320,7 +350,7 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 					else if ( XMLString::equals( elem->getTagName(), X( "get" ) ) )
 					{
 						//xr = process_get_set_message( elem, password, XML_MSG_TYPE_GET );
-						xr = process_get_set_message( elem, password, XML_MSG_TYPE_GET );
+						xr = process_get_set_message( elem, password, XML_MSG_TYPE_GET, 0 );
 						msg_count++;
 
 						//Zaradime to do fronty pro dany device
@@ -330,7 +360,7 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 					else if ( XMLString::equals( elem->getTagName(), X( "set" ) ) )
 					{
 						//xr = process_get_set_message( elem, password, XML_MSG_TYPE_SET );
-						xr = process_get_set_message( elem, password, XML_MSG_TYPE_SET );
+						xr = process_get_set_message( elem, password, XML_MSG_TYPE_SET, 0 );
 						msg_count++;
 
 						//Zaradime to do fronty pro dany device
@@ -340,9 +370,11 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 					else if ( XMLString::equals( elem->getTagName(), X( "subscribe" ) ) )
 					{
 						//xr = process_subscribe_message( elem, password );
-						//TODO: taky to bude vracet hodnotu jako get_set_message()
-						process_subscribe_message( elem, password );
+						xr = process_subscribe_message( elem, password, con_info->ip_addr );
 						msg_count++;
+
+						if ( xr != NULL )
+							req_to_dev[ xr->object_id ].push_back( xr );
 					}
 					else
 					{
@@ -380,6 +412,7 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 		 Zde se thread koukne do fronty odpovedi a kdyz tam neco je, vezme si to.
 		 Paklize tam nic neni, tak se uspime na nejake condition a cekame na probuzeni.
 		 Az mame vsechny responses, volame opakovane build_response_string() a pak send response
+		 TODO: zde promazat ty vystupy do logu
 		 */
 
 		 char ooo[10];
@@ -399,8 +432,8 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 
 			 res_it = response_queue.begin();
 
-			 sprintf( ooo, "%d", response_queue.size() );
-			 log_message( log_file, ooo );
+			 //sprintf( ooo, "%d", response_queue.size() );
+			 //log_message( log_file, ooo );
 
 			 while ( res_it != response_queue.end() )
 			 {
@@ -441,11 +474,20 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 
 				 msg_count = 0;
 				 msg_tmp = 0;
+
 				 // Process building string for all messages
 				 res_it = responses.begin();
 				 list<struct request_data*>::iterator tmp_it;
 				 while( res_it != responses.end() )
 				 {
+					 /*
+					 Toto je kvuli SUBSCRIBE, abychom mohli vyuzit
+					 fci process_get message, tak ulozime odpovedni typ
+					 do request_data a pak jej vytahneme zpet.
+					 */
+					 if ( (*res_it)->msg_type_resp != 0 )
+						 (*res_it)->msg_type = (*res_it)->msg_type_resp;
+
 					string *out = build_response_string( (*res_it) );
 					*response_string += *out;
 
@@ -749,7 +791,6 @@ string * XmlModule::build_response_string( struct request_data *data )
 		}
 		else
 		{
-			//TODO: zde bude muset byt generator celych podstromu!!!
 			list<struct value_pair *>::iterator rit;
 			string oid;
 
@@ -839,15 +880,53 @@ string * XmlModule::build_response_string( struct request_data *data )
 		*out += tmpid;
 		*out += "\">\n";
 
-		list<struct value_pair *>::iterator rit;
-
-		for ( rit = data->request_list.begin(); rit != data->request_list.end(); rit++ )
+		if ( data->error == XML_MSG_ERR_XML || data->error == XML_MSG_ERR_SNMP )
 		{
-			*out += "<value name=\"";
-			*out += (*rit)->oid;
-			*out += "\">\n";
-			*out += (*rit)->value;
-			*out += "</value>\n";
+			*out += "<error>";
+			*out += data->error_str;
+			*out += "</error>\n";
+
+		}
+		else
+		{
+			list<struct value_pair *>::iterator rit;
+			string oid;
+
+			if ( data->snmp_getnext == 0 )
+			{
+				for ( rit = data->request_list.begin(); rit != data->request_list.end(); rit++ )
+				{
+					*out += "<value>\n";
+					*out += (*rit)->value;
+					*out += "</value>\n";
+				}
+			}
+			else
+			{
+				//Generujeme cely podstrom, co jsme dostali za hodnoty
+				//nejspise rekurzivne, pac uroven podstromu je "nekonecna"
+
+				//prvni value_pair znaci korenovy node
+				*out += "<value>\n";
+				rit = data->request_list.begin();
+				oid = (*rit)->oid;
+				data->request_list.pop_front();
+
+				*out += "<";
+				*out += oid;
+				*out += ">\n";
+
+				//rekurzivni sestup
+				*out += build_out_xml( data->found_el, &(data->request_list), rit);
+
+				*out += "</";
+				*out += oid;
+				*out += ">\n";
+
+				*out += "</value>\n";
+
+
+			}
 		}
 
 		*out += "</distribution>\n";
@@ -1190,7 +1269,7 @@ int XmlModule::process_discovery_message( DOMElement *elem )
 		xr->object_id = atoi( XMLString::transcode( value ) );
 	}
 
-	//TODO zavolat fci xmlmodule enqueue_response
+	//zaradime odpoved do fronty
 	enqueue_response( xr );
 
 	return 0;
@@ -1200,7 +1279,7 @@ int XmlModule::process_discovery_message( DOMElement *elem )
 /*
 GET / SET MESSAGE
 */
-struct request_data * XmlModule::process_get_set_message( DOMElement *elem, const char *password, int msg_type )
+struct request_data * XmlModule::process_get_set_message( DOMElement *elem, const char *password, int msg_type, int obj_id = 0 )
 {
 	struct request_data *xr = new request_data;
 	const XMLCh* value;
@@ -1247,6 +1326,10 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 		tmp_buf = XMLString::transcode( value );
 		xr->object_id = atoi( tmp_buf );
 		XMLString::release( &tmp_buf );
+	}
+	else if ( obj_id != 0 )
+	{
+		xr->object_id = obj_id;
 	}
 	else xr->object_id = 0;
 
@@ -1489,7 +1572,7 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 /*
 SUBSCRIBE message
 */
-int XmlModule::process_subscribe_message( DOMElement *elem, const char* password )
+struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, const char* password, string manager_ip )
 {
 	/*
 	Podivame se, jestli je pritomen atribut distrId a delete.
@@ -1521,10 +1604,7 @@ int XmlModule::process_subscribe_message( DOMElement *elem, const char* password
 
 	const DOMElement *sub;
 	DOMElement *subscriptions;
-	
-
-	//TODO; dodelat error cally
-
+	DOMElement *manager;
 
 	log_message( log_file, "Dostali jsme SUBSCRIBE message" );
 
@@ -1546,21 +1626,89 @@ int XmlModule::process_subscribe_message( DOMElement *elem, const char* password
 	if ( distr_id > 0 )
 	{
 		//zjistime, jestli existuje dana subscriptiona
+		log_message( log_file, "Budeme menit subscription" );
+		log_message( log_file, tmp_str_xpath.c_str() );
 		sub = find_element( X( tmp_str_xpath.c_str() ), main_xa_doc->doc, false );
 
 		if ( sub == NULL )
 		{
 			//Error
 			xr = new request_data;
+			xr->thread_id = pthread_self();
 			xr->msg_type = XML_MSG_TYPE_SUBSCRIBE;
-			xr->error = XML_MSG_ERR_INTERNAL;
+			xr->distr_id = distr_id;
+			xr->error = XML_MSG_ERR_XML;
 			xr->error_str = "Such subscription does not exist.";
 
-			return 0;
+			enqueue_response( xr );
+			return NULL;
+
+		}
+		//Zavolat funkci enququq, pac vracime prazdna data
+
+		/*
+		Delete dane subscription
+		*/
+		if ( del )
+		{
+			DOMNode *parent = sub->getParentNode();
+			DOMNodeList *lst = parent->getChildNodes();
+
+			for ( unsigned int i = 0; i < lst->getLength(); i++ )
+			{
+				subscription = dynamic_cast<DOMElement *>( lst->item( i ) );
+				value = subscription->getAttribute( X( "distrid" ) );
+				tmp_buf = XMLString::transcode( value );
+
+				if ( distr_id == atoi( tmp_buf ) )
+				{
+					XMLString::release( &tmp_buf );
+					break;
+				}
+
+				XMLString::release( &tmp_buf );
+
+			}
+
+			//Nyni je v subscription dany element, ktery chceme smazat.
+			//mame pravo jej smazat? (stejna ip addr)
+
+			value = subscription->getAttribute( X( "manager" ) );
+			tmp_buf = XMLString::transcode( value );
+
+			xr = new request_data;
+			xr->thread_id = pthread_self();
+			xr->distr_id = distr_id;
+			xr->msg_type = XML_MSG_TYPE_SUBSCRIBE;
+
+			if ( strcmp( tmp_buf, manager_ip.c_str() ) == 0 )
+			{
+				//ano, muzeme smazat
+				pthread_mutex_lock( &subscr_cond_lock );
+				//smazani daneho childu
+				parent->removeChild( subscription );
+				//subscriptions se zmenily - nutne oznamit distr threadu
+				subscriptions_changed = true;
+				
+				pthread_cond_broadcast( &subscr_wait );
+				pthread_mutex_unlock( &subscr_cond_lock );
+
+			}
+			else
+			{
+				//ne, nemuzeme smazat, error
+				xr->error = XML_MSG_ERR_XML;
+				xr->error_str = string( "You have no permission to delete this subscription" );
+			}
+
+			XMLString::release( &tmp_buf );
+			//ihned vratime prazdna data
+			enqueue_response( xr );
+			return NULL;
+
+
 		}
 
-		//TODO:  delete! 
-		//Zavolat funkci enququq, pac vracime prazdna data
 
 
 	}
@@ -1571,18 +1719,25 @@ int XmlModule::process_subscribe_message( DOMElement *elem, const char* password
 	Nechame tedy ziskat data pomoci GET message, cimz se overi, ze je vse v poradku
 	a teprve pote budeme s daty vice manipulovat.
 	*/
-	process_get_set_message( elem, password, XML_MSG_TYPE_GET );
+	xr = process_get_set_message( elem, password, XML_MSG_TYPE_GET, 0 );
+	//TODO: paklize neni error, dodame msg_subid - SUBSCRIBE a posleme to do fronty
 
 	//Nyni mame data ziskana.
-	if ( xr->error == XML_MSG_ERR_INTERNAL || xr->error == XML_MSG_ERR_SNMP )
+	if ( xr->error == XML_MSG_ERR_XML || xr->error == XML_MSG_ERR_SNMP )
 	{
 		/*
 		Error. Nektera data nemusi existovat. 
 		Posleme zpet error
 		*/
+		
 		xr->msg_type = XML_MSG_TYPE_SUBSCRIBE;
+		enqueue_response( xr );
+		return NULL;
 		//return xr;
-		return 0;
+	}
+	else
+	{
+		xr->msg_type_resp = XML_MSG_TYPE_SUBSCRIBE;
 	}
 
 	//Data jsou v poradku, nez je vratime zpet, zapiseme tento element do
@@ -1599,12 +1754,17 @@ int XmlModule::process_subscribe_message( DOMElement *elem, const char* password
 		//Pridavame
 
 		//Nejrpve najdeme posledni distr_id
-		log_message( log_file, "a" );
 		DOMNodeList *sl = main_root->getElementsByTagName( X( "subscriptions" ) );
+		if ( sl->getLength() <= 0 )
+		{
+			log_message( log_file, "No element subscriptions found" );
+			enqueue_response( xr );
+			return NULL;
+
+		}
 		subscriptions = dynamic_cast<DOMElement *> (sl->item(0));
 
-		DOMNode *lch = subscription->getLastChild();
-		log_message( log_file, "b" );
+		DOMNode *lch = subscriptions->getLastChild();
 		if ( lch == NULL )
 		{
 			distr_id = 1;
@@ -1616,53 +1776,96 @@ int XmlModule::process_subscribe_message( DOMElement *elem, const char* password
 			tmp_buf = XMLString::transcode( value );
 
 			distr_id = atoi( tmp_buf );
+			//zvolima nasledujici id
+			distr_id++;
 			XMLString::release( &tmp_buf );
 
 		}
 
+		xr->distr_id = distr_id;
 
-
-
-
-		log_message( log_file, "c" );
+		/*
+		Vytvoreni noveho elementu do hlavniho stromu!!
+		*/
 		subscription = doc->createElement( X( "subscription" ) );
 		attr = doc->createAttribute( X( "distrid" ) );
 		sprintf( tmpid, "%d", distr_id );
 		attr->setNodeValue( X( tmpid ) );
 
-		log_message( log_file, "d" );
 
 		subscription->setAttributeNode( attr );
-		log_message( log_file, "e" );
 
 		attr = doc->createAttribute( X( "frequency" ) );
 		value = elem->getAttribute( X( "frequency" ) );
 
-		//paklize tam neni frekvence - dame to na minutu
-		if ( XMLString::equals( value, X("") ) == 0 )
+		//paklize tam neni frekvence - dame to na definovany interval
+		if ( XMLString::equals( value, X("") ) )
 		{
-			value = X( "60" );
+			value = X( XML_SUBSCRIBE_DEF_FREQUENCY );
 		}
-		log_message( log_file, "f" );
 
 		attr->setNodeValue( value );
 		subscription->setAttributeNode( attr );
 
 
-		//TODO: manager
+		//Vsechny xpathy
+		sl = elem->getChildNodes();
 
+		for ( unsigned int i=0; i < sl->getLength(); i++ )
+		{
+			lch = sl->item(i);
+			value = lch->getTextContent();
+
+			xpath = doc->createElement( X( "xpath" ) );
+			txt = doc->createTextNode( value );
+			xpath->appendChild( txt );
+
+			subscription->appendChild( xpath );
+			
+		}
+
+		//identifikace managera je hodnota textoveho nodu
+		attr = doc->createAttribute( X("manager") );
+		attr->setNodeValue( X( manager_ip.c_str() ) );
+
+		subscription->setAttributeNode( attr );
+
+		//dame mu prizvisko, changed
+		attr = doc->createAttribute( X( "changed" ) );
+		attr->setNodeValue( X( "1" ) );
+		subscription->setAttributeNode( attr );
+
+		attr = doc->createAttribute( X( "obj_id" ) );
+		sprintf( tmpid, "%d", xr->object_id );
+		attr->setNodeValue( X( tmpid ) );
+		subscription->setAttributeNode( attr );
+
+
+
+		//Zapsani do celkoveho seznamu subscriptions
+		pthread_mutex_lock( &subscr_cond_lock );
 		subscriptions->appendChild( subscription );
-		//Vypis vysledku
-		Mib2Xsd::output_xml2file( "zkuska.xsd", doc );
 
-		log_message( log_file, "g" );
+		//Musime domapovat novou vec do xml
+		pthread_mutex_unlock( &subscr_cond_lock );
+
+		//Mib2Xsd::output_xml2file( "zkuska.xsd", doc );
+		recreate_xalan_doc();
+
 		
 	}
 
-	//TODO probudit thread, aby si to zpracoval
+	//probudit thread, aby si to zpracoval
 
-	//return xr;
-	return 0;
+	pthread_mutex_lock( &subscr_cond_lock );
+	//subscriptions se zmenily - nutne oznamit distr threadu
+	subscriptions_changed = true;
+	
+	pthread_cond_broadcast( &subscr_wait );
+	pthread_mutex_unlock( &subscr_cond_lock );
+
+
+	return xr;
 }
 
 /****************************************************
@@ -1729,6 +1932,8 @@ int XmlModule::operation_permitted( const char *passwd, SNMP_device *dev, int ms
 			break;
 	}
 
+	return 0;
+
 }
 
 
@@ -1757,3 +1962,365 @@ string XmlModule::get_snmp_community( int perm_type, SNMP_device *dev)
 }
 
 
+/*
+Spusti thread na distribution
+*/
+int XmlModule::initialize_threads() 
+{
+	int th_ret;
+
+	th_ret = pthread_create( &distribution_th, NULL, distrib_handle, (void *) this); 
+
+	if ( th_ret != 0 )
+	{
+		log_message( log_file, "Cannot start distribution thread" );
+		return th_ret;
+	}
+
+	return 0;
+}
+
+pthread_t *XmlModule::get_distr_thread_id( )
+{
+	return &distribution_th;
+}
+
+
+/************************************
+****Distribution handler************
+************************************/
+int XmlModule::distribution_handler()
+{
+	/*
+	TODO:
+	Hlidat si cas, ktery uplynul od posledniho uspani, abychom
+	mohli resit requesty, ktere prijdou, kdyz spime
+	*/
+
+	/*
+	Reseni timeoutu
+	- kazda struktura obsahuje time_remaining. Vezmeme nejmensi time remaining a na ten se uspime.
+	Odecteme to ode vsech, pripadne nastavime cely timeout tam, kde jsme prekrocili 0.
+	Opakujeme cely proces do nekonecna
+	*/
+	log_message( log_file, "Distribution thread started" );
+
+	//definovane struktury
+	DOMElement *subscriptions;
+	DOMNode *tmpnode;
+	DOMNodeList *sl;
+	DOMElement *subscription;
+
+	//seznam vsech subscriptions
+	list<struct subscription_element *> sub_list;
+	list<struct subscription_element *>::iterator it;
+	list<struct request_data *> responses;
+	list<struct request_data *>::iterator res_it;
+
+	//casova struktura
+	struct timespec ts;
+	int timeout;
+
+	//pomocne buffery
+	char *tmp_buf;
+	const XMLCh *value;
+	int tmp_int;
+	char tmp_istr[50];
+	int changed;
+
+	//data
+	struct request_data *xr;
+	list<struct request_data*> req_to_dev[ devices_no ]; 
+
+	//hlida pocet odeslanych zadosti
+	int msg_sent = 0;
+
+	/*
+	Ziskame handle na subscriptions
+
+	TODO: neni mozne brat pouze jeden item, pac je vice devices
+	*/
+	sl = main_root->getElementsByTagName( X("subscriptions") );
+	tmpnode = sl->item(0);
+
+	if ( tmpnode != NULL )
+	{
+		subscriptions = dynamic_cast<DOMElement *>(tmpnode);
+	}
+
+	while( 1 )
+	{
+		//check na zmenu
+		pthread_mutex_lock( &subscr_cond_lock );
+
+		if ( subscriptions_changed )
+		{
+			//Predelani subscriptions
+			subscriptions_changed = false;
+
+			sl = subscriptions->getChildNodes();
+			for ( unsigned i = 0; i < sl->getLength(); i++ )
+			{
+				subscription = dynamic_cast<DOMElement*> ( sl->item( i ) );
+				
+				changed = 0;
+				value = subscription->getAttribute( X("changed") );
+				tmp_buf = XMLString::transcode( value );
+				changed = atoi( tmp_buf );
+				XMLString::release( &tmp_buf );
+
+				value = subscription->getAttribute( X( "distrid" ) );
+				tmp_buf = XMLString::transcode( value );
+				tmp_int = atoi( tmp_buf );
+				XMLString::release( &tmp_buf );
+
+				//Smazeme pripadny vyskyt v seznamu a nahradime jej novym
+				for ( it = sub_list.begin(); it != sub_list.end(); it++ )
+				{
+					if ( changed && (*it)->distr_id == tmp_int )
+					{
+						sub_list.erase( it );
+						break;
+					}
+					else if ( (*it)->distr_id == tmp_int )
+					{
+						(*it)->in_list = true;
+						break;
+					}
+				}
+
+				//paklize se node zmenil
+				if ( changed )
+				{
+					log_message( log_file, "subscription changed" );
+
+
+					//vytvorime nove informace
+					struct subscription_element *el = new subscription_element;
+
+					el->distr_id = tmp_int;
+					el->subscription = subscription;
+
+					value = subscription->getAttribute( X( "frequency" ) );
+					tmp_buf = XMLString::transcode( value );
+					tmp_int = atoi( tmp_buf );
+					XMLString::release( &tmp_buf );
+					el->frequency = tmp_int;
+					el->time_remaining = tmp_int;
+
+					value = subscription->getAttribute( X( "manager" ) );
+					tmp_buf = XMLString::transcode( value );
+					el->manager_ip = string( tmp_buf );
+					XMLString::release( &tmp_buf );
+
+					value = subscription->getAttribute( X( "obj_id" ) );
+					tmp_buf = XMLString::transcode( value );
+					tmp_int = atoi( tmp_buf );
+					el->object_id = tmp_int;
+					XMLString::release( &tmp_buf );
+
+					subscription->removeAttribute( X( "changed" ) );
+					subscription->removeAttribute( X( "obj_id" ) );
+
+					//ziskani hesla pro get
+					struct SNMP_device *dev = snmpmod->get_device_ptr( el->object_id );
+					el->password = dev->xml_read;
+
+					el->in_list = true;
+
+					//zaradime do seznamu nasich subscriptionu
+					sub_list.push_back( el );
+					
+				}
+
+			}
+
+			/*
+			Smazeme prispevky, ktere nejsou uz nikde
+			*/
+			for ( it = sub_list.begin(); it != sub_list.end(); it++ )
+			{
+				if ( (*it)->in_list )
+				{
+					(*it)->in_list = false;
+				}
+				else
+					sub_list.erase( it );
+			}
+
+			/*
+			Prepocitame timeout
+			*/
+			timeout = recalculate_sleep( &sub_list, it );
+
+
+		}
+
+		if ( msg_sent == 0 && sub_list.size() <= 0 )
+		{
+			//jdeme spat, pac nic nemame obsluhovat
+			log_message( log_file, "DISTRIB: jdeme spat s prazdnym listem" );
+			pthread_cond_wait( &subscr_wait, &subscr_cond_lock );
+		}
+		else
+		{
+			//jdeme spat pouze na dany timeout
+			if ( msg_sent != 0 )
+				timeout = 1;
+
+			 ts.tv_sec = time(NULL) + timeout;
+			 ts.tv_nsec = 0;
+				
+			log_message( log_file, "DISTRIB: jdeme spat na timeout" );
+
+			 pthread_cond_timedwait( &subscr_wait, &subscr_cond_lock, &ts );
+		}
+
+		pthread_mutex_unlock( &subscr_cond_lock );
+
+
+		/*
+		Processneme vsechny subscriptions, jestli je mame zpracovat
+		*/
+		for ( it = sub_list.begin(); it != sub_list.end(); it++ )
+		{
+			(*it)->time_remaining -= timeout;
+
+			if ( (*it)->time_remaining <= 0 )
+			{
+				//Nutno ziskat informace a hodit je managerovi
+				(*it)->time_remaining = (*it)->frequency;
+
+				xr = process_get_set_message( (*it)->subscription, (*it)->password.c_str(), XML_MSG_TYPE_GET, (*it)->object_id );
+				msg_sent++;
+
+				//if error
+				if ( xr != NULL )
+				{
+					//dispatch
+					xr->msg_type_resp = XML_MSG_TYPE_SUBSCRIBE;
+					xr->distr_id = (*it)->distr_id;
+					req_to_dev[ xr->object_id ].push_back( xr );
+				}
+
+			}
+
+		}
+
+		 /*
+		 Rozhozeni jednotlivych messages jako celky do jednotlivych zarizeni
+		 */
+		 for( int i = 0; i < devices_no; i++ )
+		 {
+			 if (  (!req_to_dev[i].empty()) )
+			 {
+				if (  snmpmod->dispatch_request( &req_to_dev[i] ) != 0 )
+				{
+					msg_sent--;
+					log_message( log_file, "Nepodarilo se odeslat request v ramci SUBSCRIBE" );
+				}
+
+				req_to_dev[i].clear();
+			 }
+		 }
+
+
+		/*
+		Znovu prepocitame dane timeouty
+		*/
+		timeout = recalculate_sleep( &sub_list , it );
+		/*
+		Check na odpovedi a odeslani clobrdum
+		*/
+		if ( msg_sent > 0 )
+		{
+			 pthread_mutex_lock( &response_lock );
+
+			 res_it = response_queue.begin();
+
+
+			 while ( res_it != response_queue.end() )
+			 {
+				 if ( (*res_it)->thread_id == pthread_self() ) //check na moje thread ID
+				 {
+					 //vybereme zpravu a ulozime si ji k dalsimu zpracovani
+					 responses.push_back( (*res_it) );
+					 res_it = response_queue.erase( res_it );
+					 msg_sent--;
+				 }
+				 else
+				 {
+					 res_it++;
+				 }
+
+			 }
+
+			 pthread_mutex_unlock( &response_lock );
+			 res_it = responses.begin();
+			 list<struct request_data*>::iterator tmp_it;
+			 while( res_it != responses.end() )
+			 {
+				 /*
+				 Toto je kvuli SUBSCRIBE, abychom mohli vyuzit
+				 fci process_get message, tak ulozime odpovedni typ
+				 do request_data a pak jej vytahneme zpet.
+				 */
+				 if ( (*res_it)->msg_type_resp != 0 )
+					 (*res_it)->msg_type = (*res_it)->msg_type_resp;
+
+				string *out = build_response_string( (*res_it) );
+
+				//TODO: Zde zavolat libCurl - poslat odpoved managerovi na ten port
+				log_message( log_file, (*out).c_str() );
+
+				tmp_it = res_it;
+				res_it++;
+
+				responses.pop_front();
+
+				delete( out );
+				delete( (*tmp_it) );
+			 }
+
+			
+		}
+
+
+
+	}
+
+
+	return 0;
+}
+
+
+/*
+Projede list a vrati nejmensi hodnotu remaining_time
+*/
+int XmlModule::recalculate_sleep( list<struct subscription_element*> *list, list<struct subscription_element*>::iterator it)
+{
+
+	int min = (list->front())->time_remaining;
+
+	for ( it = list->begin(); it != list->end(); it++ )
+	{
+		if ( (*it)->time_remaining < min )
+			min = (*it)->time_remaining;
+	}
+
+	return min;
+}
+
+/*
+Znovu namapuje DOMDocument na XalanDocument
+*/
+void XmlModule::recreate_xalan_doc()
+{
+	DOMDocument *doc;
+	XercesDOMSupport		theDOMSupport;
+
+	doc = main_root->getOwnerDocument();
+	main_xa_doc->liaison = new XercesParserLiaison( theDOMSupport );
+	main_xa_doc->doc = main_xa_doc->liaison->createDocument( doc, true, true, true );
+
+}

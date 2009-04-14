@@ -156,6 +156,12 @@ void SnmpXmlGate::run()
 	root = snmpmod->get_root();
 	xmlmod->set_parameters( root, devices_root, log_file, gate->xsd_path, snmpmod );
 	snmpmod->set_xmlmod( xmlmod );
+
+	if ( xmlmod->initialize_threads() != 0 )
+	{
+		log_message( log_file, (char *)"Error during XmlModule thread startup. Terminating.");
+		exit(1);
+	}
 	
 	http_server = MHD_start_daemon( MHD_USE_THREAD_PER_CONNECTION, gate->xml_listen_port,
 					NULL, NULL, &process_request, NULL,
@@ -164,17 +170,12 @@ void SnmpXmlGate::run()
 
 
 	/*
-	Vytvarime thread pro poslouchani na snmp strane
+	Cekame na ukonceni threadu - ciste jenom pro to, abychom neskoncili program.
 	*/
-	//snmp_trap_th = pthread_create();
+	pthread_join( *(xmlmod->get_distr_thread_id()), NULL );
 
-	/*
-	Thread na informovani xml klientu
-	*/
+	//while(1) sleep(1);
 
-	//pthread_join( snmp_trap_th );
-
-	while(1) sleep(1);
 }
 
 
