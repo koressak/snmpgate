@@ -16,6 +16,7 @@ Standard includes
 #include <ctype.h>
 #include <pthread.h>
 #include <time.h>
+#include <arpa/inet.h>
 
 /*
 Timestamp for log
@@ -75,6 +76,13 @@ SNMP includy
 HTTP server
 */
 #include <microhttpd.h>
+
+/*
+libCURL - pro odesilani distribution a notifications
+*/
+#include <curl/curl.h>
+#include <curl/types.h>
+#include <curl/easy.h>
 
 /*
 Namespaces
@@ -141,6 +149,11 @@ ACCESS constrol - permissions
 */
 #define XML_PERM_READ				1
 #define XML_PERM_WRITE				2
+
+/*
+SUBSCRIBE default frequency
+*/
+#define XML_SUBSCRIBE_DEF_FREQUENCY "120"
 
 /*
 HTTP parametry
@@ -365,10 +378,12 @@ struct connection_info {
 	struct MHD_PostProcessor *post_processor;
 	string data;
 	int conn_type;
+	string ip_addr;
 
 	connection_info()
 	{
 		post_processor = NULL;
+		ip_addr = "";
 	}
 };
 
@@ -402,7 +417,7 @@ struct request_data {
 	int msgid;
 	string msg_context;
 	int msg_type; //for snmp_module
-	int resp_msg_type; //for building response string
+	int msg_type_resp; //for building response string
 	int object_id;
 
 	/*
@@ -442,7 +457,7 @@ struct request_data {
 	request_data()
 	{
 		msgid = 0;
-		resp_msg_type = msg_type = -1;
+		msg_type = -1;
 
 		object_id = -1;
 
@@ -456,6 +471,7 @@ struct request_data {
 		distr_id = 0;
 
 		found_el = NULL;
+		msg_type_resp = 0;
 	}
 
 	~request_data()
@@ -492,6 +508,46 @@ struct xalan_docs_list
 	~xalan_docs_list()
 	{
 		delete( liaison );
+	}
+};
+
+
+/*
+Struktura pro distribution handler
+*/
+struct subscription_element
+{
+	int object_id;
+	string password;
+	int distr_id;
+	int last_msg_id;
+	string manager_ip;
+
+	//nedojite /nepotvrzene zpravy
+	int lost_msg_count;
+
+	//timeout
+	int frequency;
+	int time_remaining;
+
+	//Ukazatel na jeho subscription v XML dokumentu
+	DOMElement *subscription;
+
+	//Pri projeti seznamu subscriptions, abychom mohli smazat
+	bool in_list;
+
+	subscription_element()
+	{
+		object_id = 0;
+		distr_id = 0;
+		last_msg_id = 0;
+		manager_ip = "";
+
+		lost_msg_count = 0;
+
+		frequency = time_remaining = 0;
+
+		in_list = false;
 	}
 };
 

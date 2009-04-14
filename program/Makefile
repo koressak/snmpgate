@@ -5,7 +5,7 @@
 #
 #
 GCC=g++
-LIBS=-lxerces-c -lsnmp -lmicrohttpd -pthread -lxalan-c
+LIBS=-lxerces-c -lsnmp -lmicrohttpd -pthread -lxalan-c -lcurl
 PAR=-Wall
 
 
