@@ -288,22 +288,26 @@ Poznamka:
 		Spojit to s bodem vyse.
 		DONE
 
-
-
 		- mereni casu pri zpracovavani novych pozadavku, abychom si to odecetli od
 		dalsiho spanku
+		DONE
 
 		- odecitat cas, co jsme spali a nekdo nas probudil (necely timeout interval se odehral)
+		DONE
+
+		- Udelat XMLDOC lock -> v subscriptions musime mazat a vytvaret dokument. Tak na vsechny find_elementy
+		je nutno zamykat mutex
+		DONE
+
+
 
 		- vzit v potaz, ze tam mame vice subscriptions v ramci celeho dokumentu
 		(kazdy device ma vlastni!!!!!)
 
-		- Udelat XMLDOC lock -> v subscriptions musime mazat a vytvaret dokument. Tak na vsechny find_elementy
-		je nutno zamykat mutex
 
 -------------------
 Pozn:
-Delete subscriptionu - muze udelat pouze ten manager (stejna ip), jako ji zalozil.
+Delete subscriptionu - muze delat kdokoliv, kdo zna distrid.
 -------------------
 
 
@@ -338,6 +342,9 @@ Low priority
 
 - Do textu napsat pojednani o frontach a o tom, jak get set message se neprekryvaji, paklize jsou v ramci jednoho device.
 Cimz je zarucena integrita dat.
+
+- Do textu - ovladani a sprava subscriptions je delana tak proto, ze v navrzenem protokolu by teroristicky mohl pristupovat
+manager k xml schematu a tim menit jednotlive subscriptions (jeste rozmyslet, pac je to mozna piczovina)
 
 - Udelat snmpxmlgate jako global promennou -> pri odchytnuti sigterm se zavola stop a ukonci se jeho funkce hezky a nikoliv
 nasilnym smazanim vsech struktur.
@@ -422,6 +429,17 @@ DONE
 RESENI: budeme posilat nulova data. Still work in progress
 DONE
 
+- Osetrit recreate_xalan_doc - na ruzne zamykani a pak, jestli uz ten najitej element neni nahodou v prdeli, kdyz
+predelame cely xalan document
+DONE
+
+- Subscribe - delete - dela to nekde segfault!!
+DONE - sice nevime proc, ale uz to chodi (prehodili jsme spanek nade vsechny akce)
+
+- Thread Safe design - zamyslet se nad tim, jake operace by mohly byt pro thready spatne a tim padem
+by si mohli prepisovat data
+DONE
+
 
 
 
@@ -430,19 +448,9 @@ DONE
 
 - HTTP server -> nutno doplnit do konfiguraku neco ohledne bezpecnostiho certifikatu pro https
 
-- Thread Safe design - zamyslet se nad tim, jake operace by mohly byt pro thready spatne a tim padem
-by si mohli prepisovat data
-	- Message PArser -> possible thread safe hazard
-
-
 - Discovery message - predelat, jak jsme zmenily system xml souboru a ukazatelu, musi se to nacitat ze souboru.!!
 
-- Subscribe - delete - dela to nekde segfault!!
-Tuseni: je to v tom, jak mame odkaz na element v ramci subscription_element a ten v tu chvili ukazuje na NULL!!
-pote, co to odebereme.
 
-- Osetrit recreate_xalan_doc - na ruzne zamykani a pak, jestli uz ten najitej element neni nahodou v prdeli, kdyz
-predelame cely xalan document
 
 
 
