@@ -156,6 +156,11 @@ SUBSCRIBE default frequency
 #define XML_SUBSCRIBE_DEF_FREQUENCY "120"
 
 /*
+SUBSCRIBE delete after X undelivered messages
+*/
+#define XML_SUBSCRIBE_MAX_LOST 5
+
+/*
 HTTP parametry
 */
 #define HTTP_GET 0
@@ -536,6 +541,9 @@ struct subscription_element
 	//Pri projeti seznamu subscriptions, abychom mohli smazat
 	bool in_list;
 
+	//jestli je novy
+	bool is_new;
+
 	subscription_element()
 	{
 		object_id = 0;
@@ -548,6 +556,7 @@ struct subscription_element
 		frequency = time_remaining = 0;
 
 		in_list = false;
+		is_new = true;
 	}
 };
 

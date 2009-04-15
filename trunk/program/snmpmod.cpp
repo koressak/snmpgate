@@ -449,10 +449,6 @@ Zaslani dotazu agentovi - handler, ktery si hlida svoji frontu
 */
 void SnmpModule::request_handler( struct snmp_req_handler *hr )
 {
-	/*
-	TODO:
-	Rekurzivni dotaz - getnext na vsechny podlisty
-	*/
 	
 	/*
 	SNMP stuff
@@ -567,7 +563,6 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 			//Nutno inicializovat session
 			if ( sptr == NULL )
 			{
-				log_message( log_file, "starting snmp session" );
 				snmp_sess_init( &session );
 
 				session.peername = dev->snmp_addr;
@@ -603,11 +598,9 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 				sptr = snmp_sess_session( ss );
 			}
 
-			log_message( log_file, "getting request" );
 			//ziskame prvni dotaz
 			req_data = requests.front();
 			requests.pop_front();
-			log_message( log_file, "after getting request" );
 
 			//nastavime pro nej community string
 			delete( sptr->community );
@@ -655,7 +648,7 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 				{
 					//snmp_sess_error( &sptr, &liberr, &syserr, &errstr );
 					//log_message( log_file, errstr );
-					req_data->error = XML_MSG_ERR_INTERNAL;
+					req_data->error = XML_MSG_ERR_SNMP;
 					req_data->error_str = "Cannot find node in MIB";
 					//delete( errstr );
 					error = true;
@@ -704,7 +697,7 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 						//snmp_sess_error( &sptr, &liberr, &syserr, &errstr );
 							//log_message( log_file, errstr);
 
-						req_data->error = XML_MSG_ERR_INTERNAL;
+						req_data->error = XML_MSG_ERR_SNMP;
 						req_data->error_str = "PDU couldn't be delivered";
 
 

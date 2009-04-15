@@ -58,6 +58,7 @@ XmlModule::~XmlModule()
 	pthread_mutex_destroy( &response_lock );
 	pthread_mutex_destroy( &condition_lock );
 	pthread_mutex_destroy( &subscr_cond_lock );
+	pthread_mutex_destroy( &xa_doc_lock );
 
 	pthread_cond_destroy( &resp_cond );
 	pthread_cond_destroy( &subscr_wait );
@@ -129,6 +130,7 @@ void XmlModule::set_parameters( DOMElement *r, list<DOMElement *> *roots, char *
 	pthread_mutex_init( &condition_lock, NULL );
 	pthread_mutex_init( &getset_lock, NULL );
 	pthread_mutex_init( &subscr_cond_lock, NULL );
+	pthread_mutex_init( &xa_doc_lock, NULL );
 
 
 	/*
@@ -223,10 +225,6 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 		else
 		{
 			//parsujeme zpravu - ziskani XML struktury
-		 char thid[100];
-
-		 sprintf( thid, "Thread id: %ld", pthread_self() );
-		 log_message( log_file, thid );
 
 		//pthread_mutex_lock( &getset_lock );
 			MemBufInputSource *mem_buf;
@@ -271,7 +269,6 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 			list<struct request_data*> req_to_dev[ devices_no ]; 
 
 			try {
-				log_message( log_file, "Parsing message" );
 				parser->parse( *mem_buf );
 				message = parser->getDocument();
 				//Zjistime, jestli je message root elementem
@@ -437,7 +434,7 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 
 			 while ( res_it != response_queue.end() )
 			 {
-				 log_message( log_file, thid );
+				 //log_message( log_file, thid );
 				 if ( (*res_it)->thread_id == pthread_self() ) //check na moje thread ID
 				 {
 					 //vybereme zpravu a ulozime si ji k dalsimu zpracovani
@@ -454,8 +451,8 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 
 			 pthread_mutex_unlock( &response_lock );
 
-			 sprintf( ooo, "%d - %d", msg_count, msg_tmp );
-			 log_message( log_file, ooo );
+			 //sprintf( ooo, "%d - %d", msg_count, msg_tmp );
+			 //log_message( log_file, ooo );
 
 			 //Paklize nejsou vsechny odpovedi, tak se uspime na conditione
 			 if ( msg_tmp != msg_count )
@@ -1058,6 +1055,9 @@ Nalezne element dle xpath vyrazu a vrati na nej odkaz
 */
 const DOMElement* XmlModule::find_element( const XMLCh* name, XalanDocument* theDocument, struct request_data* req_data, bool deep = true )
 {
+	//Thread safe - ochrana proti recreate dokumentu
+	pthread_mutex_lock( &xa_doc_lock );
+
 	const DOMElement *ret_elm = NULL;
 
 	//Ziskame pointer na dokument daneho zarizeni
@@ -1068,6 +1068,7 @@ const DOMElement* XmlModule::find_element( const XMLCh* name, XalanDocument* the
 	if ( theDocument == NULL )
 	{
 		log_message( log_file, "cannot create document" );
+		pthread_mutex_unlock( &xa_doc_lock );
 		return ret_elm;
 	}	
 
@@ -1098,6 +1099,7 @@ const DOMElement* XmlModule::find_element( const XMLCh* name, XalanDocument* the
 		if ( nodeset.getLength() > 1 )
 		{
 			log_message( log_file, "Found more than one element by xpath expression" );
+			pthread_mutex_unlock( &xa_doc_lock );
 			return ret_elm;
 		}
 		else if ( nodeset.getLength() == 1 )
@@ -1110,6 +1112,7 @@ const DOMElement* XmlModule::find_element( const XMLCh* name, XalanDocument* the
 			if ( n->getNodeType() && n->getNodeType() != XalanNode::ELEMENT_NODE)
 			{
 				log_message( log_file, "Cannot get the element node" );
+				pthread_mutex_unlock( &xa_doc_lock );
 				return ret_elm;
 			}
 
@@ -1117,6 +1120,8 @@ const DOMElement* XmlModule::find_element( const XMLCh* name, XalanDocument* the
 			XalanElement *elm = dynamic_cast<XalanElement *>(n);
 			XercesElementWrapper *wrap = dynamic_cast<XercesElementWrapper *>(elm);
 			ret_elm = wrap->getXercesNode();
+
+			pthread_mutex_unlock( &xa_doc_lock );
 
 			return ret_elm;
 		}
@@ -1166,6 +1171,7 @@ const DOMElement* XmlModule::find_element( const XMLCh* name, XalanDocument* the
 						if ( tmp_find != NULL )
 						{
 							req_data->xpath_end = "";
+							pthread_mutex_unlock( &xa_doc_lock );
 							return tmp_find;
 						}
 					}
@@ -1195,6 +1201,7 @@ const DOMElement* XmlModule::find_element( const XMLCh* name, XalanDocument* the
 
 				}
 
+				pthread_mutex_unlock( &xa_doc_lock );
 				return ret_elm;
 
 				/*pos1 = xp.rfind("//");
@@ -1221,13 +1228,17 @@ const DOMElement* XmlModule::find_element( const XMLCh* name, XalanDocument* the
 					return ret_elm;*/
 			}
 			else 
+			{
+				pthread_mutex_unlock( &xa_doc_lock );
 				return ret_elm;
+			}
 
 		}
 	}
 	catch ( ... )
 	{
 		log_message( log_file, "Exception while evaluating XPath expression" );
+		pthread_mutex_unlock( &xa_doc_lock );
 		return ret_elm;
 	}
 
@@ -1368,7 +1379,7 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 	else
 	{
 		xr->community = get_snmp_community( permission, dev );
-		log_message( log_file, xr->community.c_str() );
+		//log_message( log_file, xr->community.c_str() );
 	}
 
 
@@ -1603,8 +1614,14 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 	string tmp_str;
 
 	const DOMElement *sub;
+	DOMElement *sub_append;
 	DOMElement *subscriptions;
 	DOMElement *manager;
+
+	DOMAttr *sub_attr;
+
+	DOMNode *parent;
+	DOMElement *device;
 
 	log_message( log_file, "Dostali jsme SUBSCRIBE message" );
 
@@ -1626,8 +1643,6 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 	if ( distr_id > 0 )
 	{
 		//zjistime, jestli existuje dana subscriptiona
-		log_message( log_file, "Budeme menit subscription" );
-		log_message( log_file, tmp_str_xpath.c_str() );
 		sub = find_element( X( tmp_str_xpath.c_str() ), main_xa_doc->doc, false );
 
 		if ( sub == NULL )
@@ -1651,7 +1666,7 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 		*/
 		if ( del )
 		{
-			DOMNode *parent = sub->getParentNode();
+			parent = sub->getParentNode();
 			DOMNodeList *lst = parent->getChildNodes();
 
 			for ( unsigned int i = 0; i < lst->getLength(); i++ )
@@ -1673,40 +1688,28 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 			//Nyni je v subscription dany element, ktery chceme smazat.
 			//mame pravo jej smazat? (stejna ip addr)
 
-			value = subscription->getAttribute( X( "manager" ) );
-			tmp_buf = XMLString::transcode( value );
+
+			attr = doc->createAttribute( X( "delete" ) );
+			attr->setNodeValue( X("1") );
 
 			xr = new request_data;
 			xr->thread_id = pthread_self();
 			xr->distr_id = distr_id;
 			xr->msg_type = XML_MSG_TYPE_SUBSCRIBE;
 
-			if ( strcmp( tmp_buf, manager_ip.c_str() ) == 0 )
-			{
-				//ano, muzeme smazat
-				pthread_mutex_lock( &subscr_cond_lock );
-				//smazani daneho childu
-				parent->removeChild( subscription );
-				//subscriptions se zmenily - nutne oznamit distr threadu
-				subscriptions_changed = true;
-				
-				pthread_cond_broadcast( &subscr_wait );
-				pthread_mutex_unlock( &subscr_cond_lock );
+			pthread_mutex_lock( &subscr_cond_lock );
 
-			}
-			else
-			{
-				//ne, nemuzeme smazat, error
-				xr->error = XML_MSG_ERR_XML;
-				xr->error_str = string( "You have no permission to delete this subscription" );
-			}
+			subscription->setAttributeNode( attr );
+			subscriptions_changed = true;
+			
+			pthread_cond_broadcast( &subscr_wait );
+			pthread_mutex_unlock( &subscr_cond_lock );
 
-			XMLString::release( &tmp_buf );
+
+			//XMLString::release( &tmp_buf );
 			//ihned vratime prazdna data
 			enqueue_response( xr );
 			return NULL;
-
-
 		}
 
 
@@ -1720,7 +1723,6 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 	a teprve pote budeme s daty vice manipulovat.
 	*/
 	xr = process_get_set_message( elem, password, XML_MSG_TYPE_GET, 0 );
-	//TODO: paklize neni error, dodame msg_subid - SUBSCRIBE a posleme to do fronty
 
 	//Nyni mame data ziskana.
 	if ( xr->error == XML_MSG_ERR_XML || xr->error == XML_MSG_ERR_SNMP )
@@ -1745,9 +1747,70 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 
 	if ( distr_id > 0 )
 	{
-		//Alter
+		/*
+		Altering subscription
+		*/
+		DOMNode *parent = sub->getParentNode();
+		DOMNodeList *ls = parent->getChildNodes();
+		DOMNode *lch;
+
+		char di[20];
+		sprintf( di, "%d", distr_id );
+
+		for ( unsigned int i = 0; i < ls->getLength(); i++ )
+		{
+			sub_append = dynamic_cast<DOMElement *> ( ls->item( i ) );
+			if ( XMLString::equals( X( di ), sub_append->getAttribute( X( "distr_id" ) ) ) )
+				break;
+		}
+
+
+
+		pthread_mutex_lock( &subscr_cond_lock );
 
 		//subscr uz je handle na ten element. Muzeme pracovat s nim
+		sub_attr = sub_append->getAttributeNode( X( "frequency" ) );
+		sub_attr->setNodeValue( elem->getAttribute( X("frequency" ) ) );
+		sub_attr = sub_append->getAttributeNode( X( "manager" ) );
+		sub_attr->setNodeValue( X( manager_ip.c_str() ) );
+
+		//smazeme vsechny deti
+		ls = sub_append->getChildNodes();
+		while ( ls->getLength() > 0 )
+		{
+			DOMNode *n = ls->item(0);
+			sub_append->removeChild( n );
+		}
+
+		ls = elem->getChildNodes();
+
+		for ( unsigned int i=0; i < ls->getLength(); i++ )
+		{
+			lch = ls->item(i);
+			value = lch->getTextContent();
+
+			xpath = doc->createElement( X( "xpath" ) );
+			txt = doc->createTextNode( value );
+			xpath->appendChild( txt );
+
+			sub_append->appendChild( xpath );
+			
+		}
+
+		//dame mu prizvisko, changed
+		attr = doc->createAttribute( X( "changed" ) );
+		attr->setNodeValue( X( "1" ) );
+		sub_append->setAttributeNode( attr );
+
+		attr = doc->createAttribute( X( "obj_id" ) );
+		sprintf( tmpid, "%d", xr->object_id );
+		attr->setNodeValue( X( tmpid ) );
+		sub_append->setAttributeNode( attr );
+
+		pthread_mutex_unlock( &subscr_cond_lock );
+
+		xr->distr_id = distr_id;
+
 	}
 	else
 	{
@@ -1762,7 +1825,27 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 			return NULL;
 
 		}
-		subscriptions = dynamic_cast<DOMElement *> (sl->item(0));
+
+		//nejprve nalezeni toho spravneho device
+		for( unsigned int i = 0; i < sl->getLength(); i++ )
+		{
+			subscriptions = dynamic_cast<DOMElement *> ( sl->item( i ) );
+
+			parent = subscriptions->getParentNode();
+			device = dynamic_cast<DOMElement *>(parent);
+
+			value = device->getAttribute( X("id") );
+			tmp_buf = XMLString::transcode( value );
+
+			if ( atoi( tmp_buf ) == xr->object_id )
+			{
+				XMLString::release( &tmp_buf );
+				break;
+			}
+
+			XMLString::release( &tmp_buf );
+
+		}
 
 		DOMNode *lch = subscriptions->getLastChild();
 		if ( lch == NULL )
@@ -1850,7 +1933,7 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 		pthread_mutex_unlock( &subscr_cond_lock );
 
 		//Mib2Xsd::output_xml2file( "zkuska.xsd", doc );
-		recreate_xalan_doc();
+		//recreate_xalan_doc();
 
 		
 	}
@@ -1861,7 +1944,7 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 	//subscriptions se zmenily - nutne oznamit distr threadu
 	subscriptions_changed = true;
 	
-	pthread_cond_broadcast( &subscr_wait );
+	pthread_cond_signal( &subscr_wait );
 	pthread_mutex_unlock( &subscr_cond_lock );
 
 
@@ -2010,23 +2093,29 @@ int XmlModule::distribution_handler()
 	DOMNode *tmpnode;
 	DOMNodeList *sl;
 	DOMElement *subscription;
+	DOMNodeList *all_subs;
 
 	//seznam vsech subscriptions
 	list<struct subscription_element *> sub_list;
 	list<struct subscription_element *>::iterator it;
 	list<struct request_data *> responses;
 	list<struct request_data *>::iterator res_it;
+	list<DOMElement *> delete_nodes;
+	list<DOMElement *>::iterator del_it;
 
 	//casova struktura
 	struct timespec ts;
 	int timeout;
+	int time_slept;
+	int sleep_start;
 
 	//pomocne buffery
 	char *tmp_buf;
 	const XMLCh *value;
 	int tmp_int;
-	char tmp_istr[50];
 	int changed;
+	int to_del;
+	int list_length;
 
 	//data
 	struct request_data *xr;
@@ -2040,126 +2129,25 @@ int XmlModule::distribution_handler()
 
 	TODO: neni mozne brat pouze jeden item, pac je vice devices
 	*/
-	sl = main_root->getElementsByTagName( X("subscriptions") );
-	tmpnode = sl->item(0);
+	all_subs = main_root->getElementsByTagName( X("subscriptions") );
+	/*tmpnode = sl->item(0);
 
 	if ( tmpnode != NULL )
 	{
 		subscriptions = dynamic_cast<DOMElement *>(tmpnode);
-	}
+	}*/
+
+	time_slept = 0;
+	sleep_start = 0;
 
 	while( 1 )
 	{
 		//check na zmenu
 		pthread_mutex_lock( &subscr_cond_lock );
 
-		if ( subscriptions_changed )
-		{
-			//Predelani subscriptions
-			subscriptions_changed = false;
-
-			sl = subscriptions->getChildNodes();
-			for ( unsigned i = 0; i < sl->getLength(); i++ )
-			{
-				subscription = dynamic_cast<DOMElement*> ( sl->item( i ) );
-				
-				changed = 0;
-				value = subscription->getAttribute( X("changed") );
-				tmp_buf = XMLString::transcode( value );
-				changed = atoi( tmp_buf );
-				XMLString::release( &tmp_buf );
-
-				value = subscription->getAttribute( X( "distrid" ) );
-				tmp_buf = XMLString::transcode( value );
-				tmp_int = atoi( tmp_buf );
-				XMLString::release( &tmp_buf );
-
-				//Smazeme pripadny vyskyt v seznamu a nahradime jej novym
-				for ( it = sub_list.begin(); it != sub_list.end(); it++ )
-				{
-					if ( changed && (*it)->distr_id == tmp_int )
-					{
-						sub_list.erase( it );
-						break;
-					}
-					else if ( (*it)->distr_id == tmp_int )
-					{
-						(*it)->in_list = true;
-						break;
-					}
-				}
-
-				//paklize se node zmenil
-				if ( changed )
-				{
-					log_message( log_file, "subscription changed" );
-
-
-					//vytvorime nove informace
-					struct subscription_element *el = new subscription_element;
-
-					el->distr_id = tmp_int;
-					el->subscription = subscription;
-
-					value = subscription->getAttribute( X( "frequency" ) );
-					tmp_buf = XMLString::transcode( value );
-					tmp_int = atoi( tmp_buf );
-					XMLString::release( &tmp_buf );
-					el->frequency = tmp_int;
-					el->time_remaining = tmp_int;
-
-					value = subscription->getAttribute( X( "manager" ) );
-					tmp_buf = XMLString::transcode( value );
-					el->manager_ip = string( tmp_buf );
-					XMLString::release( &tmp_buf );
-
-					value = subscription->getAttribute( X( "obj_id" ) );
-					tmp_buf = XMLString::transcode( value );
-					tmp_int = atoi( tmp_buf );
-					el->object_id = tmp_int;
-					XMLString::release( &tmp_buf );
-
-					subscription->removeAttribute( X( "changed" ) );
-					subscription->removeAttribute( X( "obj_id" ) );
-
-					//ziskani hesla pro get
-					struct SNMP_device *dev = snmpmod->get_device_ptr( el->object_id );
-					el->password = dev->xml_read;
-
-					el->in_list = true;
-
-					//zaradime do seznamu nasich subscriptionu
-					sub_list.push_back( el );
-					
-				}
-
-			}
-
-			/*
-			Smazeme prispevky, ktere nejsou uz nikde
-			*/
-			for ( it = sub_list.begin(); it != sub_list.end(); it++ )
-			{
-				if ( (*it)->in_list )
-				{
-					(*it)->in_list = false;
-				}
-				else
-					sub_list.erase( it );
-			}
-
-			/*
-			Prepocitame timeout
-			*/
-			timeout = recalculate_sleep( &sub_list, it );
-
-
-		}
-
 		if ( msg_sent == 0 && sub_list.size() <= 0 )
 		{
 			//jdeme spat, pac nic nemame obsluhovat
-			log_message( log_file, "DISTRIB: jdeme spat s prazdnym listem" );
 			pthread_cond_wait( &subscr_wait, &subscr_cond_lock );
 		}
 		else
@@ -2171,12 +2159,172 @@ int XmlModule::distribution_handler()
 			 ts.tv_sec = time(NULL) + timeout;
 			 ts.tv_nsec = 0;
 				
-			log_message( log_file, "DISTRIB: jdeme spat na timeout" );
-
+			 sleep_start = time(NULL);
 			 pthread_cond_timedwait( &subscr_wait, &subscr_cond_lock, &ts );
+
+			 //Kolik jsme opravdu spali
+			 //dulezite pak pro odecteni casu v ramci jednotlivych subscriptions
+			 time_slept = time(NULL) - sleep_start;
 		}
 
+		if ( subscriptions_changed )
+		{
+			//Predelani subscriptions
+			subscriptions_changed = false;
+
+
+			//sl = subscriptions->getChildNodes();
+			//subscriptions = all_subs->getChildNodes();
+
+			for ( unsigned int m = 0; m < all_subs->getLength(); m++ )
+			{
+				subscriptions = dynamic_cast<DOMElement *> ( all_subs->item( m ) );
+
+				//toto uz jsou jednotlive subscriptiony
+				sl = subscriptions->getChildNodes();
+				list_length = sl->getLength();
+
+				for ( unsigned i = 0; i < list_length; i++ )
+				{
+					subscription = dynamic_cast<DOMElement*> ( sl->item( i ) );
+					
+					changed = 0;
+					value = subscription->getAttribute( X("changed") );
+					tmp_buf = XMLString::transcode( value );
+					changed = atoi( tmp_buf );
+					XMLString::release( &tmp_buf );
+
+					to_del = 0;
+					value = subscription->getAttribute( X("delete") );
+					tmp_buf = XMLString::transcode( value );
+					to_del = atoi( tmp_buf );
+					XMLString::release( &tmp_buf );
+
+					value = subscription->getAttribute( X( "distrid" ) );
+					tmp_buf = XMLString::transcode( value );
+					tmp_int = atoi( tmp_buf );
+					XMLString::release( &tmp_buf );
+
+					//Smazeme pripadny vyskyt v seznamu a nahradime jej novym
+					for ( it = sub_list.begin(); it != sub_list.end(); it++ )
+					{
+						if ( changed && (*it)->distr_id == tmp_int )
+						{
+							sub_list.erase( it );
+							break;
+						}
+						else if ( ( (*it)->distr_id == tmp_int ) && ( to_del == 0 ) )
+						{
+							(*it)->in_list = true;
+							break;
+						}
+						else if ( ( (*it)->distr_id == tmp_int ) && to_del )
+						{
+							(*it)->in_list = false;
+							break;
+						}
+
+					}
+
+					//paklize se node zmenil
+					if ( changed )
+					{
+						log_message( log_file, "subscription changed" );
+
+
+						//vytvorime nove informace
+						struct subscription_element *el = new subscription_element;
+
+						el->distr_id = tmp_int;
+						el->subscription = subscription;
+
+						value = subscription->getAttribute( X( "frequency" ) );
+						tmp_buf = XMLString::transcode( value );
+						tmp_int = atoi( tmp_buf );
+						XMLString::release( &tmp_buf );
+						el->frequency = tmp_int;
+						el->time_remaining = tmp_int;
+
+						value = subscription->getAttribute( X( "manager" ) );
+						tmp_buf = XMLString::transcode( value );
+						el->manager_ip = string( tmp_buf );
+						XMLString::release( &tmp_buf );
+
+						value = subscription->getAttribute( X( "obj_id" ) );
+						tmp_buf = XMLString::transcode( value );
+						tmp_int = atoi( tmp_buf );
+						el->object_id = tmp_int;
+						XMLString::release( &tmp_buf );
+
+						subscription->removeAttribute( X( "changed" ) );
+						subscription->removeAttribute( X( "obj_id" ) );
+
+						//ziskani hesla pro get
+						struct SNMP_device *dev = snmpmod->get_device_ptr( el->object_id );
+						el->password = dev->xml_read;
+
+						el->in_list = true;
+
+						//zaradime do seznamu nasich subscriptionu
+						sub_list.push_back( el );
+						
+					}
+					else if ( to_del )
+					{
+						/*
+						Mazany dame do listu a pak jej smazeme
+						*/
+						delete_nodes.push_back( subscription );
+					}
+
+				} //end of jednotlive subscriptiony jednotliveho device
+			} //end of cely for cyklus projizdeni vsech subscriptions
+
+			/*
+			Fyzicke smazani danych subscriptions
+			*/
+			del_it = delete_nodes.begin();
+			while ( del_it != delete_nodes.end() )
+			{
+				DOMNode *tmp_node = (*del_it)->getParentNode();
+				tmp_node->removeChild( (*del_it) );
+				del_it = delete_nodes.erase( del_it );
+			}
+
+			/*
+			Smazeme prispevky, ktere nejsou uz nikde
+			*/
+			it = sub_list.begin();
+			while ( it != sub_list.end() )
+			{
+				if ( (*it)->in_list == true )
+				{
+					(*it)->in_list = false;
+					it++;
+				}
+				else
+				{
+					it = sub_list.erase( it );
+				}
+			}
+
+			/*
+			Prepocitame timeout
+			*/
+			timeout = recalculate_sleep( &sub_list, it );
+
+
+			/*
+			Znovu-vybudujeme mapovani DOMDocument-XalanDocument
+			*/
+			recreate_xalan_doc();
+
+
+		}
+
+
 		pthread_mutex_unlock( &subscr_cond_lock );
+
 
 
 		/*
@@ -2184,12 +2332,17 @@ int XmlModule::distribution_handler()
 		*/
 		for ( it = sub_list.begin(); it != sub_list.end(); it++ )
 		{
-			(*it)->time_remaining -= timeout;
+			//odecteme kolik jsme opravdu spali.
+			if ( (*it)->is_new )
+				(*it)->is_new = false;
+			else
+				(*it)->time_remaining -= time_slept;
 
 			if ( (*it)->time_remaining <= 0 )
 			{
 				//Nutno ziskat informace a hodit je managerovi
 				(*it)->time_remaining = (*it)->frequency;
+
 
 				xr = process_get_set_message( (*it)->subscription, (*it)->password.c_str(), XML_MSG_TYPE_GET, (*it)->object_id );
 				msg_sent++;
@@ -2316,11 +2469,17 @@ Znovu namapuje DOMDocument na XalanDocument
 */
 void XmlModule::recreate_xalan_doc()
 {
+	pthread_mutex_lock( &xa_doc_lock );
+
+	delete( main_xa_doc->liaison );
+
 	DOMDocument *doc;
 	XercesDOMSupport		theDOMSupport;
 
 	doc = main_root->getOwnerDocument();
 	main_xa_doc->liaison = new XercesParserLiaison( theDOMSupport );
 	main_xa_doc->doc = main_xa_doc->liaison->createDocument( doc, true, true, true );
+
+	pthread_mutex_unlock( &xa_doc_lock );
 
 }

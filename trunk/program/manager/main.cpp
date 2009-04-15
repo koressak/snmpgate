@@ -45,8 +45,10 @@ static size_t write_data( void *ptr, size_t size, size_t nmemb, void *data)
 //const char *msg = "<message password=\"private\"><subscribe msgid=\"123\" objectId=\"0\"><xpath>xsd:element[@name='iso']//xsd:element[@name='org']//xsd:element[@name='dod']//xsd:element[@name='internet']//xsd:element[@name='mgmt']//xsd:element[@name='mib-2']//xsd:element[@name='tcp']//xsd:element[@name='tcpConnTable']//xsd:element[@name='tcpConnEntry']//xsd:element[@name='tcpConnState']//next</xpath></subscribe></message>";
 
 //const char *msg = "<message password=\"zapis\"><get msgid=\"123\" objectId=\"0\"><xpath>/iso/org/dod/internet/mgmt/mib-2/system</xpath></get></message>";
-const char *msg = "<message password=\"zapis\"><subscribe msgid=\"123\" objectId=\"0\" frequency=\"3\" delete=\"1\" distrid=\"1\"><xpath>/iso/org/dod/internet/mgmt/mib-2/system/sysDescr</xpath></subscribe></message>";
-//const char *msg = "<message password=\"zapis\"><subscribe msgid=\"123\" objectId=\"0\" frequency=\"10\"><xpath>/iso/org/dod/internet/mgmt/mib-2/system/sysDescr</xpath></subscribe></message>";
+//const char *msg = "<message password=\"zapis\"><subscribe msgid=\"123\" delete=\"1\" distrid=\"2\"><xpath>/iso/org/dod/internet/mgmt/mib-2/system/sysDescr</xpath></subscribe></message>";
+const char *msg = "<message password=\"zapis\"><subscribe msgid=\"123\" delete=\"1\" distrid=\"1\" /></message>";
+//const char *msg = "<message password=\"zapis\"><subscribe msgid=\"123\" objectId=\"0\" frequency=\"8\"><xpath>/iso/org/dod/internet/mgmt/mib-2/system/sysDescr</xpath></subscribe></message>";
+//const char *msg = "<message password=\"zapis\"><subscribe msgid=\"123\" objectId=\"0\" distrid=\"1\" frequency=\"3\"><xpath>/iso/org/dod/internet/mgmt/mib-2/system/sysName</xpath></subscribe></message>";
 
 int main(int argc, char *argv[])
 {

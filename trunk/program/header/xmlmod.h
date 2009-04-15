@@ -78,6 +78,7 @@ class XmlModule
 		pthread_mutex_t response_lock; //vstup do response fronty
 		pthread_mutex_t condition_lock;
 		pthread_mutex_t subscr_cond_lock;
+		pthread_mutex_t xa_doc_lock; //pro manipulaci s xalan dokumentem
 
 		pthread_mutex_t getset_lock;
 
