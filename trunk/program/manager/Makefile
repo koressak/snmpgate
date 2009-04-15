@@ -5,7 +5,7 @@
 #
 #
 GCC=g++
-LIBS=-lcurl
+LIBS=-lcurl -largtable2
 PAR=-Wall
 
 
