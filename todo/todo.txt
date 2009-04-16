@@ -234,16 +234,18 @@ Poznamka:
 
 
 8. Pokrocila komunikace - notifications
-	- thread na posilani XML zprav managerovi
+	- jediny thread na manipulaci s trapama
+		- vytvoreni mapovani ( device -> managers )
+		- poslouchani na trapy
+		- check na notification v xml dokumentu
+		- libcurl -> zprava managerovi na preddefinovany port
 
-	- signaly na probouzeni tohoto vlakna
-
-	- snmp thread, ktery ceka na ty trapy
 
 
 
 9. Pokrocila komunikace - subscriptions / distribution
 	- thread na vyrizovani techto pozadavku
+	DONE
 
 	- fce process_subsribe_message
 
@@ -333,6 +335,8 @@ Low priority
 
 - DONE Preddelat si XalanDocumenty pro DOMDocumenty zarizeni, aby se pak pri vyhledavani mohlo prejit ciste jenom na evaluate()
 
+- INVALID Udelat seznam Publication error codes - (vubec vymyslet nejaky seznam)
+
 
 - Do textu pak napsat, ze vyuzivame pouze protokol 1 a 2c, jine nepodoporuje knihovna net-snmp
 
@@ -350,8 +354,6 @@ manager k xml schematu a tim menit jednotlive subscriptions (jeste rozmyslet, pa
 
 - Udelat snmpxmlgate jako global promennou -> pri odchytnuti sigterm se zavola stop a ukonci se jeho funkce hezky a nikoliv
 nasilnym smazanim vsech struktur.
-
-- Udelat seznam Publication error codes - (vubec vymyslet nejaky seznam)
 
 - Otestovat na prijimani veskerych hodnot ( net-snmp ma haldu debilnich typu a ja se z toho muzu co?.... )
 
@@ -463,6 +465,8 @@ Paklize neni nulovy ale neexistuje, taky ihned vratit a nepadat!!
 URGENT: udelat predtim, nez osetrime ty nulove xpathy v bodu vyse
 
 
+- configurak - vubec nemusi byt snmp/transmit port - pac to stejne odesilame z viceho portu
+
 
 
 
@@ -471,3 +475,6 @@ MACEJKOVI - konzultace:
 - Subscribe: budeme definovat na brane, na ktery port pak zpet posleme distribution
 (je to proto, ze subscribe neudava zadnou definici managera)
 
+- Notification: 
+ValueLocation ve zprave - bude pouze nazev daneho elementu (ne cela cesta). Vzdyt je to unikatni
+v ramci celeho dokumentu.

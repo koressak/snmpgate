@@ -39,6 +39,11 @@ class SnmpModule {
 		vector<struct request_data *> *request_queue;
 
 		/*
+		thread na odchytavani trapu
+		*/
+		pthread_t trap_thread;
+
+		/*
 		Mutexy na pristup do fronty
 		*/
 		pthread_mutex_t *req_locks;
@@ -48,6 +53,11 @@ class SnmpModule {
 		Condition pro handlery
 		*/
 		pthread_cond_t incom_cond;
+
+		/*
+		Seznam notification elementu
+		*/
+		list<struct notification_element *> notifications;
 	
 	public:
 		SnmpModule();
@@ -70,15 +80,22 @@ class SnmpModule {
 
 		u_char map_type_to_pdu( int );
 
-		/*
-		TODO: Thread na poslouchani snmp trapu
-		*/
 
 		/*
 		Funkce pro XmlModule na posilani zprav a ocekavani odpovedi
 		*/
 		//int send_request( struct request_data*, const char* password,  int msg_type );
 		void request_handler( struct snmp_req_handler* );
+
+		/*
+		Odchytavani trapu a posilani eventu managerovi
+		*/
+		void trap_handler();
+
+		/*
+		Processing trap pdu
+		*/
+		int process_trap( int, struct snmp_session *, int , struct snmp_pdu* );
 
 		/*
 		Inicializace threadu
@@ -132,6 +149,34 @@ inline void *start_snmp_req_handler( void *arg )
 
 	if ( rh->snmpmod != NULL )
 		rh->snmpmod->request_handler( rh );
+
+	return 0;
+}
+
+/*
+pro trap handler
+*/
+inline void *start_snmp_trap_handler( void *arg )
+{
+	SnmpModule *snmpmod = (SnmpModule *) arg;
+	if ( snmpmod != NULL )
+	{
+		snmpmod->trap_handler();
+	}
+
+	return 0;
+}
+
+/*
+Callback pro cteni a processing prijatych trapu
+*/
+inline int process_snmp_trap( int operation, struct snmp_session *sess, int reqid , struct snmp_pdu* pdu, void *magic)
+{
+	SnmpModule *snmpmod = (SnmpModule *) magic;
+	if ( snmpmod != NULL )
+	{
+		snmpmod->process_trap( operation, sess, reqid, pdu );
+	}
 
 	return 0;
 }

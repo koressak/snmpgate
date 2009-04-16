@@ -560,6 +560,25 @@ struct subscription_element
 	}
 };
 
+/*
+Notification element
+*/
+struct notification_element
+{
+	SNMP_device *device;
+	int last_msg_id;
+
+	list<string> manager_urls;
+
+	notification_element()
+	{
+		device = NULL;
+		last_msg_id = 0;
+	}
+
+	
+};
+
 
 #endif
 
