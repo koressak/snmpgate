@@ -577,7 +577,7 @@ struct MemoryStruct* send_request( string *msg, struct manager_data *msg_data )
 		//nastavime parametry a odesleme
 		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
-		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+	//	curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
 
 		curl_easy_setopt( curl, CURLOPT_WRITEFUNCTION, write_data );
 		curl_easy_setopt( curl, CURLOPT_WRITEDATA, (void *) response );
@@ -612,6 +612,38 @@ struct MemoryStruct* send_request( string *msg, struct manager_data *msg_data )
 	curl_formfree(formpost);
 
 	return response;
+}
+
+/*
+Posle request na zabiti dane subscription
+*/
+void kill_subscription( string ds, struct manager_data *msg_data )
+{
+	int distrid = atoi( ds.c_str() );
+
+	if ( distrid == 0 )
+	{
+		cerr << "This is not a valid distrid value!!" <<endl;
+		return;
+	}
+
+
+	string message = "<message password=\"";
+	message += msg_data->password;
+	message += "\"> <subscribe msgid=\"1\" delete=\"1\" distrid=\"";
+	message += ds;
+	message += "\" />";
+	message += "</message>";
+
+	cout << endl << message << endl;
+
+	struct MemoryStruct *response = send_request( &message, msg_data );
+	if ( response != NULL )
+	{
+		cout << response->memory << endl;
+	}
+
+	msg_data->subscr_count--;
 }
 
 /*************************************
@@ -686,7 +718,28 @@ int main(int argc, char *argv[])
 	*/
 	if ( notification->count > 0 )
 	{
-		//TODO: start server function
+		cout << "------------------" << endl;
+		cout << "Starting server for notifications" << endl;
+		cout << " -----------------"<<endl;
+
+		daemon = MHD_start_daemon( MHD_USE_SELECT_INTERNALLY, listen_port->ival[0],
+								NULL, NULL, 
+								&answer, NULL, 
+								MHD_OPTION_NOTIFY_COMPLETED, request_completed, NULL,
+								MHD_OPTION_END);
+		/*
+		Nyni budeme cekat na uzivateluv vstup s cislem subscr id, abychom 
+		mohli poslat zabijeci zpravy
+		*/
+		char x;
+		cout << "For stopping the server, input a character.\n";
+
+		cin >> x;
+
+		MHD_stop_daemon( daemon );
+		cout << "---------------"<<endl;
+		cout << "Stopped server. Terminating manager" << endl;
+		cout <<"------------"<<endl;
 	}
 	else
 	{
@@ -743,6 +796,9 @@ int main(int argc, char *argv[])
 		*/
 		if ( msg_data->has_subscription )
 		{
+			cout << "------------------" << endl;
+			cout << "Starting server for descriptions" << endl;
+			cout << " -----------------"<<endl;
 
 			daemon = MHD_start_daemon( MHD_USE_SELECT_INTERNALLY, listen_port->ival[0],
 									NULL, NULL, 
@@ -753,9 +809,14 @@ int main(int argc, char *argv[])
 			Nyni budeme cekat na uzivateluv vstup s cislem subscr id, abychom 
 			mohli poslat zabijeci zpravy
 			*/
-			char x;
+			string x;
+			cout << "To stop the server - input all subscription ids, for killing them on the server" << endl;
 
-			cin >> x;
+			while ( msg_data->subscr_count > 0 )
+			{
+				cin >> x;
+				kill_subscription( x, msg_data );
+			}
 
 			MHD_stop_daemon( daemon );
 		}

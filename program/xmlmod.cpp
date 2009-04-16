@@ -2135,6 +2135,7 @@ int XmlModule::distribution_handler()
 	static const char 		buf[] = "Expect:";
 	string url;
 	char trans_port[50];
+	string final_message;
 
 
 	//data
@@ -2173,7 +2174,6 @@ int XmlModule::distribution_handler()
 	while( 1 )
 	{
 		//check na zmenu
-		log_message( log_file, "New cycle" );
 		pthread_mutex_lock( &subscr_cond_lock );
 
 		if ( msg_sent == 0 && sub_list.size() <= 0 )
@@ -2183,7 +2183,6 @@ int XmlModule::distribution_handler()
 		}
 		else
 		{
-			log_message( log_file, "Distr: sleeping" );
 			//jdeme spat pouze na dany timeout
 			if ( msg_sent != 0 )
 				timeout = 1;
@@ -2197,7 +2196,6 @@ int XmlModule::distribution_handler()
 			 //Kolik jsme opravdu spali
 			 //dulezite pak pro odecteni casu v ramci jednotlivych subscriptions
 			 time_slept = time(NULL) - sleep_start;
-			log_message( log_file, "Distr: waking up" );
 		}
 
 		if ( subscriptions_changed )
@@ -2447,7 +2445,6 @@ int XmlModule::distribution_handler()
 			 list<struct request_data*>::iterator tmp_it;
 			 while( res_it != responses.end() )
 			 {
-				 log_message( log_file, "DISTR: we have got a response, process it now" );
 				 /*
 				 Toto je kvuli SUBSCRIBE, abychom mohli vyuzit
 				 fci process_get message, tak ulozime odpovedni typ
@@ -2456,62 +2453,54 @@ int XmlModule::distribution_handler()
 				 if ( (*res_it)->msg_type_resp != 0 )
 					 (*res_it)->msg_type = (*res_it)->msg_type_resp;
 
+
+				for ( it = sub_list.begin(); it != sub_list.end(); it++ )
+				{
+					if ( (*it)->distr_id == (*res_it)->distr_id )
+					{
+						break;
+					}
+				}
+
+				(*it)->last_msg_id++;
+				(*res_it)->msgid = (*it)->last_msg_id;
+
 				string *out = build_response_string( (*res_it) );
 
-				//TODO: Zde zavolat libCurl - poslat odpoved managerovi na ten port
-				//log_message( log_file, (*out).c_str() );
+				final_message = "<message context=\"\">";
+				final_message += *out;
+				final_message += "</message>";
 
-				log_message( log_file, "DISTRB: sending distribution packet via libcurl" );
+
 
 
 				curl = curl_easy_init();
-				log_message( log_file, "DISTR: after curl_init" );
 
 				if ( curl )
 				{
 					curl_formadd( &formpost, &lastptr,
 									CURLFORM_COPYNAME, "selection",
-									CURLFORM_COPYCONTENTS, out->c_str(),
+									CURLFORM_COPYCONTENTS, final_message.c_str(),
 									CURLFORM_CONTENTTYPE,"text/xml",
 									CURLFORM_END);
-				log_message( log_file, "DISTR: after formadd" );
 
 					
-				log_message( log_file, "DISTR: after append header list" );
 
 					url = "http://";
 
 					/*
 					Get the manager ip
 					*/
-					for ( it = sub_list.begin(); it != sub_list.end(); it++ )
-					{
-						if ( (*it)->distr_id == (*res_it)->distr_id )
-						{
-							url += (*it)->manager_ip;
-							break;
-						}
-					}
+					url += (*it)->manager_ip;
 
 					url += trans_port;
-					log_message( log_file, url.c_str() );
-
-
 
 					//nastavime parametry a odesleme
 					curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 					curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
 
 					curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
-					log_message( log_file, "DISTR: curl options set up, now sending" );
-					try {
 					res = curl_easy_perform(curl);
-					}
-					catch ( ... )
-					{
-						log_message( log_file, "EXCEPTION: cannot use curl" );
-					}
-					log_message( log_file, "DISTR: message sent" );
 
 					if ( res != CURLE_OK )
 					{
