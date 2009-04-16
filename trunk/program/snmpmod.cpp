@@ -435,6 +435,18 @@ int SnmpModule::initialize_threads()
 		}
 	}
 
+
+	/*
+	Inicializace trap threadu
+	*/
+	thr_ret = pthread_create( &trap_thread, NULL, start_snmp_trap_handler, (void *) this );
+
+	if( thr_ret != 0 )
+	{
+		log_message( log_file, "cannot start trap handler thread" );
+		return thr_ret;
+	}
+
 	return 0;
 
 }
@@ -1042,3 +1054,120 @@ void SnmpModule::get_response_value( struct variable_list* vars, struct value_pa
 }
 
 
+
+/***********************************
+*****	Trap handler
+***********************************/
+
+void SnmpModule::trap_handler()
+{
+	log_message( log_file, "Trap handler started" );
+
+	int devices_no;
+	SNMP_device *gate;
+	SNMP_device *tmp_dev;
+
+	gate = get_gate_device();
+	devices_no = get_device_count();
+
+	list<struct trap_manager*>::iterator it;
+	string tmp_str;
+
+	struct notification_element *nelem;
+
+	for ( int i=0; i < devices_no; i++ )
+	{
+		//zpracovani jednotlivych devices pro trap managery
+		tmp_dev = get_device_by_position( i );
+		nelem = new notification_element;
+
+		for ( it = tmp_dev->traps.begin(); it != tmp_dev->traps.end(); it++ )
+		{
+			if ( (*it)->address == NULL || (*it)->port == NULL)
+			{
+				log_message( log_file, "Address and PORT are NULL" );
+				break;
+			}
+			tmp_str = string( (*it)->address );
+			tmp_str += ":";
+			tmp_str += string( (*it)->port );
+
+			nelem->manager_urls.push_back( tmp_str );
+
+		}
+
+		nelem->device = tmp_dev;
+
+		//umistime do seznamu notifications
+		notifications.push_back( nelem );
+
+	}
+
+	/*
+	Vytvoreni snmp session
+	*/
+	void 		*ss;
+	struct 		snmp_session session, *sptr=NULL;
+	int 		fds;
+	fd_set		fdset;
+	int			block = 1;
+	struct timeval timeout;
+	//char peer = '\0';
+	char *peer = (char *)"localhost";
+
+	snmp_sess_init( &session );
+
+	//nastaveni vsehc parametru
+	//session.version = SNMP_VERSION_2c;
+	//session.peername= peer;
+	session.local_port = (u_short) gate->snmp_listen_port;
+	session.callback = process_snmp_trap;
+	session.callback_magic = (void *) this;
+
+
+	ss = snmp_sess_open( &session );
+
+	if ( ss == NULL )
+	{
+		//snmp_error( &session, &liberr, &syserr, &errstr );
+		log_message( log_file, "Cannot open notification session. Notification thread - terminating." );
+		return;
+	}
+	
+	sptr = snmp_sess_session( ss );
+
+	char tmp_oid[50];
+	sprintf( tmp_oid, "%d", sptr->local_port );
+	log_message( log_file, tmp_oid );
+
+
+	//nekonecny cyklus poslouchani
+	while(1)
+	{
+		fds = 0;
+		block = 1;
+
+		FD_ZERO( &fdset );
+		snmp_sess_select_info( ss, &fds, &fdset, &timeout, &block );
+
+		log_message( log_file, "NOTIF: entering blocking wait for incoming notification" );
+		//blokujici volani selectu
+		fds = select( fds, &fdset, NULL, NULL, NULL );
+
+		if ( fds )
+			snmp_sess_read( ss, &fdset );
+	}
+
+
+}
+
+
+/*
+Processnuti daneho trapu
+*/
+int SnmpModule::process_trap( int operation, struct snmp_session *sess, int reqid, struct snmp_pdu *pdu )
+{
+	log_message( log_file, "TRAP PROCESSOR: operational" );
+
+	return 1;
+}

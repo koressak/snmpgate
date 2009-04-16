@@ -12,7 +12,7 @@
 		<traps>
 			<manager>
 				<address>127.0.0.1</address>
-				<port>1048</port>
+				<port>7878</port>
 			</manager>
 		</traps>
 		<access>
@@ -26,7 +26,7 @@
 		<logFile>/tmp/snmpxmld.log</logFile>
 		<snmp>
 			<mibPath>/usr/share/snmp/mibs/</mibPath>
-			<listenPort>162</listenPort>
+			<listenPort>3111</listenPort>
 			<transmitPort>161</transmitPort>
 		</snmp>
 		<xml>

@@ -373,7 +373,7 @@ void SnmpXmlGate::getDeviceInfo( DOMElement *device, SNMP_device *info )
 
 						for ( XMLSize_t man = 0; man < man_list->getLength(); man++ )
 						{
-							DOMNode* tmp  = children->item(man);
+							DOMNode* tmp  = man_list->item(man);
 							if ( tmp->getNodeType() && tmp->getNodeType() == DOMNode::ELEMENT_NODE )
 							{
 								DOMElement *tmp2 = dynamic_cast<DOMElement *>( tmp );
