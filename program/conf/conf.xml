@@ -32,7 +32,7 @@
 		<xml>
 			<xsdPath>/tmp/</xsdPath>
 			<listenPort>8888</listenPort>
-			<transmitPort>2055</transmitPort>
+			<transmitPort>2555</transmitPort>
 			<access>
 				<read>cteni</read>
 				<write>zapis</write>

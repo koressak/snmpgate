@@ -165,7 +165,7 @@ HTTP parametry
 */
 #define HTTP_GET 0
 #define HTTP_POST 1
-#define POSTBUFFERSIZE 512
+#define POSTBUFFERSIZE 4096
 
 
 

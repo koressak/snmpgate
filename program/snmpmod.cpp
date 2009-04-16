@@ -601,11 +601,13 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 			//ziskame prvni dotaz
 			req_data = requests.front();
 			requests.pop_front();
+			
 
 			//nastavime pro nej community string
 			delete( sptr->community );
 			sptr->community = (u_char *) strdup(req_data->community.c_str());
 			sptr->community_len = strlen( (char *)sptr->community ) ;
+
 
 			/*
 			Vytvoreni pdu a naplneni daty
@@ -637,6 +639,7 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 
 			}
 
+
 			list<struct value_pair *>::iterator it;
 
 			//Pro pouziti vyhledavani typu a nazvu elementu
@@ -661,6 +664,7 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 				root_len = elem_len;
 
 
+
 				/*
 				Nejprve je nutne najit ten element podle oid a zjistit jeho typ,
 				ktery dosadime do pdu
@@ -680,6 +684,7 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 							snmp_add_null_var( pdu, elem, elem_len );
 					}
 				}
+
 			} //end for cycle
 
 			if ( !error )
@@ -691,6 +696,7 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 				do 
 				{
 					status = snmp_sess_synch_response( ss, pdu, &response );
+					
 
 					if ( status != STAT_SUCCESS )
 					{
@@ -699,6 +705,7 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 
 						req_data->error = XML_MSG_ERR_SNMP;
 						req_data->error_str = "PDU couldn't be delivered";
+
 
 
 					}

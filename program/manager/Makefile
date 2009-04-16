@@ -5,7 +5,7 @@
 #
 #
 GCC=g++
-LIBS=-lcurl -largtable2
+LIBS=-lcurl -largtable2 -lmicrohttpd
 PAR=-Wall
 
 
