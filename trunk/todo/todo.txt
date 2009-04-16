@@ -299,10 +299,12 @@ Poznamka:
 		je nutno zamykat mutex
 		DONE
 
-
-
 		- vzit v potaz, ze tam mame vice subscriptions v ramci celeho dokumentu
 		(kazdy device ma vlastni!!!!!)
+		DONE
+
+		- Mazani subscriptions, paklize nejsou xkrat doruceny.
+		DONE
 
 
 -------------------
@@ -450,6 +452,15 @@ DONE
 
 - Discovery message - predelat, jak jsme zmenily system xml souboru a ukazatelu, musi se to nacitat ze souboru.!!
 
+- Spatne vraceni erroru na SET message (kdyz se vyskytne error, agent stale vraci no error)
+Otazka: je to agentem, nebo si to hlidaji dotycne utilitky??
+
+- parsing message - paklize je tam new line character, vyparsuje to jako jeden vlastni xpath 
+(nutno tedy osetrit nulove xpathy)
+
+- snmpmodule - osetrit error check, kdyz node neexistuje (je nulovy, vratit ihned error zpet );
+Paklize neni nulovy ale neexistuje, taky ihned vratit a nepadat!!
+URGENT: udelat predtim, nez osetrime ty nulove xpathy v bodu vyse
 
 
 

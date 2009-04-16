@@ -30,6 +30,12 @@ XmlModule::XmlModule()
 
 	response_queue.clear();
 
+	/*
+	Init libCUrl
+	*/
+	curl_global_init(CURL_GLOBAL_ALL);
+
+
 }
 
 /*
@@ -2094,6 +2100,7 @@ int XmlModule::distribution_handler()
 	DOMNodeList *sl;
 	DOMElement *subscription;
 	DOMNodeList *all_subs;
+	DOMDocument *doc;
 
 	//seznam vsech subscriptions
 	list<struct subscription_element *> sub_list;
@@ -2116,6 +2123,19 @@ int XmlModule::distribution_handler()
 	int changed;
 	int to_del;
 	int list_length;
+
+	/*
+	libCUrl section
+	*/
+	CURL 					*curl;
+	CURLcode 				res;
+	struct curl_httppost 	*formpost=NULL;
+	struct curl_httppost 	*lastptr=NULL;
+	struct curl_slist 		*headerlist=NULL;
+	static const char 		buf[] = "Expect:";
+	string url;
+	char trans_port[50];
+
 
 	//data
 	struct request_data *xr;
@@ -2140,9 +2160,20 @@ int XmlModule::distribution_handler()
 	time_slept = 0;
 	sleep_start = 0;
 
+	/*
+	Ulozime si port, na ktery mame posilat data
+	*/
+	SNMP_device *dev = snmpmod->get_gate_device();
+	sprintf( trans_port, ":%d", dev->xml_trans_port );
+
+	headerlist = curl_slist_append(headerlist, buf);
+
+	doc = main_root->getOwnerDocument();
+
 	while( 1 )
 	{
 		//check na zmenu
+		log_message( log_file, "New cycle" );
 		pthread_mutex_lock( &subscr_cond_lock );
 
 		if ( msg_sent == 0 && sub_list.size() <= 0 )
@@ -2152,6 +2183,7 @@ int XmlModule::distribution_handler()
 		}
 		else
 		{
+			log_message( log_file, "Distr: sleeping" );
 			//jdeme spat pouze na dany timeout
 			if ( msg_sent != 0 )
 				timeout = 1;
@@ -2165,6 +2197,7 @@ int XmlModule::distribution_handler()
 			 //Kolik jsme opravdu spali
 			 //dulezite pak pro odecteni casu v ramci jednotlivych subscriptions
 			 time_slept = time(NULL) - sleep_start;
+			log_message( log_file, "Distr: waking up" );
 		}
 
 		if ( subscriptions_changed )
@@ -2184,7 +2217,7 @@ int XmlModule::distribution_handler()
 				sl = subscriptions->getChildNodes();
 				list_length = sl->getLength();
 
-				for ( unsigned i = 0; i < list_length; i++ )
+				for ( int i = 0; i < list_length; i++ )
 				{
 					subscription = dynamic_cast<DOMElement*> ( sl->item( i ) );
 					
@@ -2387,6 +2420,7 @@ int XmlModule::distribution_handler()
 		*/
 		if ( msg_sent > 0 )
 		{
+			log_message( log_file, "DISTR: processing respnoses" );
 			 pthread_mutex_lock( &response_lock );
 
 			 res_it = response_queue.begin();
@@ -2413,6 +2447,7 @@ int XmlModule::distribution_handler()
 			 list<struct request_data*>::iterator tmp_it;
 			 while( res_it != responses.end() )
 			 {
+				 log_message( log_file, "DISTR: we have got a response, process it now" );
 				 /*
 				 Toto je kvuli SUBSCRIBE, abychom mohli vyuzit
 				 fci process_get message, tak ulozime odpovedni typ
@@ -2424,7 +2459,105 @@ int XmlModule::distribution_handler()
 				string *out = build_response_string( (*res_it) );
 
 				//TODO: Zde zavolat libCurl - poslat odpoved managerovi na ten port
-				log_message( log_file, (*out).c_str() );
+				//log_message( log_file, (*out).c_str() );
+
+				log_message( log_file, "DISTRB: sending distribution packet via libcurl" );
+
+
+				curl = curl_easy_init();
+				log_message( log_file, "DISTR: after curl_init" );
+
+				if ( curl )
+				{
+					curl_formadd( &formpost, &lastptr,
+									CURLFORM_COPYNAME, "selection",
+									CURLFORM_COPYCONTENTS, out->c_str(),
+									CURLFORM_CONTENTTYPE,"text/xml",
+									CURLFORM_END);
+				log_message( log_file, "DISTR: after formadd" );
+
+					
+				log_message( log_file, "DISTR: after append header list" );
+
+					url = "http://";
+
+					/*
+					Get the manager ip
+					*/
+					for ( it = sub_list.begin(); it != sub_list.end(); it++ )
+					{
+						if ( (*it)->distr_id == (*res_it)->distr_id )
+						{
+							url += (*it)->manager_ip;
+							break;
+						}
+					}
+
+					url += trans_port;
+					log_message( log_file, url.c_str() );
+
+
+
+					//nastavime parametry a odesleme
+					curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+					curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
+
+					curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
+					log_message( log_file, "DISTR: curl options set up, now sending" );
+					try {
+					res = curl_easy_perform(curl);
+					}
+					catch ( ... )
+					{
+						log_message( log_file, "EXCEPTION: cannot use curl" );
+					}
+					log_message( log_file, "DISTR: message sent" );
+
+					if ( res != CURLE_OK )
+					{
+						//TODO: error pocitani a pak smazani distributionu
+						log_message( log_file, "DISTR: could not send the distribution data" );
+						log_message( log_file, curl_easy_strerror( res ) );
+
+						//it obsahuje odkaz na distribution element
+						(*it)->lost_msg_count++;
+
+						if ( (*it)->lost_msg_count >= XML_SUBSCRIBE_MAX_LOST )
+						{
+							log_message( log_file, "DELETING subscription. 5 times not delivered" );
+							//dat k nemu change a delete
+							DOMAttr *attr;
+							attr = doc->createAttribute( X( "delete" ) );
+							attr->setNodeValue( X("1") );
+
+							pthread_mutex_lock( &subscr_cond_lock );
+
+							(*it)->subscription->setAttributeNode( attr );
+							subscriptions_changed = true;
+							
+							pthread_mutex_unlock( &subscr_cond_lock );
+						}
+					}
+
+
+					/*
+					clean up
+					*/
+					curl_easy_cleanup(curl);
+				}
+				else
+				{
+					log_message( log_file, "DISTR: ERROR, could not initialize curl session" );
+				}
+
+				/*
+				ostatni delete
+				*/
+				//curl_slist_free_all (headerlist);
+				curl_formfree(formpost);
+				lastptr = NULL;
+				formpost = NULL;
+
 
 				tmp_it = res_it;
 				res_it++;
@@ -2479,6 +2612,8 @@ void XmlModule::recreate_xalan_doc()
 	doc = main_root->getOwnerDocument();
 	main_xa_doc->liaison = new XercesParserLiaison( theDOMSupport );
 	main_xa_doc->doc = main_xa_doc->liaison->createDocument( doc, true, true, true );
+
+	Mib2Xsd::output_xml2file( "xalan.xsd", main_root->getOwnerDocument());
 
 	pthread_mutex_unlock( &xa_doc_lock );
 
