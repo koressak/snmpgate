@@ -17,6 +17,9 @@ Standard includes
 #include <pthread.h>
 #include <time.h>
 #include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
 
 /*
 Timestamp for log
@@ -106,6 +109,8 @@ SNMP specificke defaultni hodnoty
 */
 #define SNMP_SEND_PORT 161
 #define SNMP_LISTEN_PORT 162
+
+#define SNMP_MAX_PACKET_SIZE 64000
 
 /*
 XML default hodnoty

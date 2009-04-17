@@ -168,6 +168,7 @@ void SnmpXmlGate::run()
 					MHD_OPTION_NOTIFY_COMPLETED, request_completed, NULL, MHD_OPTION_END);
 
 
+	Mib2Xsd::output_xml2file( "zk.xml", doc );
 
 	/*
 	Cekame na ukonceni threadu - ciste jenom pro to, abychom neskoncili program.

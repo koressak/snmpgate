@@ -76,6 +76,7 @@ class SnmpModule {
 		int get_device_position( int );
 		SNMP_device* get_device_ptr( int );
 		SNMP_device* get_device_by_position( int );
+		struct notification_element* get_notification_by_addr( const char* );
 		int get_device_count();
 
 		u_char map_type_to_pdu( int );
@@ -95,7 +96,7 @@ class SnmpModule {
 		/*
 		Processing trap pdu
 		*/
-		int process_trap( int, struct snmp_session *, int , struct snmp_pdu* );
+		int process_trap( int, struct snmp_session *, int , struct snmp_pdu*, netsnmp_transport * );
 
 		/*
 		Inicializace threadu
@@ -139,6 +140,15 @@ struct snmp_req_handler
 	SNMP_device *device;
 	SnmpModule *snmpmod;
 };
+
+/*
+SNMP trap blbec
+*/
+struct snmp_trap_magic
+{
+	SnmpModule *snmpmod;
+	netsnmp_transport *transport;
+};
   
 /*
 Callbacky startovani threadu.
@@ -172,10 +182,11 @@ Callback pro cteni a processing prijatych trapu
 */
 inline int process_snmp_trap( int operation, struct snmp_session *sess, int reqid , struct snmp_pdu* pdu, void *magic)
 {
-	SnmpModule *snmpmod = (SnmpModule *) magic;
-	if ( snmpmod != NULL )
+	//SnmpModule *snmpmod = (SnmpModule *) magic;
+	struct snmp_trap_magic *mag = (struct snmp_trap_magic *) magic;
+	if ( mag->snmpmod != NULL )
 	{
-		snmpmod->process_trap( operation, sess, reqid, pdu );
+		mag->snmpmod->process_trap( operation, sess, reqid, pdu, mag->transport );
 	}
 
 	return 0;
