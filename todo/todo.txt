@@ -146,8 +146,10 @@ Poznamka:
 		DONE
 
 		- distribution thr.
+		DONE
 
 		- xml trap to manager
+		DONE
 
 7. Zakladni komunikace
 	- rozchodit http server thread
@@ -236,9 +238,19 @@ Poznamka:
 8. Pokrocila komunikace - notifications
 	- jediny thread na manipulaci s trapama
 		- vytvoreni mapovani ( device -> managers )
+		DONE
+
 		- poslouchani na trapy
+		DONE
+
 		- check na notification v xml dokumentu
+		INVALID - tohle trosku hapruje - dokud nedostaneme to cele oid, tak to nema smysl
+
 		- libcurl -> zprava managerovi na preddefinovany port
+		DONE
+
+TRAP BUGS:
+	- nechodi timestamp a poradne oid pro jednotlive verze trapu. (netusim, jak to z toho dostat)
 
 
 
@@ -273,6 +285,7 @@ Poznamka:
 		
 		- POZOR: kdyz je pritomno distrId - bude se upravovat nebo mazat subscriptiona.
 		Tudiz musime checknout, jestli je to vsechno v pohode a potvrdit/zrusit
+		DONE
 
 	- distr. thread
 		- vezme vsechny hodnoty intervalu -> dle toho naplanuje spani.
@@ -317,7 +330,11 @@ Delete subscriptionu - muze delat kdokoliv, kdo zna distrid.
 
 
 10. Zabezpeceni
+DONE
 	- pridat fci na spousteni demona s certifikatama
+	DONE
+	- pridany elementy do konfiguraku (security, key, certificate)
+	DONE
 
 
 
@@ -444,6 +461,9 @@ DONE - sice nevime proc, ale uz to chodi (prehodili jsme spanek nade vsechny akc
 by si mohli prepisovat data
 DONE
 
+- Discovery message - predelat, jak jsme zmenily system xml souboru a ukazatelu, musi se to nacitat ze souboru.!!
+DONE
+
 
 
 
@@ -452,7 +472,6 @@ DONE
 
 - HTTP server -> nutno doplnit do konfiguraku neco ohledne bezpecnostiho certifikatu pro https
 
-- Discovery message - predelat, jak jsme zmenily system xml souboru a ukazatelu, musi se to nacitat ze souboru.!!
 
 - Spatne vraceni erroru na SET message (kdyz se vyskytne error, agent stale vraci no error)
 Otazka: je to agentem, nebo si to hlidaji dotycne utilitky??

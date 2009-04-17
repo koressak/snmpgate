@@ -89,6 +89,8 @@ class SnmpXmlGate
 		void initialize_config(void);
 		void getDeviceInfo( DOMElement *, SNMP_device * );
 
+		char *load_file( const char * );
+
 		void stop(void);
 
 		int process_message( void *cls, MHD_Connection *connection, const char *url, const char *method, const char *version, const char *upload_data, size_t *dsize, void **con_cls)

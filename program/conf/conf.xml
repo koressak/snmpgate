@@ -39,6 +39,10 @@
 			</access>
 			<protocolVersion>1</protocolVersion>
 		</xml>
+		<!--<security>
+			<key>aa</key>
+			<certificate>bb</certificate>
+		</security>-->
 	</device>
 	<!-- Monitorovany notebook -->
 	<!-- <device id="1">
