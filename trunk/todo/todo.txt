@@ -478,3 +478,6 @@ MACEJKOVI - konzultace:
 - Notification: 
 ValueLocation ve zprave - bude pouze nazev daneho elementu (ne cela cesta). Vzdyt je to unikatni
 v ramci celeho dokumentu.
+
+- Testovani - co jako tam? Jenom uvest, ze to funguje, nebo neco vice??
+

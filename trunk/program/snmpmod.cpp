@@ -346,8 +346,7 @@ int SnmpModule::get_device_position( int dev_id )
 
 
 /*
-Vrati pozici daneho zarizeni v seznamu devices.
-coz se rovna i pozici v seznamu rootu dokumentu
+vrati pointer na device dle jeho pozice
 */
 SNMP_device* SnmpModule::get_device_by_position( int position )
 {
@@ -360,6 +359,23 @@ SNMP_device* SnmpModule::get_device_by_position( int position )
 	}
 
 	return (*it);
+}
+
+/*
+Vrati pointer na device, Porovnavame dle snmp_addr
+*/
+struct notification_element* SnmpModule::get_notification_by_addr( const char* addr )
+{
+
+	list<struct notification_element *>::iterator it;
+
+	for( it = notifications.begin(); it != notifications.end(); it++ )
+	{
+		if ( strcmp( (*it)->device->snmp_addr, addr ) == 0 )
+			return (*it);
+	}
+
+	return NULL;
 }
 
 /*
@@ -1063,6 +1079,10 @@ void SnmpModule::trap_handler()
 {
 	log_message( log_file, "Trap handler started" );
 
+	/*
+	Nejprve zpracujeme informace ohledne devices
+	a jednotlivych manazeru
+	*/
 	int devices_no;
 	SNMP_device *gate;
 	SNMP_device *tmp_dev;
@@ -1106,56 +1126,79 @@ void SnmpModule::trap_handler()
 	/*
 	Vytvoreni snmp session
 	*/
-	void 		*ss;
-	struct 		snmp_session session, *sptr=NULL;
-	int 		fds;
-	fd_set		fdset;
-	int			block = 1;
-	struct timeval timeout;
-	//char peer = '\0';
-	char *peer = (char *)"localhost";
+	void 				*ss;
+	netsnmp_session 	session, *sptr=NULL;
+	netsnmp_transport	*transport = NULL;
+	int 				fds;
+	fd_set				fdset;
+	int					block = 1;
+	struct timeval 		timeout;
+	char 				listen_port[100];
+	int					numfds;
 
+	struct snmp_trap_magic *magic_struct = new snmp_trap_magic;
+
+	sprintf( listen_port, "udp:%d", gate->snmp_listen_port );
+
+	//init_agent( "snmptrap" );
+
+	/*
+	Start transport and create snmp session
+	*/
+	transport = netsnmp_tdomain_transport( listen_port, 1, "udp" );
+	if ( transport == NULL )
+	{
+		log_message( log_file, "Cannot start snmp transport. Terminating" );
+		return;
+	}
+
+	/*
+	Inicializace session
+	*/
 	snmp_sess_init( &session );
+	sptr = &session;
+	sptr->peername = SNMP_DEFAULT_PEERNAME;
+	sptr->version = SNMP_DEFAULT_VERSION;
+	sptr->community_len = SNMP_DEFAULT_COMMUNITY_LEN;
+	sptr->retries = SNMP_DEFAULT_RETRIES;
+	sptr->timeout = SNMP_DEFAULT_TIMEOUT;
+	sptr->callback = process_snmp_trap;
 
-	//nastaveni vsehc parametru
-	//session.version = SNMP_VERSION_2c;
-	//session.peername= peer;
-	session.local_port = (u_short) gate->snmp_listen_port;
-	session.callback = process_snmp_trap;
-	session.callback_magic = (void *) this;
+	magic_struct->snmpmod = this;
+	magic_struct->transport = transport;
+
+	sptr->callback_magic = (void *)magic_struct;
+	sptr->authenticator = NULL;
+	session.isAuthoritative = SNMP_SESS_UNKNOWNAUTH;
 
 
-	ss = snmp_sess_open( &session );
+	ss = snmp_add( sptr, transport, NULL, NULL );
 
 	if ( ss == NULL )
 	{
-		//snmp_error( &session, &liberr, &syserr, &errstr );
-		log_message( log_file, "Cannot open notification session. Notification thread - terminating." );
+		log_message( log_file, "Cannot add snmp session to listen. Terminating" );
 		return;
 	}
-	
-	sptr = snmp_sess_session( ss );
-
-	char tmp_oid[50];
-	sprintf( tmp_oid, "%d", sptr->local_port );
-	log_message( log_file, tmp_oid );
-
 
 	//nekonecny cyklus poslouchani
 	while(1)
 	{
 		fds = 0;
-		block = 1;
-
 		FD_ZERO( &fdset );
-		snmp_sess_select_info( ss, &fds, &fdset, &timeout, &block );
+		snmp_select_info( &fds, &fdset, &timeout, &block );
 
-		log_message( log_file, "NOTIF: entering blocking wait for incoming notification" );
 		//blokujici volani selectu
-		fds = select( fds, &fdset, NULL, NULL, NULL );
+		numfds = select( fds, &fdset, NULL, NULL, NULL );
 
-		if ( fds )
-			snmp_sess_read( ss, &fdset );
+		if ( numfds > 0 )
+		{
+			snmp_read( &fdset );
+
+		}
+		else if( numfds == -1 )
+		{
+			log_message( log_file, "Error while select waiting for incoming data" );
+		}
 	}
 
 
@@ -1165,9 +1208,333 @@ void SnmpModule::trap_handler()
 /*
 Processnuti daneho trapu
 */
-int SnmpModule::process_trap( int operation, struct snmp_session *sess, int reqid, struct snmp_pdu *pdu )
+int SnmpModule::process_trap( int operation, struct snmp_session *sess, int reqid, struct snmp_pdu *pdu,
+								netsnmp_transport *trans )
 {
-	log_message( log_file, "TRAP PROCESSOR: operational" );
+	/*
+	TODO:
+	DO paketu - dostat i timestamp
+	*/
+	struct hostent *host = NULL;
+	string agent;
+	char *cp;
+	struct 		variable_list *vars;
+
+	//snmp_device
+	struct notification_element *notification = NULL;
+	string trap_name = "";
+
+
+	if ( operation == NETSNMP_CALLBACK_OP_RECEIVED_MESSAGE )
+	{
+		/*
+		Deleni dle verzi
+		*/
+		if ( pdu->command == SNMP_MSG_TRAP )
+		{
+			/*
+			verze 1
+			*/
+
+			//nejprve informace o agentovi
+			host = gethostbyaddr( (char*) pdu->agent_addr, 4, AF_INET );
+			if ( host != NULL )
+			{
+				agent = string( host->h_name );
+			}
+			else
+				agent = string( inet_ntoa( *((struct in_addr*) pdu->agent_addr) ) );
+
+			log_message (log_file, agent.c_str() );
+
+			/*
+			Vyhledame device dle agenta
+			*/
+			notification = get_notification_by_addr( agent.c_str() );
+
+			if ( notification == NULL )
+			{
+				log_message( log_file, "TRAP: no such device available. Dropping packet" );
+				return 1;
+			}
+
+			/*
+			Generic traptype
+			*/
+			if ( pdu->trap_type != SNMP_TRAP_ENTERPRISESPECIFIC )
+			{
+				switch ( pdu->trap_type ) {
+				case SNMP_TRAP_COLDSTART:
+					trap_name = "coldStart";
+					break;
+
+				case SNMP_TRAP_WARMSTART:
+					trap_name = "warmStart";
+					break;
+
+				case SNMP_TRAP_LINKDOWN:
+					trap_name = "linkDown";
+					break;
+					
+				case SNMP_TRAP_LINKUP:
+					trap_name = "linkUp";
+					break;
+
+				case SNMP_TRAP_AUTHFAIL:
+					trap_name = "authenticationFailure";
+					break;
+
+				case SNMP_TRAP_EGPNEIGHBORLOSS:
+					trap_name = "egpNeighborLoss";
+					break;
+
+				default:
+					trap_name = "";
+				}
+
+			}
+			else
+			{
+				oid trap_oid[MAX_OID_LEN + 2] = { 0 };
+				int trap_oid_len = pdu->enterprise_length;
+
+                memcpy(trap_oid, pdu->enterprise, sizeof(oid) * trap_oid_len);
+                if (trap_oid[trap_oid_len - 1] != 0)
+				{
+                    trap_oid[trap_oid_len++] = 0;
+                }
+                trap_oid[trap_oid_len++] = pdu->specific_type;
+
+				u_char *oidbuf = NULL;
+				size_t ob_len = 64, oo_len = 0;
+				int otrunc = 0;
+
+				oidbuf = new u_char[ob_len];
+
+
+				otrunc = !sprint_realloc_objid(&oidbuf, &ob_len, &oo_len,
+					   1, trap_oid, trap_oid_len);
+				if (!otrunc) {
+					cp = strrchr((char *) oidbuf, '.');
+					if (cp != NULL) {
+						cp++;
+					} else {
+						cp = (char *) oidbuf;
+					}
+				} else {
+					cp = (char *) oidbuf;
+				}
+
+				/*
+				Ziskame mib node z cp -> tim i jeho nazev
+				*/
+				if ( ! get_node( (const char*)oidbuf, trap_oid, (size_t *)&trap_oid_len ) )
+				{
+					trap_name="uknown";
+				}
+				else
+				{
+					struct tree* node = get_tree( trap_oid, trap_oid_len, get_tree_head() );
+					trap_name = string( node->label );
+				}
+
+				delete( oidbuf );
+
+
+			}
+
+
+		}
+		else if ( pdu->command == SNMP_MSG_TRAP2 ||
+				  pdu->command == SNMP_MSG_INFORM )
+		{
+			/*
+			Verze 2c
+			*/
+			if ( trans != NULL )
+			{
+				struct sockaddr_in *addr = (struct sockaddr_in *) pdu->transport_data;
+				
+				if (addr != NULL && pdu->transport_data_length == sizeof(struct sockaddr_in)) {
+					host = gethostbyaddr((char *) &(addr->sin_addr), sizeof(struct in_addr), AF_INET);
+
+					if ( host == NULL )
+					{
+						agent = string( inet_ntoa( addr->sin_addr ) );
+					}
+					else
+					{
+						agent = string( host->h_name );
+					}
+
+
+					/*
+					Vyhledame device dle agenta
+					*/
+					notification = get_notification_by_addr( agent.c_str() );
+
+					if ( notification == NULL )
+					{
+						log_message( log_file, "TRAP: no such device available. Dropping packet" );
+						return 1;
+					}
+
+
+					/*
+					TODO
+					How do we get the fucking timestamp and trap oid???
+					*/
+
+
+
+				}
+			}
+			else
+			{
+				log_message( log_file, "Error while parsing trap message" );
+				return 1;
+			}
+		}
+
+
+		/*
+		Ziskame list varbinds -> jmena a hodnoty
+		*/
+		vars = pdu->variables;
+		struct tree *head = get_tree_head();
+		list<struct value_pair *> vp_list;
+		struct value_pair * vp;
+
+		while( vars != NULL )
+		{
+			if ( vars != NULL )
+			{
+
+				if ( (vars->type == SNMP_ENDOFMIBVIEW) ||
+					( vars->type == SNMP_NOSUCHOBJECT ) ||
+					(vars->type == SNMP_NOSUCHINSTANCE ) 
+					)
+				{
+				}
+				else
+				{
+					vp = new struct value_pair;
+					get_response_value( vars, vp, head );
+
+					vp_list.push_back( vp );
+				}
+			}
+
+			vars = vars->next_variable;
+
+		}
+
+
+		/*
+		Vygenerujeme odpovedni zpravu EVENT
+		*/
+		string message;
+		char tmp_id[50];
+
+		notification->last_msg_id++;
+
+		message = "<message>\n";
+		message += "<event msgid=\"";
+		sprintf( tmp_id, "%d", notification->last_msg_id );
+		message += tmp_id;
+		message += "\" timestamp=\"\"  senderid=\"";
+		sprintf( tmp_id, "%d", notification->device->id);
+		message += tmp_id;
+		message += "\" eventSpec=\"device/notifications/";
+		message += trap_name;
+		message += "\">\n<data>\n";
+
+		list<struct value_pair*>::iterator it;
+
+		for ( it = vp_list.begin(); it != vp_list.end(); it++ )
+		{
+			message += "<value valueLocation=\"";
+			message += (*it)->oid;
+			message += "\">";
+			message += (*it)->value;
+			message += "</value>\n";
+
+		}
+
+		message += "</data>\n</event>\n</message>";
+
+
+		/*
+		Odeslani zpravy vsem managerum pomoci libCUrl
+		*/
+		/*
+		libCUrl section
+		*/
+		CURL 					*curl;
+		CURLcode 				res;
+		struct curl_httppost 	*formpost=NULL;
+		struct curl_httppost 	*lastptr=NULL;
+		struct curl_slist 		*headerlist=NULL;
+		static const char 		buf[] = "Expect:";
+		string url;
+
+		list<string>::iterator strit;
+
+		for ( strit = notification->manager_urls.begin(); strit != notification->manager_urls.end(); strit++ )
+		{
+		
+			curl = curl_easy_init();
+
+			if ( curl )
+			{
+				curl_formadd( &formpost, &lastptr,
+								CURLFORM_COPYNAME, "selection",
+								CURLFORM_COPYCONTENTS, message.c_str(),
+								CURLFORM_CONTENTTYPE,"text/xml",
+								CURLFORM_END);
+
+
+				url = "http://";
+				url += (*strit);
+
+
+				//nastavime parametry a odesleme
+				curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+				curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
+
+				curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
+				res = curl_easy_perform(curl);
+
+				if ( res != CURLE_OK )
+				{
+					log_message( log_file, "DISTR: could not send the distribution data" );
+					log_message( log_file, curl_easy_strerror( res ) );
+				}
+
+
+				/*
+				clean up
+				*/
+				curl_easy_cleanup(curl);
+			}
+			else
+			{
+				log_message( log_file, "NOTIF: ERROR, could not initialize curl session" );
+			}
+
+			/*
+			ostatni delete
+			*/
+			//curl_slist_free_all (headerlist);
+			curl_formfree(formpost);
+			lastptr = NULL;
+			formpost = NULL;
+
+		}//end of all managers cycle
+
+
+	} //end of first if
+
 
 	return 1;
 }
