@@ -622,7 +622,6 @@ int XmlModule::send_response( struct MHD_Connection *connection, const char* msg
 	ret = MHD_queue_response( connection, MHD_HTTP_OK, response );
 	MHD_destroy_response( response);
 
-
 	return ret;
 }
 
@@ -690,7 +689,13 @@ string * XmlModule::build_response_string( struct request_data *data )
 	{
 		DOMImplementation *impl;
 		DOMWriter *writer;
+		DOMDocument *xmlDoc;
+		DOMElement *rootElem;
 		XMLCh *xsd = NULL;
+		char file[100];
+
+		log_message( log_file, "We start the building string" );
+
 		WriterErrHandler *err = new WriterErrHandler( log_file );
 
 
@@ -703,12 +708,29 @@ string * XmlModule::build_response_string( struct request_data *data )
 
 		writer->setFeature( XMLUni::fgDOMWRTFormatPrettyPrint, true );
 
+		XercesDOMParser *conf_parser = new XercesDOMParser;
+
+		conf_parser->setValidationScheme( XercesDOMParser::Val_Never );
+		conf_parser->setDoNamespaces( false );
+		conf_parser->setDoSchema( false );
+		conf_parser->setLoadExternalDTD( false );
+		
+
 		//Jestli budeme posilat main xsd, nebo xsd zarizeni
 		if ( data->object_id == -1 )
 		{
 			//main xsd
 			try {
-				xsd = writer->writeToString( *main_root );
+				sprintf( file, "snmpxmld.xsd" );
+				conf_parser->parse( file );
+				
+				xmlDoc = conf_parser->getDocument();
+				rootElem = xmlDoc->getDocumentElement();
+
+				//zapis do stringu
+				xsd = writer->writeToString( *rootElem );
+
+				xmlDoc->release();
 			}
 			catch ( ... )
 			{
@@ -718,15 +740,22 @@ string * XmlModule::build_response_string( struct request_data *data )
 		else
 		{
 			//xsd daneho zarizeni
-			int position = snmpmod->get_device_position( data->object_id );
-			if ( position != -1  )
-			{
-				DOMElement *ro = get_device_document( position );
+			try {
+				sprintf( file, "%d.xsd", data->object_id );
+				conf_parser->parse( file );
+				
+				xmlDoc = conf_parser->getDocument();
+				rootElem = xmlDoc->getDocumentElement();
 
-				xsd = writer->writeToString( *ro );
+				xsd = writer->writeToString( *rootElem );
+
+				xmlDoc->release();
+			}
+			catch (...)
+			{
+				log_message( log_file, "Exception while answering discovery");
 			}
 		}
-
 
 		/*
 		Odpoved - PUBLICATION
@@ -746,6 +775,7 @@ string * XmlModule::build_response_string( struct request_data *data )
 			buf = XMLString::transcode( xsd );
 			*out += buf;
 
+
 			*out += "</datamodel>\n";
 
 			//log_message( log_file, out->c_str() );
@@ -764,7 +794,9 @@ string * XmlModule::build_response_string( struct request_data *data )
 		//uzavreni vystupni zpravy
 		*out += "</publication>\n";
 
-		writer->release();
+
+		//writer->release();
+		delete( writer );
 	}
 	/*
 	GET message response

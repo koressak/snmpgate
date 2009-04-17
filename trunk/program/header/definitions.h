@@ -331,6 +331,12 @@ struct SNMP_device {
 	char *			xml_read;
 	char *			xml_write;
 
+	/*
+	HTTPS key and certificate
+	*/
+	char *			key;
+	char *			certificate;
+
 
 	SNMP_device()
 	{
@@ -350,23 +356,27 @@ struct SNMP_device {
 		xml_read = NULL;
 		xml_write = NULL;
 		xml_protocol_version = NULL;
+		key = NULL;
+		certificate = NULL;
 	}
 
 	~SNMP_device()
 	{
-		if ( snmp_addr != NULL ) 		XMLString::release( &snmp_addr );
-		if ( name != NULL ) 		XMLString::release( &name );
-		if ( description != NULL ) XMLString::release( &description );
-		if ( protocol_version != NULL ) XMLString::release( &protocol_version );
-		if ( log_file != NULL ) 		XMLString::release( &log_file );
-		if ( mib_path != NULL )			XMLString::release( &mib_path );
-		if ( xsd_path != NULL )			XMLString::release( &xsd_path );
+		if ( snmp_addr != NULL ) 				XMLString::release( &snmp_addr );
+		if ( name != NULL ) 					XMLString::release( &name );
+		if ( description != NULL ) 				XMLString::release( &description );
+		if ( protocol_version != NULL ) 		XMLString::release( &protocol_version );
+		if ( log_file != NULL ) 				XMLString::release( &log_file );
+		if ( mib_path != NULL )					XMLString::release( &mib_path );
+		if ( xsd_path != NULL )					XMLString::release( &xsd_path );
 
-		if ( snmp_read != NULL )			XMLString::release( &xsd_path );
-		if ( snmp_write != NULL )			XMLString::release( &xsd_path );
-		if ( xml_read != NULL )			XMLString::release( &xsd_path );
-		if ( xml_write != NULL )			XMLString::release( &xsd_path );
-		if ( xml_protocol_version != NULL )			XMLString::release( &xsd_path );
+		if ( snmp_read != NULL )				XMLString::release( &xsd_path );
+		if ( snmp_write != NULL )				XMLString::release( &xsd_path );
+		if ( xml_read != NULL )					XMLString::release( &xsd_path );
+		if ( xml_write != NULL )				XMLString::release( &xsd_path );
+		if ( xml_protocol_version != NULL )		XMLString::release( &xsd_path );
+		if ( key != NULL )						XMLString::release( &key );
+		if ( certificate != NULL )				XMLString::release( &certificate );
 
 		
 		for ( list<char *>::iterator it = mibs.begin(); it != mibs.end(); it++ )

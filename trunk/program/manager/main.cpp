@@ -73,7 +73,7 @@ static size_t write_data( void *ptr, size_t size, size_t nmemb, void *data)
 	size_t realsize = size * nmemb;
 	struct MemoryStruct *mem = ( struct MemoryStruct *) data;
 	
-	mem->memory = new char[ mem->size + 1 + realsize ];
+	mem->memory = (char *) realloc( mem->memory,  mem->size + 1 + realsize );
 
 	if ( mem->memory )
 	{
@@ -81,6 +81,7 @@ static size_t write_data( void *ptr, size_t size, size_t nmemb, void *data)
 		mem->size += realsize;
 		mem->memory[mem->size] = 0;
     }
+
 	
 	return realsize;
 
@@ -767,7 +768,7 @@ int main(int argc, char *argv[])
 		cout << *msg << endl;
 
 		/*
-		Nastaveni hesla
+		Nastaveni url
 		*/
 		if ( url->count > 0 )
 		{

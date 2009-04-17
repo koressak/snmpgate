@@ -163,9 +163,43 @@ void SnmpXmlGate::run()
 		exit(1);
 	}
 	
-	http_server = MHD_start_daemon( MHD_USE_THREAD_PER_CONNECTION, gate->xml_listen_port,
-					NULL, NULL, &process_request, NULL,
-					MHD_OPTION_NOTIFY_COMPLETED, request_completed, NULL, MHD_OPTION_END);
+
+	if ( gate->key != NULL && gate->certificate != NULL )
+	{
+		char * key_pem;
+		char *cert_pem;
+
+		key_pem = load_file( gate->key );
+		cert_pem = load_file( gate->certificate);
+
+		if ( key_pem == NULL || cert_pem == NULL )
+		{
+			log_message( log_file, "Cannot load certificate and key file. Terminating" );
+			exit(1);
+		}
+
+
+		http_server = MHD_start_daemon( MHD_USE_THREAD_PER_CONNECTION | MHD_USE_SSL, gate->xml_listen_port,
+						NULL, NULL, &process_request, NULL,
+						MHD_OPTION_NOTIFY_COMPLETED, request_completed, NULL, 
+						MHD_OPTION_HTTPS_MEM_KEY, key_pem,
+						MHD_OPTION_HTTPS_MEM_CERT, cert_pem,
+						MHD_OPTION_END);
+
+	}
+	else
+	{
+	
+		http_server = MHD_start_daemon( MHD_USE_THREAD_PER_CONNECTION, gate->xml_listen_port,
+						NULL, NULL, &process_request, NULL,
+						MHD_OPTION_NOTIFY_COMPLETED, request_completed, NULL, MHD_OPTION_END);
+	}
+
+	if ( http_server == NULL )
+	{
+		log_message( log_file, "Cannot start HTTP server. Program terminating." );
+		exit(1);
+	}
 
 
 	Mib2Xsd::output_xml2file( "zk.xml", doc );
@@ -471,6 +505,36 @@ void SnmpXmlGate::getDeviceInfo( DOMElement *device, SNMP_device *info )
 
 				}
 			}
+			else if ( XMLString::equals( currElem->getTagName(), XMLString::transcode( "security" ) )  && info->id == 0 )
+			{
+				//Vyber vsech elementu snmp
+				DOMNodeList *nol = currElem->getChildNodes();
+				XMLSize_t nolCount = nol->getLength();
+
+				for ( XMLSize_t m = 0; m < nolCount; m++ )
+				{
+					DOMNode* node  = nol->item(m);
+					if ( node->getNodeType() && node->getNodeType() == DOMNode::ELEMENT_NODE )
+					{
+						DOMElement *elem = dynamic_cast<DOMElement *>( node );
+
+						if ( XMLString::equals( elem->getTagName(), XMLString::transcode( "key" )) )
+						{
+							info->key = XMLString::transcode( elem->getTextContent() );
+						}
+						else if ( XMLString::equals( elem->getTagName(), XMLString::transcode( "certificate" )) )
+						{
+							info->certificate = XMLString::transcode( elem->getTextContent() );
+						}
+						/*else
+						{
+							throw (char *)"Illegal element in SNMP configuration of the gate";
+						}*/
+
+					}
+
+				}
+			}
 			else if ( XMLString::equals( currElem->getTagName(), XMLString::transcode( "xml" ) )  && info->id == 0 )
 			{
 				//Vyber vsech elementu xml
@@ -571,5 +635,53 @@ void SnmpXmlGate::stop()
 
 	//TODO: zastavit ostatni thready
 }
+
+
+/*
+Nacte obsah souboru do bufferu
+Pro nacitani certifikatu!
+*/
+char *
+ SnmpXmlGate::load_file (const char *filename)
+{
+	FILE *fp;
+	char *buffer;
+	long size;
+
+	fp = fopen (filename, "rb");
+	if (fp)
+	{
+		if ((0 != fseek (fp, 0, SEEK_END)) || (-1 == (size = ftell (fp))))
+			size = 0;
+
+		fclose (fp);
+
+	}
+
+	if (size == 0)
+		return NULL;
+
+	fp = fopen (filename, "rb");
+	if (!fp)
+		return NULL;
+
+	buffer = new char[size];
+	if (!buffer)
+	{
+		fclose (fp);
+		return NULL;
+	}
+
+	if (size != fread (buffer, 1, size, fp))
+	{
+		free (buffer);
+		buffer = NULL;
+	}
+
+	fclose (fp);
+	return buffer;
+}
+
+
 
 
