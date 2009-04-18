@@ -90,7 +90,7 @@ void Mib2Xsd::parse_device_mib( SNMP_device *dev )
 
 	//Output to file
 	mi = xsd_dir;
-	sprintf( output, "%s%d.xsd",xsd_dir, dev->id );
+	sprintf( output, "%d.xsd", dev->id );
 	mi += output;
 	output_xml2file( mi.c_str() , doc );
 

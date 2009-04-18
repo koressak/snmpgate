@@ -454,6 +454,9 @@ int parse_msg_file( struct manager_data *data, const char *filename, int protoco
 
 			msg_parts.pop_front();
 
+			if ( (msg_parts.begin()) == msg_parts.end() )
+				return -1;
+
 			if ( (msg_parts.front()).size() > 0 )
 			{
 				tmp_str += " objectId=\"";
@@ -463,6 +466,8 @@ int parse_msg_file( struct manager_data *data, const char *filename, int protoco
 			}
 
 			msg_parts.pop_front();
+			if ( msg_parts.begin() == msg_parts.end() )
+				return -1;
 			//frequency
 			if ( (msg_parts.front()).size() > 0 )
 			{
@@ -473,6 +478,8 @@ int parse_msg_file( struct manager_data *data, const char *filename, int protoco
 			}
 
 			msg_parts.pop_front();
+			if ( msg_parts.begin() == msg_parts.end() )
+				return -1;
 			//distriid
 			if ( (msg_parts.front()).size() > 0 )
 			{
@@ -483,6 +490,8 @@ int parse_msg_file( struct manager_data *data, const char *filename, int protoco
 			}
 
 			msg_parts.pop_front();
+			if ( msg_parts.begin() == msg_parts.end() )
+				return -1;
 			//delete
 			if ( (msg_parts.front()).size() > 0 )
 			{
@@ -493,6 +502,8 @@ int parse_msg_file( struct manager_data *data, const char *filename, int protoco
 			}
 
 			msg_parts.pop_front();
+			if ( msg_parts.begin() == msg_parts.end() )
+				return -1;
 
 			tmp_str += " >";
 
@@ -500,12 +511,14 @@ int parse_msg_file( struct manager_data *data, const char *filename, int protoco
 			list<string>::iterator it = msg_parts.begin();
 			while ( it != msg_parts.end() )
 			{
+				if ( msg_parts.begin() == msg_parts.end() )
+					return -1;
 
 				if ( (msg_parts.front()).size() > 0 )
 				{
 					tmp_str += "<xpath>";
 					tmp_str += msg_parts.front();
-					tmp_str += "</xpath>";
+					tmp_str += "</xpath>\n";
 
 				}
 				it++;
@@ -720,7 +733,7 @@ int main(int argc, char *argv[])
 	*/
 	if ( notification->count > 0 )
 	{
-		if ( !listen_port->count )
+		if ( listen_port->count == 0 )
 		{
 			cerr << "Listen port must be specified! Exitting.\n";
 			exit(1);
@@ -761,12 +774,6 @@ int main(int argc, char *argv[])
 			exit(1);
 		}
 
-		/*
-		TODO: 
-		if subscriptions - start micro httpd and listen
-			pote budeme po uzivateli chtit jednotliva id subscriptionu, abychom
-			zabili vsechny, co jsme poslali!!
-		*/
 		if ( password->count )
 			msg_data->password = string( password->sval[0] );
 
@@ -802,9 +809,9 @@ int main(int argc, char *argv[])
 		/*
 		if subscriptions - start microhttpd
 		*/
-		if ( msg_data->has_subscription )
+		if ( msg_data->has_subscription && no_listen->count==0 )
 		{
-			if ( !listen_port->count )
+			if ( !listen_port || listen_port->count == 0 )
 			{
 				cerr << "Listen port must be specified for distribution to be received! Exitting.\n";
 				exit(1);

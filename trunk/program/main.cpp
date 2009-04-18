@@ -13,7 +13,7 @@ int main( int argc, char** argv)
 		exit(1);
 	
 	//Odtud to bezi jako daemon
-	daemonize();
+	//daemonize();
 
 	SnmpXmlGate *gate;
 

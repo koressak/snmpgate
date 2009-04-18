@@ -377,7 +377,6 @@ Cimz je zarucena integrita dat.
 manager k xml schematu a tim menit jednotlive subscriptions (jeste rozmyslet, pac je to mozna piczovina)
 
 
-- Otestovat na prijimani veskerych hodnot ( net-snmp ma haldu debilnich typu a ja se z toho muzu co?.... )
 
 
 
@@ -483,16 +482,29 @@ DONE
 - HTTP server -> nutno doplnit do konfiguraku neco ohledne bezpecnostiho certifikatu pro https
 DONE
 
-
-- Spatne vraceni erroru na SET message (kdyz se vyskytne error, agent stale vraci no error)
-Otazka: je to agentem, nebo si to hlidaji dotycne utilitky??
+- snmpmodule - osetrit error check, kdyz node neexistuje (je nulovy, vratit ihned error zpet );
+Paklize neni nulovy ale neexistuje, taky ihned vratit a nepadat!!
+DONE
 
 - parsing message - paklize je tam new line character, vyparsuje to jako jeden vlastni xpath 
 (nutno tedy osetrit nulove xpathy)
+DONE
 
-- snmpmodule - osetrit error check, kdyz node neexistuje (je nulovy, vratit ihned error zpet );
-Paklize neni nulovy ale neexistuje, taky ihned vratit a nepadat!!
-URGENT: udelat predtim, nez osetrime ty nulove xpathy v bodu vyse
+- Spatne vraceni erroru na SET message (kdyz se vyskytne error, agent stale vraci no error)
+AGENT nevraci zadnej error. Takze sereme na to
+
+
+- Otestovat na prijimani veskerych hodnot ( net-snmp ma haldu debilnich typu a ja se z toho muzu co?.... )
+	-IPADDRESS nechodi
+
+- Obecnej segfault
+Netusim, kde je chyba
+podezrivam - found_el v request_data;
+kdyz se pusti normalni get- v pohode to projde. Spadne to az pri nekolikerem pusteni getnextu -> evidentne saham
+nekam, kde je prazdne misto
+
+
+
 
 
 
