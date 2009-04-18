@@ -331,7 +331,10 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 
 						//Zaradime to do fronty pro dany device
 						if ( xr != NULL )
+						{
 							req_to_dev[ xr->object_id ].push_back( xr );
+							//enqueue_response( xr );
+						}
 					}
 					else if ( XMLString::equals( elem->getTagName(), X( "set" ) ) )
 					{
@@ -658,85 +661,86 @@ string * XmlModule::build_response_string( struct request_data *data )
 	if ( data->msg_type == XML_MSG_TYPE_DISCOVERY )
 	{
 		DOMImplementation *impl;
-		DOMWriter *writer;
+		DOMWriter *writer = NULL;
 		DOMDocument *xmlDoc;
 		DOMElement *rootElem;
 		XMLCh *xsd = NULL;
 		char file[100];
 
-		log_message( log_file, "We start the building string" );
-
 		WriterErrHandler *err = new WriterErrHandler( log_file );
 
 
-		impl = DOMImplementationRegistry::getDOMImplementation( XMLString::transcode("LS") );
-
-		writer = ((DOMImplementationLS*)impl)->createDOMWriter();
-
-		writer->setErrorHandler( err );
-
-
-		writer->setFeature( XMLUni::fgDOMWRTFormatPrettyPrint, true );
-
-		XercesDOMParser *conf_parser = new XercesDOMParser;
-
-		conf_parser->setValidationScheme( XercesDOMParser::Val_Never );
-		conf_parser->setDoNamespaces( false );
-		conf_parser->setDoSchema( false );
-		conf_parser->setLoadExternalDTD( false );
-		
-
-		//Jestli budeme posilat main xsd, nebo xsd zarizeni
-		if ( data->object_id == -1 )
+		if ( data->error != XML_MSG_ERR_XML )
 		{
-			//main xsd
-			try {
-				sprintf( file, "%s%s", xsd_dir, MAIN_XSD );
-				conf_parser->parse( file );
-				
-				xmlDoc = conf_parser->getDocument();
-				rootElem = xmlDoc->getDocumentElement();
+			impl = DOMImplementationRegistry::getDOMImplementation( XMLString::transcode("LS") );
 
-				//zapis do stringu
-				xsd = writer->writeToString( *rootElem );
+			writer = ((DOMImplementationLS*)impl)->createDOMWriter();
 
-				xmlDoc->release();
-			}
-			catch ( ... )
+			writer->setErrorHandler( err );
+
+
+			writer->setFeature( XMLUni::fgDOMWRTFormatPrettyPrint, true );
+
+			XercesDOMParser *conf_parser = new XercesDOMParser;
+
+			conf_parser->setValidationScheme( XercesDOMParser::Val_Never );
+			conf_parser->setDoNamespaces( false );
+			conf_parser->setDoSchema( false );
+			conf_parser->setLoadExternalDTD( false );
+			
+
+			//Jestli budeme posilat main xsd, nebo xsd zarizeni
+			if ( data->object_id == -1 )
 			{
-				log_message( log_file, "Exception writing to string" );
-			}
-		}
-		else
-		{
-			//xsd daneho zarizeni
-			try {
+				//main xsd
+				try {
+					sprintf( file, "%s%s", xsd_dir, MAIN_XSD );
+					conf_parser->parse( file );
+					
+					xmlDoc = conf_parser->getDocument();
+					rootElem = xmlDoc->getDocumentElement();
 
-				/*
-				Osetreni, kdyz ma nekdo spolecny dokument jako jiny device
-				(setreni pameti)
-				*/
-				SNMP_device *dev = snmpmod->get_device_ptr( data->object_id );
+					//zapis do stringu
+					xsd = writer->writeToString( *rootElem );
 
-				if ( dev->similar_as != -1 )
-				{
-					sprintf( file, "%s%d.xsd",xsd_dir, dev->similar_as );
+					xmlDoc->release();
 				}
-				else
-					sprintf( file, "%s%d.xsd", xsd_dir, data->object_id );
-
-				conf_parser->parse( file );
-				
-				xmlDoc = conf_parser->getDocument();
-				rootElem = xmlDoc->getDocumentElement();
-
-				xsd = writer->writeToString( *rootElem );
-
-				xmlDoc->release();
+				catch ( ... )
+				{
+					log_message( log_file, "Exception writing to string" );
+				}
 			}
-			catch (...)
+			else
 			{
-				log_message( log_file, "Exception while answering discovery");
+				//xsd daneho zarizeni
+				try {
+
+					/*
+					Osetreni, kdyz ma nekdo spolecny dokument jako jiny device
+					(setreni pameti)
+					*/
+					SNMP_device *dev = snmpmod->get_device_ptr( data->object_id );
+
+					if ( dev->similar_as != -1 )
+					{
+						sprintf( file, "%s%d.xsd",xsd_dir, dev->similar_as );
+					}
+					else
+						sprintf( file, "%s%d.xsd", xsd_dir, data->object_id );
+
+					conf_parser->parse( file );
+					
+					xmlDoc = conf_parser->getDocument();
+					rootElem = xmlDoc->getDocumentElement();
+
+					xsd = writer->writeToString( *rootElem );
+
+					xmlDoc->release();
+				}
+				catch (...)
+				{
+					log_message( log_file, "Exception while answering discovery");
+				}
 			}
 		}
 
@@ -768,9 +772,15 @@ string * XmlModule::build_response_string( struct request_data *data )
 		
 			XMLString::release( &xsd );
 		}
+		else if ( data->error == XML_MSG_ERR_XML )
+		{
+			*out += "<error>";
+			*out += data->error_str;
+			*out += "</error>\n";
+		}
 		else
 		{
-			*out += "<error code=\"2\">Cannot generate data model</error>\n";
+			*out += "<error>Cannot generate data model</error>\n";
 			log_message( log_file, "Cannot generate data model in response to DISCOVERY message" );
 		}
 
@@ -779,7 +789,8 @@ string * XmlModule::build_response_string( struct request_data *data )
 
 
 		//writer->release();
-		delete( writer );
+		if ( writer != NULL )
+			delete( writer );
 	}
 	/*
 	GET message response
@@ -991,8 +1002,8 @@ string XmlModule::build_out_xml( const DOMElement *el, list<struct value_pair*> 
 				//Paklize mame v seznamu hodnotu, dosadime a vracime se
 				if ( strcmp( buf, (*it)->oid.c_str() ) == 0 )
 				{
-					log_message( log_file, "We have the value!!!!" );
-					log_message( log_file, buf );
+					//log_message( log_file, "We have the value!!!!" );
+					//log_message( log_file, buf );
 					has_value = true;
 
 					ret += "<";
@@ -1495,7 +1506,7 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 	string tmp_str;
 
 	const DOMElement *sub;
-	DOMElement *sub_append;
+	DOMElement *sub_append = NULL;
 	DOMElement *subscriptions;
 
 	DOMAttr *sub_attr;
@@ -1529,6 +1540,13 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 		{
 			//Error
 			xr = new request_data;
+
+			value = elem->getAttribute( X( "msgid" ) );
+			tmp_buf = XMLString::transcode( value );
+			xr->msgid =  atoi( tmp_buf );
+			XMLString::release( &tmp_buf );
+
+
 			xr->thread_id = pthread_self();
 			xr->msg_type = XML_MSG_TYPE_SUBSCRIBE;
 			xr->distr_id = distr_id;
@@ -1570,6 +1588,12 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 			attr->setNodeValue( X("1") );
 
 			xr = new request_data;
+
+			value = elem->getAttribute( X( "msgid" ) );
+			tmp_buf = XMLString::transcode( value );
+			xr->msgid =  atoi( tmp_buf );
+			XMLString::release( &tmp_buf );
+
 			xr->thread_id = pthread_self();
 			xr->distr_id = distr_id;
 			xr->msg_type = XML_MSG_TYPE_SUBSCRIBE;
@@ -1600,6 +1624,13 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 	*/
 	xr = process_get_set_message( elem, password, XML_MSG_TYPE_GET, 0 );
 
+
+	if ( xr == NULL )
+	{
+		return NULL;
+	}
+
+
 	//Nyni mame data ziskana.
 	if ( xr->error == XML_MSG_ERR_XML || xr->error == XML_MSG_ERR_SNMP )
 	{
@@ -1621,8 +1652,10 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 	//Data jsou v poradku, nez je vratime zpet, zapiseme tento element do
 	//hlavniho stromu
 
+	char di[20];
 	if ( distr_id > 0 )
 	{
+
 		/*
 		Altering subscription
 		*/
@@ -1630,23 +1663,36 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 		DOMNodeList *ls = parent->getChildNodes();
 		DOMNode *lch;
 
-		char di[20];
 		sprintf( di, "%d", distr_id );
+
+
 
 		for ( unsigned int i = 0; i < ls->getLength(); i++ )
 		{
 			sub_append = dynamic_cast<DOMElement *> ( ls->item( i ) );
-			if ( XMLString::equals( X( di ), sub_append->getAttribute( X( "distr_id" ) ) ) )
+			if ( XMLString::equals( X( di ), sub_append->getAttribute( X( "distrid" ) ) ) )
 				break;
+		}
+
+		if ( sub_append == NULL )
+		{
+			log_message( log_file, "SUBSCR: cannot find element to change" );
 		}
 
 
 
 		pthread_mutex_lock( &subscr_cond_lock );
 
+
 		//subscr uz je handle na ten element. Muzeme pracovat s nim
 		sub_attr = sub_append->getAttributeNode( X( "frequency" ) );
-		sub_attr->setNodeValue( elem->getAttribute( X("frequency" ) ) );
+		value = elem->getAttribute( X("frequency") );
+		if ( XMLString::equals( value, X("") ) )
+		{
+			sprintf( di, "%d", XML_SUBSCRIBE_DEF_FREQUENCY );
+			value = XMLString::transcode( di );
+		}
+		sub_attr->setNodeValue( value );
 		sub_attr = sub_append->getAttributeNode( X( "manager" ) );
 		sub_attr->setNodeValue( X( manager_ip.c_str() ) );
 
@@ -1664,12 +1710,15 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 		{
 			lch = ls->item(i);
 			value = lch->getTextContent();
+			
+			if ( lch->getNodeType() == DOMNode::ELEMENT_NODE && !XMLString::equals( value, X("") ) )
+			{
+				xpath = doc->createElement( X( "xpath" ) );
+				txt = doc->createTextNode( value );
+				xpath->appendChild( txt );
 
-			xpath = doc->createElement( X( "xpath" ) );
-			txt = doc->createTextNode( value );
-			xpath->appendChild( txt );
-
-			sub_append->appendChild( xpath );
+				sub_append->appendChild( xpath );
+			}
 			
 		}
 
@@ -1686,6 +1735,7 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 		pthread_mutex_unlock( &subscr_cond_lock );
 
 		xr->distr_id = distr_id;
+
 
 	}
 	else
@@ -1760,7 +1810,8 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 		//paklize tam neni frekvence - dame to na definovany interval
 		if ( XMLString::equals( value, X("") ) )
 		{
-			value = X( XML_SUBSCRIBE_DEF_FREQUENCY );
+			sprintf( di, "%d", XML_SUBSCRIBE_DEF_FREQUENCY );
+			value = XMLString::transcode( di );
 		}
 
 		attr->setNodeValue( value );
@@ -1775,11 +1826,14 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 			lch = sl->item(i);
 			value = lch->getTextContent();
 
-			xpath = doc->createElement( X( "xpath" ) );
-			txt = doc->createTextNode( value );
-			xpath->appendChild( txt );
+			if ( lch->getNodeType() == DOMNode::ELEMENT_NODE && !XMLString::equals( value, X("") ) )
+			{
+				xpath = doc->createElement( X( "xpath" ) );
+				txt = doc->createTextNode( value );
+				xpath->appendChild( txt );
 
-			subscription->appendChild( xpath );
+				subscription->appendChild( xpath );
+			}
 			
 		}
 
@@ -2310,6 +2364,25 @@ int XmlModule::distribution_handler()
 					{
 						break;
 					}
+				}
+
+				/*
+				Paklize je tam snmp error, tak rusime dorucovani
+				*/
+				if ( (*res_it)->error == XML_MSG_ERR_SNMP )
+				{
+					log_message( log_file, "DELETING subscription. Snmp error" );
+					//dat k nemu change a delete
+					DOMAttr *attr;
+					attr = doc->createAttribute( X( "delete" ) );
+					attr->setNodeValue( X("1") );
+
+					pthread_mutex_lock( &subscr_cond_lock );
+
+					(*it)->subscription->setAttributeNode( attr );
+					subscriptions_changed = true;
+					
+					pthread_mutex_unlock( &subscr_cond_lock );
 				}
 
 				(*it)->last_msg_id++;

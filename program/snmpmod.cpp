@@ -627,6 +627,9 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 			//ziskame prvni dotaz
 			req_data = requests.front();
 			requests.pop_front();
+
+			response = NULL;
+			error = false;
 			
 
 			//nastavime pro nej community string
@@ -682,12 +685,8 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 					//delete( errstr );
 					error = true;
 
-					snmp_free_pdu( pdu );
 				}
 
-				//Nastavime si korenovy node pro getnext zarazku
-				memcpy( (char *)root, (char *)elem, elem_len * sizeof(oid) );
-				root_len = elem_len;
 
 
 
@@ -697,6 +696,10 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 				*/
 				if ( !error )
 				{
+					//Nastavime si korenovy node pro getnext zarazku
+					memcpy( (char *)root, (char *)elem, elem_len * sizeof(oid) );
+					root_len = elem_len;
+
 					struct tree *node = get_tree( elem, elem_len, head );
 
 					switch ( req_data->msg_type )
@@ -713,6 +716,9 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 
 			} //end for cycle
 
+			if( error )
+				snmp_free_pdu( pdu );
+
 			if ( !error )
 			{
 				/*
@@ -721,6 +727,7 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 				*/
 				do 
 				{
+					log_message( log_file, "Sending packet to snmp agent" );
 					status = snmp_sess_synch_response( ss, pdu, &response );
 					
 
@@ -762,7 +769,7 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 											(vars->type == SNMP_NOSUCHINSTANCE ) 
 											)
 										{
-											req_data->error = XML_MSG_ERR_XML;
+											req_data->error = XML_MSG_ERR_SNMP;
 											req_data->error_str = string( "No such instance, object or end of mib view" );
 										}
 										else
@@ -775,6 +782,7 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 							}
 							else
 							{
+								log_message( log_file, "Success getnext" );
 								//SNMP GETNEXT
 								struct value_pair *vp = new value_pair;
 
@@ -802,11 +810,14 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 									}
 									else
 									{
+										log_message(log_file, "before get_response_value" );
 										get_response_value( vars, vp, head );
+										log_message(log_file, "after get_response_value" );
 
 										//prev_indexed_name = indexed_name;
 										memcpy( (char *)elem, (char *)vars->name, vars->name_length * sizeof(oid) );
 										elem_len = vars->name_length;
+										log_message(log_file, "after memcpy" );
 
 
 										req_data->request_list.push_back( vp );
@@ -814,8 +825,10 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 										if ( response ) 
 											snmp_free_pdu( response );
 										response = NULL;
+										log_message(log_file, "after freeing the response" );
 
 										pdu = create_next_pdu( elem, elem_len );
+										log_message(log_file, "after creating new pdu" );
 
 										if ( pdu == NULL )
 										{
@@ -837,8 +850,11 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 
 			} //end of !error
 
-			if ( response )
+			log_message( log_file, "SNMP: after error end" );
+
+			if ( response != NULL )
 				snmp_free_pdu( response );
+
 
 
 			//Nechame otevrenou sessnu, kdyby jeste neco bylo
@@ -978,23 +994,27 @@ void SnmpModule::get_response_value( struct variable_list* vars, struct value_pa
 {
 	char 	*var_buf;
 	string 	ret_name = "";
-	u_char 	*buf = NULL;
-	size_t 	buf_len = 0;
-	size_t 	out_len = 0;
-	char 	*name_p = NULL;
+	u_char *buf = NULL;
+	size_t out_len, buf_len;
 
 	//dostane z toho ten index
-	struct tree *node = get_tree( vars->name_loc, MAX_OID_LEN, head );
+	if ( head != NULL && vars->name_loc )
+	{
+		struct tree *node = get_tree( vars->name_loc, MAX_OID_LEN, head );
+		ret_name = string( node->label );
+	}
+	else
+		ret_name = "";
 
-	ret_name = string( node->label );
+	vp->oid = ret_name;
 
-	sprint_realloc_objid( &buf, &buf_len, &out_len, 1, vars->name, vars->name_length);
+	/*sprint_realloc_objid( &buf, &buf_len, &out_len, 1, vars->name, vars->name_length);
 
 	name_p = (char *)buf + 1;
 	if ( strchr( name_p, '.') != NULL )
 	{
 		name_p = strchr( name_p, '.' )+1;
-	}
+	}*/
 
 	//log_message( log_file, indexed_name.c_str() );
 	//delete (buf);
@@ -1003,67 +1023,78 @@ void SnmpModule::get_response_value( struct variable_list* vars, struct value_pa
 
 	/*sprint_realloc_value( &buf, &buf_len, &out_len, 1, vars->name, vars->name_length, vars);
 	vp->value = string( (char *)buf );*/
-	var_buf = new char[ 1 + vars->val_len ];
-	switch ( vars->type )
+	
+	
+	if ( vars->name_loc )
 	{
-		case ASN_OCTET_STR:
-		case ASN_OPAQUE:
-			memcpy( var_buf, vars->val.string, vars->val_len );
-			var_buf[ vars->val_len ] = '\0';
-			break;
+		var_buf = new char[ 1 + vars->val_len ];
+		switch ( vars->type )
+		{
+			case ASN_OCTET_STR:
+			case ASN_OPAQUE:
+				memcpy( var_buf, vars->val.string, vars->val_len );
+				var_buf[ vars->val_len ] = '\0';
+				break;
 
-		case ASN_BIT_STR:
-		case ASN_IPADDRESS:
-			memcpy( var_buf, vars->val.bitstring, vars->val_len );
-			var_buf[ vars->val_len ] = '\0';
-			break;
+			case ASN_BIT_STR:
+			case ASN_IPADDRESS:
+				memcpy( var_buf, vars->val.bitstring, vars->val_len );
+				var_buf[ vars->val_len ] = '\0';
+				break;
 
-		case ASN_OBJECT_ID:
-			sprint_realloc_objid( &buf, &buf_len, &out_len, 1, vars->val.objid, vars->val_len);
-			delete (var_buf);
-			var_buf = new char[1 + out_len];
-			memcpy( var_buf, buf, out_len );
-			var_buf[ out_len ] = '\0';
+			case ASN_OBJECT_ID:
+				sprint_realloc_objid( &buf, &buf_len, &out_len, 1, vars->val.objid, vars->val_len);
+				delete (var_buf);
+				var_buf = new char[1 + out_len];
+				memcpy( var_buf, buf, out_len );
+				var_buf[ out_len ] = '\0';
 
-			break;
+				break;
 
-		case ASN_INTEGER:
-		case ASN_UNSIGNED: //same as GAUGE
-			sprintf( var_buf, "%ld", *(vars->val.integer) );
-			break;
+			case ASN_INTEGER:
+			case ASN_UNSIGNED: //same as GAUGE
+				sprintf( var_buf, "%ld", *(vars->val.integer) );
+				break;
 
-		case ASN_TIMETICKS:
-			sprintf( var_buf, "%ld", *(vars->val.integer) );
-			break;
+			case ASN_TIMETICKS:
+				sprintf( var_buf, "%ld", *(vars->val.integer) );
+				break;
 
-		case ASN_COUNTER:
-		case ASN_APP_COUNTER64:
-		case ASN_INTEGER64:
-		case ASN_UNSIGNED64:
-			sprintf( var_buf, "%ld%ld", vars->val.counter64->high, vars->val.counter64->low );
-			break;
+			case ASN_COUNTER:
+			case ASN_APP_COUNTER64:
+			case ASN_INTEGER64:
+			case ASN_UNSIGNED64:
+				sprintf( var_buf, "%ld%ld", vars->val.counter64->high, vars->val.counter64->low );
+				break;
 
-		case ASN_APP_FLOAT:
-			sprintf( var_buf, "%f", *(vars->val.floatVal) );
-			break;
+			case ASN_APP_FLOAT:
+				sprintf( var_buf, "%f", *(vars->val.floatVal) );
+				break;
 
-		case ASN_APP_DOUBLE:
-			sprintf( var_buf, "%f", *(vars->val.doubleVal) );
-			break;
+			case ASN_APP_DOUBLE:
+				sprintf( var_buf, "%f", *(vars->val.doubleVal) );
+				break;
 
+		}
+
+		vp->value = string( var_buf );
+		delete ( var_buf );
+
+		if ( buf )
+			delete (buf );
 	}
 
+	//vp->value = string( "" );
 
 
 
 
 
-	vp->oid = ret_name;
-	vp->value = string( var_buf );
+
+	//vp->oid = "";
 	//log_message( log_file, vp->value.c_str() );
 
-	delete ( var_buf );
-	delete( buf );
+	//delete( buf );
 
 }
 
@@ -1242,8 +1273,6 @@ int SnmpModule::process_trap( int operation, struct snmp_session *sess, int reqi
 			}
 			else
 				agent = string( inet_ntoa( *((struct in_addr*) pdu->agent_addr) ) );
-
-			log_message (log_file, agent.c_str() );
 
 			/*
 			Vyhledame device dle agenta
@@ -1507,7 +1536,7 @@ int SnmpModule::process_trap( int operation, struct snmp_session *sess, int reqi
 
 				if ( res != CURLE_OK )
 				{
-					log_message( log_file, "DISTR: could not send the distribution data" );
+					log_message( log_file, "NOTIF: could not send the distribution data" );
 					log_message( log_file, curl_easy_strerror( res ) );
 				}
 

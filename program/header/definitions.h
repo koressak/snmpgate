@@ -164,7 +164,7 @@ ACCESS constrol - permissions
 /*
 SUBSCRIBE default frequency
 */
-#define XML_SUBSCRIBE_DEF_FREQUENCY "120"
+#define XML_SUBSCRIBE_DEF_FREQUENCY 60
 
 /*
 SUBSCRIBE delete after X undelivered messages
@@ -504,8 +504,8 @@ struct request_data {
 
 	~request_data()
 	{
-		if ( !request_list.empty() )
-		{
+		//if ( !request_list.empty() )
+		//{
 			list<value_pair *>::iterator it = request_list.begin();
 			while ( it != request_list.end() )
 			{
@@ -514,7 +514,7 @@ struct request_data {
 
 				it = request_list.erase( it );
 			}
-		}
+		//}
 	}
 };
 
