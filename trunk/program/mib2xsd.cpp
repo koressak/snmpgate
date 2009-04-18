@@ -42,7 +42,7 @@ void Mib2Xsd::parse_device_mib( SNMP_device *dev )
 	int mibs;
 	struct tree *mib_tree;
 	string mi="";
-	char output[20];
+	char output[100];
 
 	/*
 	XML inicializace dokumentu
@@ -90,7 +90,7 @@ void Mib2Xsd::parse_device_mib( SNMP_device *dev )
 
 	//Output to file
 	mi = xsd_dir;
-	sprintf( output, "%d.xsd", dev->id );
+	sprintf( output, "%s%d.xsd",xsd_dir, dev->id );
 	mi += output;
 	output_xml2file( mi.c_str() , doc );
 
@@ -98,9 +98,6 @@ void Mib2Xsd::parse_device_mib( SNMP_device *dev )
 
 	shutdown_mib();
 
-	//Ukonceni prace s XML dokumentem. Nutno release
-	//TODO:release zde
-	//doc->release();
 }
 
 
@@ -282,7 +279,7 @@ void Mib2Xsd::add_notif_element( string name )
 
 /*
 Zapis skupiny objektu
-TODO : jak sakra najit ty objecty, na ktery linkuje?? ve strukture to vubec neni
+POZN: neni mozne ziskat odkazy na objekty, na ktere linkuje. Tohle se nejak snmp nepodarilo
 */
 void Mib2Xsd::write_object_group( struct tree* node, DOMElement *parent, DOMElement *xml_par )
 {
@@ -835,8 +832,7 @@ void Mib2Xsd::write_typeof_simple( struct tree* node, DOMElement *xml_par )
 
 /*
 Doda do annotation element appinfo s oid elementem
-TODO
-nechce chodit description?!?!?!?!
+POZN: nechodi description u elementu. Proste ten pointer je prazdny
 */
 void Mib2Xsd::write_simple_type( struct tree* node, DOMElement *parent, DOMElement *xml_par )
 {
@@ -1269,12 +1265,6 @@ void Mib2Xsd::write_header( DOMElement *root )
 	attr->setNodeValue( X("http://www.w3.org/2001/XMLSchema-instance") );
 	root->setAttributeNode( attr );
 
-	/*
-	TODO
-	Pridat core type dokument/ nebo na nej pouze linkovat
-	Create namespaces??
-	*/
-
 	tmel = doc->createElement( X("xsd:appinfo") );
 	root->appendChild( tmel );
 
@@ -1321,7 +1311,6 @@ void Mib2Xsd::create_main_document()
 	
 	info = main_doc->createElement( X("info") );
 	main_root->appendChild( info );
-	//TODO: dodat nejake info do elementu info
 
 	services = main_doc->createElement( X("services") );
 	main_root->appendChild( services );
@@ -1332,7 +1321,6 @@ void Mib2Xsd::create_main_document()
 	services = tmel;
 	info = main_doc->createElement( X("info") );
 	services->appendChild( info );
-	//TODO: nejake info tady
 
 	device = main_doc->createElement( X("devices") );
 	services->appendChild( device );
@@ -1380,7 +1368,6 @@ void Mib2Xsd::create_main_document()
 	attr->setNodeValue( X("info") );
 	info->setAttributeNode( attr );
 	xsd_main_root->appendChild( info );
-	//TODO: dodat nejake info do elementu info
 
 	services = xsd_main_doc->createElement( X("xsd:element") );
 	attr = xsd_main_doc->createAttribute( X("name") );
@@ -1413,7 +1400,6 @@ void Mib2Xsd::create_main_document()
 	attr->setNodeValue( X("info") );
 	info->setAttributeNode( attr );
 	services->appendChild( info );
-	//TODO: nejake info tady
 
 	device = xsd_main_doc->createElement( X("xsd:element") );
 	attr = xsd_main_doc->createAttribute( X("name") );
@@ -1447,7 +1433,7 @@ void Mib2Xsd::create_device_element( SNMP_device *dev, DOMElement *r )
 	DOMText *txt;
 
 	string tmpstr;
-	char out[20];
+	char out[100];
 
 	/*
 	Nejprve XSD popis zarzeni
@@ -1547,7 +1533,7 @@ void Mib2Xsd::create_device_element( SNMP_device *dev, DOMElement *r )
 	conf_parser->setLoadExternalDTD( false );
 
 	
-	sprintf( out, "%d.xsd", dev->id );
+	sprintf( out, "%s%d.xsd", xsd_dir, dev->id );
 
 	try {
 
@@ -1589,38 +1575,12 @@ void Mib2Xsd::end_main_document()
 	string str;
 
 	str = xsd_dir;
-	str += "snmpxmld.xsd";
+	str += MAIN_XSD;
 
 	output_xml2file( str.c_str(), xsd_main_doc );
 
 	//xsd popis uz nebudeme potrebovat
 	xsd_main_doc->release();
-
-	/*
-	Znovunacteme cely main dokument, abychom 
-	mohli pomoci Xalanu v nem vyhledavat.
-	*/
-	/*output_xml2file( "maintemp.xml", main_doc );
-	main_doc->release();
-
-	XercesDOMParser *conf_parser = new XercesDOMParser;
-
-	conf_parser->setValidationScheme( XercesDOMParser::Val_Never );
-	conf_parser->setDoNamespaces( true );
-	conf_parser->setDoSchema( false );
-	conf_parser->setLoadExternalDTD( false );
-
-	try {
-
-		conf_parser->parse( "maintemp.xml" );
-
-		main_doc = conf_parser->getDocument();
-
-	}
-	catch ( ... )
-	{
-		log_message( log_file, "Cannot parse the xsd file" );
-	}*/
 
 }
 

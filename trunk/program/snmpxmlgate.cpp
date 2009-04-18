@@ -7,6 +7,7 @@ SnmpXmlGate::SnmpXmlGate( char *conf_file )
 {
 	config_file = conf_file;
 	log_file = (char *)LOG;
+	gate_set = false;
 
 	devices_root = new list<DOMElement*>;
 
@@ -80,10 +81,6 @@ SnmpXmlGate::~SnmpXmlGate()
 */
 void SnmpXmlGate::run()
 {
-	/*
-	TODO
-	inicializace dalsich threadu
-	*/
 
 	try {
 		initialize_config();
@@ -105,36 +102,37 @@ void SnmpXmlGate::run()
 	snmpmod->set_elements(  xsd_path );
 
 	//check na funkcnost zarizeni
-	log_message( log_file, (char *)"Checking devices");
+	log_message( log_file, (char *)"GATE: Checking devices");
 	if  ( snmpmod->checkDevices() != 0 )
 	{
 		exit(1);
 	}
-	log_message( log_file, (char *)"Checking done");
+	log_message( log_file, (char *)"GATE: Checking done");
 
 	if ( snmpmod->emptyDevices() )
 	{
-		log_message( log_file, (char *)"No devices left to monitor. Exitting.");
+		log_message( log_file, (char *)"GATE: No devices left to monitor. Exitting.");
 		exit(1);
 	}
 
 	/*
 	Transformacni faze
 	*/
-	log_message( log_file, (char *)"Starting transformation");
+	log_message( log_file, (char *)"GATE: Starting transformation");
 	if ( snmpmod->start_transform() != 0 )
 	{
 		log_message( log_file, (char *)"error during transformation. Exitting." );
 		exit(1);
 	}
-	log_message( log_file, (char *)"End of transformation");
+	log_message( log_file, (char *)"GATE: End of transformation");
 
 	//ziskame odkaz na seznam zarizeni (pro dalsi pouziti)
 	devices_list = snmpmod->get_all_devices();
 
 	
 	/*
-	Pustime http server
+	Nejprve zkontrolujeme gate device, jestli je mezi monitorovanymi
+	zarizenimi a pak postupujeme k nastartovani vsech threadu
 	*/
 	SNMP_device *gate = snmpmod->get_gate_device();
 
@@ -162,6 +160,10 @@ void SnmpXmlGate::run()
 		log_message( log_file, (char *)"Error during XmlModule thread startup. Terminating.");
 		exit(1);
 	}
+
+	/*
+	Pustime http server
+	*/
 	
 
 	if ( gate->key != NULL && gate->certificate != NULL )
@@ -208,8 +210,6 @@ void SnmpXmlGate::run()
 	Cekame na ukonceni threadu - ciste jenom pro to, abychom neskoncili program.
 	*/
 	pthread_join( *(xmlmod->get_distr_thread_id()), NULL );
-
-	//while(1) sleep(1);
 
 }
 
@@ -261,19 +261,43 @@ void SnmpXmlGate::initialize_config()
 					getDeviceInfo( currElem, dev );
 
 					//Jestli je to brana, nastavime zakladni promenne
-					if ( dev->id == 0 )
+					if ( dev->id == 0 && !gate_set )
 					{
-						log_file = dev->log_file;
-						mib_path = dev->mib_path;
-						xsd_path = dev->xsd_path;
+						gate_set = true;
 
-						if ( strcmp( mib_path, "" ) == 0  || strcmp( xsd_path, "" )==0 )
-							throw (char *)"MIB and XSD paths must be set up";
+						/*
+						porty - kdyz nic, tak defaultni
+						*/
+
+						//defaultne je log file nastaven
+						if ( dev->log_file )
+							log_file = dev->log_file;
+						
+						if ( dev->mib_path )
+							mib_path = dev->mib_path;
+						else
+							mib_path = (char *)DEFAULT_MIB_PATH;
+
+						if ( dev->xsd_path )
+							xsd_path = dev->xsd_path;
+						else
+							xsd_path = (char *)DEFAULT_XSD_PATH;
+
+						if ( dev->snmp_listen_port == 0 )
+							dev->snmp_listen_port = SNMP_LISTEN_PORT;
+
+						if ( dev->xml_listen_port == 0 )
+							dev->xml_listen_port = XML_LISTEN_PORT;
+
+						if ( dev->xml_trans_port == 0 )
+							dev->xml_trans_port = XML_SEND_PORT;
+
+					}
+					else
+					{
+						throw (char *)"Gate element already set. You have an error in config file";
 					}
 
-					/*
-					TODO : TEMP Zalogujeme informace o spravovanem zarizeni
-					*/
 					string log_msg = "Monitored device:";
 					log_msg += dev->name;
 					log_msg += "\n";
@@ -491,11 +515,11 @@ void SnmpXmlGate::getDeviceInfo( DOMElement *device, SNMP_device *info )
 							info->snmp_listen_port = atoi(XMLString::transcode( elem->getTextContent() ) );
 							//info->snmp_listen_port = 0;
 						}
-						else if ( XMLString::equals( elem->getTagName(), XMLString::transcode( "transmitPort" )) )
+						/*else if ( XMLString::equals( elem->getTagName(), XMLString::transcode( "transmitPort" )) )
 						{
 							info->snmp_trans_port = atoi( XMLString::transcode( elem->getTextContent() ) );
 							//info->snmp_trans_port = 0;
-						}
+						}*/
 						/*else
 						{
 							throw (char *)"Illegal element in SNMP configuration of the gate";
@@ -647,6 +671,7 @@ char *
 	FILE *fp;
 	char *buffer;
 	long size;
+	unsigned int s;
 
 	fp = fopen (filename, "rb");
 	if (fp)
@@ -672,7 +697,9 @@ char *
 		return NULL;
 	}
 
-	if (size != fread (buffer, 1, size, fp))
+	s = fread (buffer, 1, size, fp);
+
+	if ( (unsigned long) size != s)
 	{
 		free (buffer);
 		buffer = NULL;

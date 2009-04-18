@@ -100,15 +100,21 @@ using namespace xalanc;
 Zakladni hodnoty  logovacich souboru
 souboru a pracovniho adresare
 */
+//TODO: prehodit na var run snmp
+//#define RUN_DIR "/var/run/snmpxmld"
 #define RUN_DIR "/tmp"
 #define LOCK	"snmpxmld.lock"
 #define LOG		"snmpxmld.log"
 
+
+#define MAIN_XSD "snmpxmld.xsd"
+#define DEFAULT_MIB_PATH "/usr/share/snmp/mibs/"
+#define DEFAULT_XSD_PATH "/var/run/snmpxmld/"
+
 /*
 SNMP specificke defaultni hodnoty
 */
-#define SNMP_SEND_PORT 161
-#define SNMP_LISTEN_PORT 162
+#define SNMP_LISTEN_PORT 3111
 
 #define SNMP_MAX_PACKET_SIZE 64000
 
@@ -315,7 +321,7 @@ struct SNMP_device {
 	char *			mib_path;
 	char *			xsd_path;
 	int				snmp_listen_port;
-	int				snmp_trans_port;
+	//int				snmp_trans_port;
 	int				xml_listen_port;
 	int				xml_trans_port;
 	int				active;
@@ -358,6 +364,8 @@ struct SNMP_device {
 		xml_protocol_version = NULL;
 		key = NULL;
 		certificate = NULL;
+
+		snmp_listen_port = xml_listen_port = xml_trans_port = 0;
 	}
 
 	~SNMP_device()

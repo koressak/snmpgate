@@ -129,7 +129,6 @@ class Mib2Xsd
 		void create_xml_element( const DOMElement *, DOMElement *, XalanDocument * );
 		const DOMElement* find_xsd_type( XalanDocument *, const XMLCh* );
 		DOMNodeList *get_child_elements( DOMElement * );
-		//TODO: nova fce na pridani pointeru na data mezi souhlasnymi devices
 
 		DOMDocument* get_main_doc()
 		{

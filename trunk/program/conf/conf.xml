@@ -27,7 +27,6 @@
 		<snmp>
 			<mibPath>/usr/share/snmp/mibs/</mibPath>
 			<listenPort>3111</listenPort>
-			<transmitPort>161</transmitPort>
 		</snmp>
 		<xml>
 			<xsdPath>/tmp/</xsdPath>
