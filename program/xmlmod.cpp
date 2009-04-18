@@ -11,7 +11,6 @@ Konstruktor
 XmlModule::XmlModule()
 {
 	main_root = NULL;
-	devices_root = NULL;
 	log_file = NULL;
 	xsd_dir = NULL;
 
@@ -25,16 +24,12 @@ XmlModule::XmlModule()
 	parser->setDoSchema( false );
 	parser->setLoadExternalDTD( false );
 
-
-	//proc_req_ptr = &XmlModule::process_request;
-
 	response_queue.clear();
 
 	/*
 	Init libCUrl
 	*/
 	curl_global_init(CURL_GLOBAL_ALL);
-
 
 }
 
@@ -43,12 +38,6 @@ Destruktor
 */
 XmlModule::~XmlModule()
 {
-	//TODO delete all xalan documents
-	/*list< struct xalan_docs_list *>::iterator it;
-
-	for( it = xalan_docs.begin(); it != xalan_docs.end(); it++ )
-		delete ((*it));*/
-	
 	delete( main_xa_doc );
 
 	/*
@@ -76,7 +65,6 @@ Nastaveni parametru
 void XmlModule::set_parameters( DOMElement *r, list<DOMElement *> *roots, char *log, char *xsd, SnmpModule *sn )
 {
 	main_root = r;
-	//devices_root = roots;
 	log_file = log;
 	xsd_dir = xsd;
 	snmpmod = sn;
@@ -92,21 +80,6 @@ void XmlModule::set_parameters( DOMElement *r, list<DOMElement *> *roots, char *
 	XercesParserLiaison	*theLiaison;
 	XalanDocument *theDocument;
 	
-
-	/*for ( it= devices_root->begin(); it != devices_root->end(); it++ )
-	{
-		doc = (*it)->getOwnerDocument();
-		struct xalan_docs_list *l = new xalan_docs_list;
-
-		theLiaison = new XercesParserLiaison( theDOMSupport );
-		theDocument =
-			theLiaison->createDocument(doc, true, true, true);
-
-		l->doc = theDocument;
-		l->liaison = theLiaison;
-
-		xalan_docs.push_back( l );
-	}*/
 
 	/*
 	Jeste pro hlavni dokument
@@ -415,10 +388,7 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 		 Zde se thread koukne do fronty odpovedi a kdyz tam neco je, vezme si to.
 		 Paklize tam nic neni, tak se uspime na nejake condition a cekame na probuzeni.
 		 Az mame vsechny responses, volame opakovane build_response_string() a pak send response
-		 TODO: zde promazat ty vystupy do logu
 		 */
-
-		 char ooo[10];
 
 		 struct timespec ts;
 
@@ -721,7 +691,7 @@ string * XmlModule::build_response_string( struct request_data *data )
 		{
 			//main xsd
 			try {
-				sprintf( file, "snmpxmld.xsd" );
+				sprintf( file, "%s%s", xsd_dir, MAIN_XSD );
 				conf_parser->parse( file );
 				
 				xmlDoc = conf_parser->getDocument();
@@ -741,7 +711,20 @@ string * XmlModule::build_response_string( struct request_data *data )
 		{
 			//xsd daneho zarizeni
 			try {
-				sprintf( file, "%d.xsd", data->object_id );
+
+				/*
+				Osetreni, kdyz ma nekdo spolecny dokument jako jiny device
+				(setreni pameti)
+				*/
+				SNMP_device *dev = snmpmod->get_device_ptr( data->object_id );
+
+				if ( dev->similar_as != -1 )
+				{
+					sprintf( file, "%s%d.xsd",xsd_dir, dev->similar_as );
+				}
+				else
+					sprintf( file, "%s%d.xsd", xsd_dir, data->object_id );
+
 				conf_parser->parse( file );
 				
 				xmlDoc = conf_parser->getDocument();
@@ -1059,36 +1042,6 @@ string XmlModule::build_out_xml( const DOMElement *el, list<struct value_pair*> 
 
 
 /*
-TODO
-zmena - tudiz toto smazat
-Vrati odkaz na DOMElement z devices_root
-*/
-DOMElement* XmlModule::get_device_document( int position )
-{
-	list<DOMElement *>::iterator it = devices_root->begin();
-
-	for ( int a=0; a < position; a++ )
-		it++;
-	
-	return *it;
-}
-
-/*
-TODO
-zmena, tudiz toto smazat
-Vrati odkaz na XalanDokument z xalan_docs
-*/
-XalanDocument* XmlModule::get_device_xalan_document( int position )
-{
-	list<struct xalan_docs_list *>::iterator it = xalan_docs.begin();
-
-	for ( int a=0; a < position; a++ )
-		it++;
-	
-	return (*it)->doc;
-}
-
-/*
 Nalezne element dle xpath vyrazu a vrati na nej odkaz
 */
 const DOMElement* XmlModule::find_element( const XMLCh* name, XalanDocument* theDocument, struct request_data* req_data, bool deep = true )
@@ -1116,12 +1069,6 @@ const DOMElement* XmlModule::find_element( const XMLCh* name, XalanDocument* the
 	XalanNode* theContextNode;
 
 	try {
-		/*theContextNode =
-			theEvaluator.selectSingleNode(
-				theDOMSupport,
-				theDocument,
-				XalanDOMString("xsd:schema").c_str(),
-				thePrefixResolver);*/
 		theContextNode = theDocument->getDocumentElement();
 
 
@@ -1215,55 +1162,12 @@ const DOMElement* XmlModule::find_element( const XMLCh* name, XalanDocument* the
 					}
 
 
-					/*pos2 = xp.find( "']", pos1+1 );
-
-					name = xp.substr( pos1+6, pos2 - (pos1+6) );
-
-					pos3 = name.find( "." );
-					if ( pos3 != string::npos )
-					{
-						req_data->snmp_indexed_name = name;
-
-						name = name.substr( 0, pos3 );
-
-						tmp_xp = xp.replace( pos1+6, pos2 - (pos1+6), name, 0, name.size() );
-
-						tmp_find = find_element( X( tmp_xp.c_str() ), theDocument, req_data, false );
-
-						if ( tmp_find != NULL )
-						{
-							req_data->xpath_end = "";
-							return tmp_find;
-						}
-					}*/
 
 				}
 
 				pthread_mutex_unlock( &xa_doc_lock );
 				return ret_elm;
 
-				/*pos1 = xp.rfind("//");
-				//xpath string jde rozdelit na elementy. 
-				if ( pos1 != string::npos )
-				{
-					to_search = xp;
-					leftover = to_search.substr( pos1, to_search.size() );
-					to_search = to_search.substr( 0, pos1 );
-
-					if ( leftover.compare( "//next" ) == 0 )
-					{
-						req_data->snmp_getnext = 1;
-					}
-					else
-						req_data->xpath_end = leftover + req_data->xpath_end;
-
-					return find_element( X( to_search.c_str() ), theDocument, req_data, true );
-
-
-				}
-				//dosli jsme na zacatek stringu a uz nemame nic, kde bychom hledali
-				else
-					return ret_elm;*/
 			}
 			else 
 			{
@@ -1295,13 +1199,8 @@ int XmlModule::process_discovery_message( DOMElement *elem )
 {
 	struct request_data *xr = new request_data;
 	const XMLCh* value;
-
-	/*
-	TODO:
-	protocolVersion check - nastavi error v request datech
-
-	dodelat checky na jednotlive atributy
-	*/
+	SNMP_device *gate = snmpmod->get_gate_device();
+	char *buf;
 
 	xr->thread_id = pthread_self();
 
@@ -1311,6 +1210,20 @@ int XmlModule::process_discovery_message( DOMElement *elem )
 
 	value = elem->getAttribute( X( "msgid" ) );
 	xr->msgid = atoi( XMLString::transcode( value ) );
+
+	/*
+	Protocol version check
+	*/
+	value = elem->getAttribute( X( "protocolVersion" ) );
+	buf = XMLString::transcode( value );
+
+	if ( strcmp( buf, gate->xml_protocol_version) != 0 )
+	{
+		xr->error = XML_MSG_ERR_XML;
+		xr->error_str = "Unsupported protocol version.";
+	}
+
+	XMLString::release( &buf );
 
 	value = elem->getAttribute( X( "objectId" ) );
 	if ( !XMLString::equals( value, X( "" ) ) )
@@ -1338,7 +1251,6 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 	DOMNode *node;
 
 	const DOMElement *found_el;
-	const DOMElement *type_element;
 
 	string tmp_str_xpath = "";
 	char *tmp_buf;
@@ -1417,7 +1329,6 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 	else
 	{
 		xr->community = get_snmp_community( permission, dev );
-		//log_message( log_file, xr->community.c_str() );
 	}
 
 
@@ -1445,8 +1356,6 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 				value = el->getTextContent();
 
 
-				//int pos = snmpmod->get_device_position( xr->object_id );
-				//found_el = find_element( value, get_device_xalan_document( pos ), xr, true );
 				//Search id je kvuli pametovemu zlepseni.
 				sprintf( tmpid, "%d", search_id );
 				tmp_str_xpath = "//device[@id='";
@@ -1456,13 +1365,7 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 				tmp_str_xpath += string( tmp_buf );
 				XMLString::release( &tmp_buf );
 
-				//TODO maybe dodelat lock na vyhledavani ve spolecne strukture
-
 				found_el = find_element( X( tmp_str_xpath.c_str() ), main_xa_doc->doc, xr, true );
-
-				/*
-				TODO: dodelat ke vsem vracenim erroru volani enquque_response, kde to neni INTERNAL ERROR
-				*/
 
 				if ( found_el == NULL )
 				{
@@ -1472,53 +1375,9 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 					
 					delete( vp );
 					enqueue_response( xr );
-					//return xr;
 					return NULL;
 				}
 
-				/*
-				Paklize jeste mame neco k vyhledani
-				Je to vetsinou u tabulek, kdy se musime podivat do typu elementu, jestli
-				to neni v nem
-				*/
-				/*if ( xr->xpath_end.compare( "" ) != 0 )
-				{
-					//Nutno najit element typu a pak vyhledat znova
-					tmp_buf = XMLString::transcode( found_el->getAttribute( X("type") ) );
-
-					tmp_str_xpath = "xsd:complexType[@name='";
-					tmp_str_xpath += string( tmp_buf );
-					tmp_str_xpath += "']";
-
-					type_element = find_element( X( tmp_str_xpath.c_str() ), get_device_xalan_document( pos ), xr, false );
-
-					if ( type_element == NULL )
-					{
-						log_message( log_file, "NULL found element" );
-						xr->error = XML_MSG_ERR_INTERNAL;
-						xr->error_str = "Such element cannot be found in managed data tree.";
-						
-						delete( vp );
-						return xr;
-					}
-
-					//Nasli jsme typ elementu. Nyni prohledame jeho zbytek, jestli je tam ten element uvnitr
-
-					xr->xpath_end = tmp_str_xpath + xr->xpath_end;
-
-					found_el = find_element( X( xr->xpath_end.c_str() ), get_device_xalan_document( pos ), xr, true );
-
-					if ( found_el == NULL )
-					{
-						log_message( log_file, "NULL found element" );
-						xr->error = XML_MSG_ERR_INTERNAL;
-						xr->error_str = "Such element cannot be found in managed data tree.";
-						
-						delete( vp );
-						return xr;
-					}
-
-				}*/
 
 				/*
 				Paklize je element korenovym elementem, budeme generovat GETNEXT dotazy na cely podstrom.
@@ -1528,16 +1387,6 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 
 				if ( found_el->hasChildNodes() )
 				{
-					//TODO Tady bude getnetxt request na cely podstrom!!!!!!
-					/*log_message( log_file, "This is not a leaf node. Canceling request" );
-					xr->error = XML_MSG_ERR_XML;
-					xr->error_str = "Cannot request this non-simple value node";
-					delete( vp );
-					//return xr;
-
-					enqueue_response( xr );
-					//return 0;
-					return NULL;*/
 
 					xr->snmp_getnext = 1;
 					value = found_el->getTagName();
@@ -1559,7 +1408,7 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 
 						vp->oid = string( tmp_buf );
 
-						//TOhle asi presunout do SnmpModule - pac toto xml vubec nezna
+						//Chceme pouze jedinou instanci daneho objektu
 						vp->oid += ".0";
 
 
@@ -1600,20 +1449,14 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 				delete ( vp );
 				enqueue_response( xr );
 				return NULL;
-				//return xr;
-				//return 0;
 
 			}
 		}
 	}
 
 	/*
-	Zavolame snmp funkci, ktera dana data zpracuje a od agenta ziska odpoved
-	My ale necekame, jdeme zpracovavat dalsi veci
+	Navratime element, ktery je pote poslan do fronty
 	*/
-	//snmpmod->dispatch_request( xr );
-
-	//return 0;
 	return xr;
 }
 
@@ -1654,7 +1497,6 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 	const DOMElement *sub;
 	DOMElement *sub_append;
 	DOMElement *subscriptions;
-	DOMElement *manager;
 
 	DOMAttr *sub_attr;
 
@@ -1697,7 +1539,6 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 			return NULL;
 
 		}
-		//Zavolat funkci enququq, pac vracime prazdna data
 
 		/*
 		Delete dane subscription
@@ -1724,8 +1565,6 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 			}
 
 			//Nyni je v subscription dany element, ktery chceme smazat.
-			//mame pravo jej smazat? (stejna ip addr)
-
 
 			attr = doc->createAttribute( X( "delete" ) );
 			attr->setNodeValue( X("1") );
@@ -1744,7 +1583,6 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 			pthread_mutex_unlock( &subscr_cond_lock );
 
 
-			//XMLString::release( &tmp_buf );
 			//ihned vratime prazdna data
 			enqueue_response( xr );
 			return NULL;
@@ -1970,9 +1808,6 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 		//Musime domapovat novou vec do xml
 		pthread_mutex_unlock( &subscr_cond_lock );
 
-		//Mib2Xsd::output_xml2file( "zkuska.xsd", doc );
-		//recreate_xalan_doc();
-
 		
 	}
 
@@ -2112,11 +1947,6 @@ pthread_t *XmlModule::get_distr_thread_id( )
 ************************************/
 int XmlModule::distribution_handler()
 {
-	/*
-	TODO:
-	Hlidat si cas, ktery uplynul od posledniho uspani, abychom
-	mohli resit requesty, ktere prijdou, kdyz spime
-	*/
 
 	/*
 	Reseni timeoutu
@@ -2128,7 +1958,6 @@ int XmlModule::distribution_handler()
 
 	//definovane struktury
 	DOMElement *subscriptions;
-	DOMNode *tmpnode;
 	DOMNodeList *sl;
 	DOMElement *subscription;
 	DOMNodeList *all_subs;
@@ -2179,16 +2008,8 @@ int XmlModule::distribution_handler()
 
 	/*
 	Ziskame handle na subscriptions
-
-	TODO: neni mozne brat pouze jeden item, pac je vice devices
 	*/
 	all_subs = main_root->getElementsByTagName( X("subscriptions") );
-	/*tmpnode = sl->item(0);
-
-	if ( tmpnode != NULL )
-	{
-		subscriptions = dynamic_cast<DOMElement *>(tmpnode);
-	}*/
 
 	time_slept = 0;
 	sleep_start = 0;
@@ -2235,9 +2056,6 @@ int XmlModule::distribution_handler()
 			//Predelani subscriptions
 			subscriptions_changed = false;
 
-
-			//sl = subscriptions->getChildNodes();
-			//subscriptions = all_subs->getChildNodes();
 
 			for ( unsigned int m = 0; m < all_subs->getLength(); m++ )
 			{
@@ -2536,7 +2354,6 @@ int XmlModule::distribution_handler()
 
 					if ( res != CURLE_OK )
 					{
-						//TODO: error pocitani a pak smazani distributionu
 						log_message( log_file, "DISTR: could not send the distribution data" );
 						log_message( log_file, curl_easy_strerror( res ) );
 
@@ -2634,6 +2451,9 @@ void XmlModule::recreate_xalan_doc()
 	main_xa_doc->liaison = new XercesParserLiaison( theDOMSupport );
 	main_xa_doc->doc = main_xa_doc->liaison->createDocument( doc, true, true, true );
 
+	/*
+	TODO: TEMP zaznam. pouze pro kontrolu vystupu. V produkci smazat!
+	*/
 	Mib2Xsd::output_xml2file( "xalan.xsd", main_root->getOwnerDocument());
 
 	pthread_mutex_unlock( &xa_doc_lock );

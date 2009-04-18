@@ -672,14 +672,15 @@ int main(int argc, char *argv[])
 	Parsovani options
 	*/
     struct arg_int  *version  = arg_int0("v",NULL,"<protocol>",              "Protocol version [default 1]");
-	struct arg_int  *listen_port  = arg_int1(NULL,"lport","<listen port>",              		 "Manager listening port (for notifications, etc. )");
-	struct arg_int  *port  = arg_int1("p",NULL,"<port>",              		 "Agent port to send messages");
+	struct arg_int  *listen_port  = arg_int0(NULL,"lport","<listen port>",              		 "Manager listening port (for notifications, etc. )");
+	struct arg_int  *port  = arg_int0("p",NULL,"<port>",              		 "Agent port to send messages");
 	struct arg_lit *notification  = arg_lit0("n","notification",              		 "Just listen to the notification");
-    struct arg_str  *url = arg_str1("a","agent","<agent ip>", "Agents url");
+	struct arg_lit *no_listen  = arg_lit0(NULL,"no-listen",              		 "Don't start subscription listening server. (for altering subscriptions)");
+    struct arg_str  *url = arg_str0("a","agent","<agent ip>", "Agents url");
     struct arg_str  *password = arg_str0(NULL,"password","<xml password>", "");
     struct arg_file  *msg_file = arg_file0("m","message","<msg data>",  "file containing message data");
     struct arg_end  *end     = arg_end(20);
-    void* argtable[] = {version, listen_port, url, port,  password, msg_file, notification, end};
+    void* argtable[] = {version, url, port,  password, msg_file, notification, listen_port, no_listen, end};
 	int nerrors;
 
 	if ( arg_nullcheck( argtable ) != 0 )
@@ -719,6 +720,12 @@ int main(int argc, char *argv[])
 	*/
 	if ( notification->count > 0 )
 	{
+		if ( !listen_port->count )
+		{
+			cerr << "Listen port must be specified! Exitting.\n";
+			exit(1);
+		}
+
 		cout << "------------------" << endl;
 		cout << "Starting server for notifications" << endl;
 		cout << " -----------------"<<endl;
@@ -797,6 +804,12 @@ int main(int argc, char *argv[])
 		*/
 		if ( msg_data->has_subscription )
 		{
+			if ( !listen_port->count )
+			{
+				cerr << "Listen port must be specified for distribution to be received! Exitting.\n";
+				exit(1);
+			}
+
 			cout << "------------------" << endl;
 			cout << "Starting server for descriptions" << endl;
 			cout << " -----------------"<<endl;
@@ -806,6 +819,13 @@ int main(int argc, char *argv[])
 									&answer, NULL, 
 									MHD_OPTION_NOTIFY_COMPLETED, request_completed, NULL,
 									MHD_OPTION_END);
+
+			if ( !daemon )
+			{
+				cerr << "Cannot start http server.";
+				exit(1);
+			}
+
 			/*
 			Nyni budeme cekat na uzivateluv vstup s cislem subscr id, abychom 
 			mohli poslat zabijeci zpravy

@@ -52,6 +52,8 @@ class SnmpXmlGate
 		char *mib_path;
 		char *xsd_path;
 
+		bool gate_set;
+
 		/*
 		XML
 		*/

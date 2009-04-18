@@ -47,11 +47,6 @@ class XmlModule
 		DOMImplementation *impl;
 		DOMElement *main_root;
 
-		//TODO: asi nepotrebne
-		list<DOMElement *> *devices_root;
-
-		//xalanDocuments TODO: asi nepotrebne
-		list<xalan_docs_list *> xalan_docs;
 		struct xalan_docs_list* main_xa_doc;
 
 		//odpovedni fronta
@@ -119,19 +114,14 @@ class XmlModule
 		string * build_response_string( struct request_data* );
 		string build_out_xml( const DOMElement *, list<struct value_pair*> *, list<struct value_pair*>::iterator it );
 
-		DOMElement* get_device_document( int );
-		XalanDocument* get_device_xalan_document( int );
 		const DOMElement* find_element( const XMLCh*, XalanDocument*, struct request_data*, bool );
 
 		/*
 		Funkce na handlovani jednotlivych typu zprav
 		*/
-		//struct request_data* process_discovery_message( struct MHD_Connection *, DOMElement * );
 		struct request_data* process_get_set_message( DOMElement *, const char*, int , int);
 		struct request_data* process_subscribe_message( DOMElement *, const char*, string );
 		int process_discovery_message( DOMElement * );
-		//int process_get_set_message( DOMElement *, const char*, int );
-		//int process_subscribe_message( DOMElement *, const char* );
 
 		/*
 		Funkce, ktera zaradi odpoved do fronty a vzbudi vsechny thready

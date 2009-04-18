@@ -126,10 +126,11 @@ DONE
 
 	- DONE Nyni tedy zrusit devices_root ukazatele a vyhledavani pozice device v XmlModule
 
-
-
-
 	- Dodelat promenne pro zakladni nazvy souboru "snmpxmld.xsd", aby to slo menit globalne
+	DONE
+
+
+
 
 
 
@@ -354,6 +355,12 @@ Low priority
 
 - INVALID Udelat seznam Publication error codes - (vubec vymyslet nejaky seznam)
 
+- Udelat snmpxmlgate jako global promennou -> pri odchytnuti sigterm se zavola stop a ukonci se jeho funkce hezky a nikoliv
+nasilnym smazanim vsech struktur.
+INVALID - stejne se to cely smaze, tka co
+
+
+
 
 - Do textu pak napsat, ze vyuzivame pouze protokol 1 a 2c, jine nepodoporuje knihovna net-snmp
 
@@ -369,8 +376,6 @@ Cimz je zarucena integrita dat.
 - Do textu - ovladani a sprava subscriptions je delana tak proto, ze v navrzenem protokolu by teroristicky mohl pristupovat
 manager k xml schematu a tim menit jednotlive subscriptions (jeste rozmyslet, pac je to mozna piczovina)
 
-- Udelat snmpxmlgate jako global promennou -> pri odchytnuti sigterm se zavola stop a ukonci se jeho funkce hezky a nikoliv
-nasilnym smazanim vsech struktur.
 
 - Otestovat na prijimani veskerych hodnot ( net-snmp ma haldu debilnich typu a ja se z toho muzu co?.... )
 
@@ -383,19 +388,24 @@ Medium priority
 - DONE Struktura elementu <trap></trap> v ramci konfiguraku
 - DONE Podivat se, jestli pri vraceni erroru po SET requestu ukladame do struktury i dany error, nejenom jeho string reprezentaci
 
-
 - Domyslet cesty pro mib, log soubory, xsd soubory, aby to v tom unix file tree nejak hezky sedelo a nebyla to prasarna.
+DONE
 
 - Do parseru XML configu -> paklize nejsou nastaveny porty pro poslouchani a transmit, dosadime nejake defaultni (GATE device)
+DONE
 
 - Udelat lepsi parsovani XML dat z message, ktery prijmeme
+INVALID - on je to stejne cely text, tak co s tim
 
 - v kazde zprave je msgid - kdyz tam nebude, tak zaradime nejakou nahodnou hodnotu ci vyhodime error!!
+DONE - nechame to bez cisla. at se manager posere
 
 - dodelat opravdu reakci na nastavene porty v konfiguraku
+DONE
 
 - zkontrolovat a kdyztak dodelat checkovani na povinne elementy v ramci device v konfiguraku
 - Zkurveny XML Xerces, netusim, proc to v xml elementu najednou najde name, ci popis brany... WTF???
+BOTH INVALID - nehodlam se s tim srat
 
 
 
@@ -464,13 +474,14 @@ DONE
 - Discovery message - predelat, jak jsme zmenily system xml souboru a ukazatelu, musi se to nacitat ze souboru.!!
 DONE
 
-
-
-
+- configurak - vubec nemusi byt snmp/transmit port - pac to stejne odesilame z viceho portu
+DONE
 
 - Device id = 0, paklize je duplikat, spadne to na segfaultu, pac to chce pristoupit nekam, co tam neni
+DONE
 
 - HTTP server -> nutno doplnit do konfiguraku neco ohledne bezpecnostiho certifikatu pro https
+DONE
 
 
 - Spatne vraceni erroru na SET message (kdyz se vyskytne error, agent stale vraci no error)
@@ -484,7 +495,6 @@ Paklize neni nulovy ale neexistuje, taky ihned vratit a nepadat!!
 URGENT: udelat predtim, nez osetrime ty nulove xpathy v bodu vyse
 
 
-- configurak - vubec nemusi byt snmp/transmit port - pac to stejne odesilame z viceho portu
 
 
 

@@ -265,9 +265,8 @@ int SnmpModule::start_transform()
 
 		/*
 		Paklize je stejny jako jiny device, nechame to byt a budeme
-		urcovat vyhledavani az u prijimani zprav.
-		TODO: paklize je stejny, tak pointer z jeho dat presmerujeme
-		na dany device!!!!!!!!!!!!!!!!!!!!!
+		urcovat vyhledavani az u prijimani zprav. Tam zvolime
+		vzdy ID elementu, ktery je bud jeho id ci similar_as
 		*/
 	}
 
@@ -510,7 +509,6 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 	Variable list pro odpoved
 	*/
 	struct 		variable_list *vars;
-	char 		*var_buf;
 
 	/*
 	Indexed name pro GETNEXT dotaz
@@ -1479,6 +1477,8 @@ int SnmpModule::process_trap( int operation, struct snmp_session *sess, int reqi
 		string url;
 
 		list<string>::iterator strit;
+
+		headerlist = curl_slist_append(headerlist, buf);
 
 		for ( strit = notification->manager_urls.begin(); strit != notification->manager_urls.end(); strit++ )
 		{
