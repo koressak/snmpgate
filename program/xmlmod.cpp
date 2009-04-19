@@ -436,16 +436,16 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 			 //Paklize nejsou vsechny odpovedi, tak se uspime na conditione
 			 if ( msg_tmp != msg_count )
 			 {
-				 log_message( log_file, "Client thread: going to sleep" );
+				 //log_message( log_file, "Client thread: going to sleep" );
 				 pthread_mutex_lock( &condition_lock );
 				 //pthread_cond_wait( &resp_cond, &condition_lock );
 				pthread_cond_timedwait( &resp_cond, &condition_lock, &ts);
 				 pthread_mutex_unlock( &condition_lock );
-				 log_message( log_file, "Client thread: waking up" );
+				 //log_message( log_file, "Client thread: waking up" );
 			 }
 			 else
 			 {
-				 log_message( log_file, "Client thread: finishing, has got all responses" );
+				 //log_message( log_file, "Client thread: finishing, has got all responses" );
 				 finished = true;
 
 				 msg_count = 0;
@@ -473,7 +473,9 @@ int XmlModule::process_request( void *cls, struct MHD_Connection *connection, co
 					responses.pop_front();
 
 					delete( out );
-					delete( (*tmp_it) );
+					log_message( log_file, "CLIENT: deleting request_data" );
+					//delete( (*tmp_it) );
+
 				 }
 			 }
 
@@ -1017,7 +1019,7 @@ string XmlModule::build_out_xml( const DOMElement *el, list<struct value_pair*> 
 					ret += string( buf );
 					ret += ">\n";
 
-					delete( (*it) );
+					//delete( (*it) );
 					it = list->erase( it );
 				}
 				else
@@ -2476,7 +2478,7 @@ int XmlModule::distribution_handler()
 				responses.pop_front();
 
 				delete( out );
-				delete( (*tmp_it) );
+				//delete( (*tmp_it) );
 			 }
 
 			

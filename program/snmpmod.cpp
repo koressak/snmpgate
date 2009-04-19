@@ -129,7 +129,7 @@ int SnmpModule::checkDevices()
 	snmp_sess_init( &session );
 
 	//pro jednotlive devices v seznamu
-	list<SNMP_device*>::iterator it, rem;
+	list<SNMP_device*>::iterator it;
 
 	for( it = devices.begin(); it != devices.end(); it++ )
 	{
@@ -227,9 +227,9 @@ int SnmpModule::checkDevices()
 	{
 		if ( (*it)->active == 0 )
 		{
-			rem = it;
+			//rem = it;
 			it = devices.erase( it );
-			delete (*rem);
+			//delete (*rem);
 		}
 		else
 			it++;
@@ -565,7 +565,7 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 		if ( requests.empty() )
 		{
 			//Ukoncit snmp session a jit spat
-			log_message( log_file, "request handler going to wait" );
+			//log_message( log_file, "request handler going to wait" );
 
 			//Zavreme session
 			if ( sptr != NULL )
@@ -578,7 +578,7 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 			pthread_cond_wait( &incom_cond, &cond_lock );
 			pthread_mutex_unlock( &cond_lock);
 
-			log_message( log_file, "request_handler awakened" );
+			//log_message( log_file, "request_handler awakened" );
 			is_getnext_finished = true;
 		}
 		else
@@ -627,6 +627,8 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 			//ziskame prvni dotaz
 			req_data = requests.front();
 			requests.pop_front();
+
+			log_message( log_file, "SNMP: dalsi getnext" );
 
 			response = NULL;
 			error = false;
@@ -727,7 +729,6 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 				*/
 				do 
 				{
-					log_message( log_file, "Sending packet to snmp agent" );
 					status = snmp_sess_synch_response( ss, pdu, &response );
 					
 
@@ -782,7 +783,6 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 							}
 							else
 							{
-								log_message( log_file, "Success getnext" );
 								//SNMP GETNEXT
 								struct value_pair *vp = new value_pair;
 
@@ -796,7 +796,7 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 										(vars->type == SNMP_NOSUCHINSTANCE ) 
 										)
 									{
-										log_message( log_file, "ending getnext" );
+										//log_message( log_file, "ending getnext" );
 										is_getnext_finished = true;
 										delete ( vp );
 									}
@@ -804,20 +804,17 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 											( memcmp(root, vars->name, root_len * sizeof(oid)) != 0 ) 
 										)
 									{
-										log_message( log_file, "we reached end of the subtree" );
+										//log_message( log_file, "we reached end of the subtree" );
 										is_getnext_finished = true;
 										delete ( vp );
 									}
 									else
 									{
-										log_message(log_file, "before get_response_value" );
 										get_response_value( vars, vp, head );
-										log_message(log_file, "after get_response_value" );
 
 										//prev_indexed_name = indexed_name;
 										memcpy( (char *)elem, (char *)vars->name, vars->name_length * sizeof(oid) );
 										elem_len = vars->name_length;
-										log_message(log_file, "after memcpy" );
 
 
 										req_data->request_list.push_back( vp );
@@ -825,10 +822,8 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 										if ( response ) 
 											snmp_free_pdu( response );
 										response = NULL;
-										log_message(log_file, "after freeing the response" );
 
 										pdu = create_next_pdu( elem, elem_len );
-										log_message(log_file, "after creating new pdu" );
 
 										if ( pdu == NULL )
 										{
@@ -849,8 +844,6 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 				while ( is_getnext_finished == false );
 
 			} //end of !error
-
-			log_message( log_file, "SNMP: after error end" );
 
 			if ( response != NULL )
 				snmp_free_pdu( response );
@@ -1084,7 +1077,7 @@ void SnmpModule::get_response_value( struct variable_list* vars, struct value_pa
 			delete (buf );
 	}
 
-	//vp->value = string( "" );
+//	vp->value = string( "" );
 
 
 
@@ -1489,6 +1482,9 @@ int SnmpModule::process_trap( int operation, struct snmp_session *sess, int reqi
 		}
 
 		message += "</data>\n</event>\n</message>";
+
+		//Vymazeme data tohoto notificationu
+		vp_list.clear();
 
 
 		/*
