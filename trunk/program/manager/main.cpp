@@ -121,7 +121,6 @@ iterate_post (void *coninfo_cls, enum MHD_ValueKind kind, const char *key,
 	          size_t size)
 {
 
-	//TODO: dodelat reakci jestli je to notification (event) si subscription/distribution
 	struct connection_info *con_info = (struct connection_info *) coninfo_cls;
 
 	if ( strcmp( content_type, "text/xml" ) != 0 )
@@ -130,10 +129,20 @@ iterate_post (void *coninfo_cls, enum MHD_ValueKind kind, const char *key,
 		return MHD_NO;
 	}
 	
-	con_info->data = string( data );
-	cout << "Subscription data received: " << endl;
-	cout << data <<endl;
-	cout <<endl;
+	string tmp = string(data);
+
+	int message_start = tmp.find( "<message", 0 );
+	int message_end = tmp.find( "</message>", 0 );
+	message_end += strlen( "</message>" );
+
+	tmp = tmp.substr( message_start, message_end );
+
+	cout << "------------------------------\n";
+	cout << "Data received: \n"; 
+	cout << tmp << "\n";
+	cout << "-----------------------------\n";
+
+	con_info->data = tmp;
 
 	return MHD_NO;
 
@@ -172,7 +181,6 @@ int answer( void *cls, struct MHD_Connection *connection, const char *url,
 
 	if ( NULL == *con_cls)
 	{
-		cout << "Got an subscription response\n";
 		struct connection_info *con_info = new connection_info;
 
 		

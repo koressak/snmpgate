@@ -492,16 +492,18 @@ DONE
 
 - Spatne vraceni erroru na SET message (kdyz se vyskytne error, agent stale vraci no error)
 AGENT nevraci zadnej error. Takze sereme na to
+DONE
+
+- Obecnej segfault
+STL list - pop_front a erase zavolaj destruktor. -> cimz padem pak nesmim mazat ten pointer!!!!
+DONE
+
+
+
 
 
 - Otestovat na prijimani veskerych hodnot ( net-snmp ma haldu debilnich typu a ja se z toho muzu co?.... )
 	-IPADDRESS nechodi
-
-- Obecnej segfault
-Netusim, kde je chyba
-podezrivam - found_el v request_data;
-kdyz se pusti normalni get- v pohode to projde. Spadne to az pri nekolikerem pusteni getnextu -> evidentne saham
-nekam, kde je prazdne misto
 
 
 

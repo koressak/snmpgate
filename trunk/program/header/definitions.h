@@ -390,8 +390,9 @@ struct SNMP_device {
 		for ( list<char *>::iterator it = mibs.begin(); it != mibs.end(); it++ )
 			XMLString::release( &(*it) );
 
-		for ( list<trap_manager *>::iterator it = traps.begin(); it != traps.end(); it++ )
-			delete( (*it) );
+		list<trap_manager *>::iterator it = traps.begin(); 
+		while ( it != traps.end() )
+			it = traps.erase( it );
 		
 	}
 	
@@ -454,7 +455,7 @@ struct request_data {
 	string community;
 
 	//GET list
-	list<value_pair *> request_list;
+	list<struct value_pair *> request_list;
 
 	//jakykoliv error
 	int error;
@@ -504,17 +505,17 @@ struct request_data {
 
 	~request_data()
 	{
-		//if ( !request_list.empty() )
-		//{
-			list<value_pair *>::iterator it = request_list.begin();
+		if ( !request_list.empty() )
+		{
+			list<struct value_pair *>::iterator it = request_list.begin();
 			while ( it != request_list.end() )
 			{
-				if ( (*it) )
-					delete( (*it) );
+				/*if ( (*it) )
+					delete( (*it) );*/
 
 				it = request_list.erase( it );
 			}
-		//}
+		}
 	}
 };
 
