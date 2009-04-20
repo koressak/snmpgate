@@ -102,7 +102,7 @@ specifikace jednotlivých uzlů dokumentu je v příloze
 Mapování dat z MIB bylo obecně popsáno v kapitole \ref{kap_xml} a přesný algoritmus bude specifikován v následující kapitole. Pro adresaci jednotlivých objektů
 je, jak bylo již nastíněno v předchozí kapitole, použito mechanismů XPath či XQuery. Dotaz na položku z MIB může vypadat následovně
 \begin{verbatim}
-	/device/services/xmlbnmgate/device[id=1]/data/...
+	/device/services/xmlbnmgate/device[@id='1']/data/...
 \end{verbatim}
 
 \subsubsection*{Zprávy}
