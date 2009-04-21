@@ -32,16 +32,16 @@
 \contentsline {chapter}{\numberline {5}Implementace}{31}
 \contentsline {section}{\numberline {5.1}T\IeC {\v r}\IeC {\'\i }dy, vlastnosti a jejich vztahy}{31}
 \contentsline {section}{\numberline {5.2}Pou\IeC {\v z}it\IeC {\'e} knihovny}{32}
-\contentsline {section}{\numberline {5.3}Popis v\IeC {\'y}konn\IeC {\'e}ho cyklu}{32}
-\contentsline {subsection}{\numberline {5.3.1}Inicializa\IeC {\v c}n\IeC {\'\i } f\IeC {\'a}ze}{32}
+\contentsline {section}{\numberline {5.3}Popis v\IeC {\'y}konn\IeC {\'e}ho cyklu}{33}
+\contentsline {subsection}{\numberline {5.3.1}Inicializa\IeC {\v c}n\IeC {\'\i } f\IeC {\'a}ze}{33}
 \contentsline {subsection}{\numberline {5.3.2}Transforma\IeC {\v c}n\IeC {\'\i } f\IeC {\'a}ze}{34}
-\contentsline {subsection}{\numberline {5.3.3}Komunika\IeC {\v c}n\IeC {\'\i } moduly}{34}
-\contentsline {subsection}{\numberline {5.3.4}Zpr\IeC {\'a}vy}{36}
+\contentsline {subsection}{\numberline {5.3.3}Komunika\IeC {\v c}n\IeC {\'\i } moduly}{35}
+\contentsline {subsection}{\numberline {5.3.4}Zpr\IeC {\'a}vy}{37}
 \contentsline {subsection}{\numberline {5.3.5}Fronty a atomicita po\IeC {\v z}adavk\IeC {\r u}}{38}
 \contentsline {subsection}{\numberline {5.3.6}Periodick\IeC {\'e} zas\IeC {\'\i }l\IeC {\'a}n\IeC {\'\i } informac\IeC {\'\i }}{39}
 \contentsline {subsection}{\numberline {5.3.7}Asynchronn\IeC {\'\i } ud\IeC {\'a}losti}{40}
-\contentsline {section}{\numberline {5.4}Pam\IeC {\v e}\IeC {\v t}ov\IeC {\'e} optimalizace}{40}
-\contentsline {section}{\numberline {5.5}XML Mana\IeC {\v z}er}{41}
+\contentsline {section}{\numberline {5.4}Pam\IeC {\v e}\IeC {\v t}ov\IeC {\'e} optimalizace}{41}
+\contentsline {section}{\numberline {5.5}XML Mana\IeC {\v z}er}{42}
 \contentsline {chapter}{\numberline {6}Testov\IeC {\'a}n\IeC {\'\i }}{43}
 \contentsline {chapter}{\numberline {7}Z\IeC {\'a}v\IeC {\v e}r}{45}
 \contentsline {chapter}{Literatura}{47}

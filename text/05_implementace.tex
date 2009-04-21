@@ -1,13 +1,11 @@
 \chapter{Implementace}
 \label{kap_implementace}
 
-%TODO: upravit tento uvodni text az po dopsani cele kapitoly.
-
 Vlastní implementace protokolové brány je v této kapitole vysvětlena v rámci několika částí. Nejprve je popsána
-struktura programu, popis tříd, jejich vztah mezi sebou a hlavní funkce, kterou plní. Poté je
-vysvětlen výkonný cyklus programu krok za krokem od spuštění až po zpracování jednotlivých zpráv. Následuje seznam všech
-použitých knihoven, které jsou pro chod programu nezbytné. V poslední části
-je popsán XML manažer, který byl navržen v předchozí kapitole.
+struktura programu, popis tříd, jejich vztah mezi sebou a hlavní funkce, kterou plní. Následuje přehled všech použitých knihoven pro
+lepší pochopení dalšího popisu funkce aplikace. Další část tvoří vysvětlení výkonného cyklu programu krok za krokem od spuštění až po
+zpracování jednotlivých zpráv. Jsou vysvětleny dosažené výsledky při paměťové optimalizaci a detailně rozebrán systém komunikačních front.
+Jako poslední je popsán XML manažer, který byl navržen v předchozí kapitole.
 
 \section{Třídy, vlastnosti a jejich vztahy}
 Jak bylo předesláno v předchozí kapitole, při tvorbě byl dáván velký důraz na modularitu jednotlivých součástí programu.
@@ -29,14 +27,13 @@ Strukturu programu tvoří čtyři třídy:
 
 Vzájemné vztahy těchto tříd jsou vyjádřeny na obrázku \ref{obr_impl_vztahy_trid}.
 
-%\begin{figure}[htp]
-%	\begin{center}
-%		\includegraphics[width=15cm]{obrazky/04_obecne_schema.png}
-%		\caption{Schéma navrhovahého systému}
-%		\label{obr_impl_vztahy_trid}
-%	\end{center}
-%\end{figure}
-%TODO: obrazek plus nejake vysvetleni ke vztahum (zahrnout i komunikaci apod)
+\begin{figure}[htp]
+	\begin{center}
+		\includegraphics{obrazky/05_schema_trid.png}
+		\caption{Schéma tříd aplikace}
+		\label{obr_impl_vztahy_trid}
+	\end{center}
+\end{figure}
 
 
 \section{Použité knihovny}
@@ -128,6 +125,7 @@ na obrázku \ref{obr_impl_trasformace_schema}.
 %	\end{center}
 %\end{figure}
 %TODO: obrazek schematickeho vyjadreni transformace
+%Vyhodit tento obrazek. Co budeme k transformaci kreslit, kdyz uz to tam je milionkrat?
 
 Pro každé zařízení systém načte všechny specifikované MIB soubory a započne s transformací. Proces se řídí pravidly, které byly definovány v kapitole \ref{kap_xml}.
 Jednotlivé uzly jsou popsány svým typem, který obsahuje jejich unikátní identifikační číslo (OID), typ dat a přístupová práva. Samotné uzly jsou pak zařazeny
