@@ -39,6 +39,24 @@ Vzájemné vztahy těchto tříd jsou vyjádřeny na obrázku \ref{obr_impl_vzta
 %TODO: obrazek plus nejake vysvetleni ke vztahum (zahrnout i komunikaci apod)
 
 
+\section{Použité knihovny}
+Při tvorbě programu bylo použito několik knihoven, které zajišťují bezproblémový chod aplikace.
+
+%TODO: reference na jednotlive knihovny
+\begin{itemize}
+	\item \textbf{ \textit{Xerces-C++ a Xalan-C++} } - knihovny zajišťující manipulace s XML dokumenty, vyhledávání pomocí XPath výrazů.
+	\item \textbf{ \textit{Net-SNMP} } - knhovna napsaná v jazyce C, určená pro interpretaci a manipulaci s daty MIB databází, zasílání a 
+	přijímání datových SNMP paketů.
+	\item \textbf{ \textit{libMicroHTTPD} } - volně dostupný HTTP server s podporou použití SSL protokolu při spojení.
+	\item \textbf{ \textit{libCUrl} } - volně dostupná knihovna určená pro klientskou stranu spojení. Podporuje mimo jiné protokoly HTTP, FTP a
+	umožňuje použít i SSL certifikáty pro zabezpečení daného spojení.
+\end{itemize}
+
+Knihovny Xerces, Xalan, libCUrl a libMicroHTTPD využívá XML modul, který má na starosti běh HTTP serveru, operace s XML dokumenty a periodické zasílání
+informací.
+
+SNMP modul využívá knihoven Net-SNMP a libCUrl. Druhou jmenovanou využívá vlákno pro zpracování asynchronních událostí (viz dále v této kapitole).
+
 
 \section{Popis výkonného cyklu}
 Detailní popis funkcí jednotlivých tříd je součástí popisu fungování protokolové brány. Jak bylo napsáno v předchozí kapitole,
@@ -46,13 +64,11 @@ v rámci běhu programu je několik přesně definovaných fází, ve kterých s
 Některé z těchto fází byly oproti návrhu lehce pozměněny, či rozšířeny, dle potřebného rozsahu splňovaných funkcí.
 
 \subsection{Inicializační fáze}
-%TODO: priloha o instalaci programu
-%TODO: priloha struktura konfiguracniho souboru s examplem
 Je důležité připomenout, že již v návrhu bylo stanoveno, jako optimální řešení, že program bude běžet jako démon. Tomu odpovídá
 i manipulace s programem. Byl vytvořen spouštěcí skript, který ovládá běh programu - spouští, zastavuje či restartuje (popis instalace,
-struktura spouštěcího skriptu a použití je v příloze xx).
+struktura spouštěcího skriptu a použití je v příloze \ref{kap_uzivatelska_prirucka_brana}).
 Jediným vstupním parametrem systému je konfigurační soubor, který je formátován jako dokument XML (přesná struktura souboru se všemi 
-povolenými a nutnými elementy je v příloze yy). Tento obsahuje veškeré nutné informace pro běh systému.
+povolenými a nutnými elementy je v příloze \ref{kap_struktura_conf_souboru}). Tento obsahuje veškeré nutné informace pro běh systému.
 
 \subsubsection*{Konfigurační soubor}
 Informace jsou strukturovány do elementů, kdy každý popisuje jedno spravované zařízení. Každé zařízení je nutné identifikovat
@@ -77,7 +93,7 @@ Specifickým elementem je definice samotné brány. Tento element obsahuje vešk
 	\item \textbf{security} - obsahuje případné informace o certifikátu a klíči použitém při přístupu přes protokol HTTPS.
 \end{itemize}
 
-\subsection*{Zpracování a ověření informací}
+\subsubsection*{Zpracování a ověření informací}
 Poté, co je bezchybně zpracován vstupní soubor, je přistoupeno ke zpracování informací ohledně jednotlivých zařízeních. Tuto fázi má
 na starosti třída \textit{SnmpModule}. Nejprve je ověřeno, jestli dané zařízení vůbec funguje a je na něm přítomen SNMP agent. Odešle
 se tedy základní požadavek a je očekávána jakákoliv odpověď. Když je agent aktivní, je zařazen do seznamu spravovaných zařízení. Jinak
@@ -338,11 +354,110 @@ Vždy, když je vložena odpověď, jsou probuzena klientská vlákna, zkontrolu
 požadavku v zasílané zprávě. Odpovědi poté obsahují stejný identifikační řetězec, díky kterému pak manažer pozná, k jaké zprávě se vztahuje obdržená hodnota.
 
 \subsection{Periodické zasílání informací}
+Jednotlivými zprávami typu Subscribe se manažer upíše k pravidelnému zasílání informací. Tuto činnost zahrnuje v sobě XML modul, kde na obsluhu těchto
+rozesílání je vyhrazeno speciální vlákno. To se stará o veškeré manipulace s jednotlivými záznamy, získávání informací od agentů (pomocí SNMP modulu) a jejich
+předávání dále.
+
+Celý systém správy záznamů je založen na hlavním XML dokumentu. Každé spravované zařízení má ve své části element \textit{subscriptions}, kam jsou ukládány
+informace o jednotlivých manažerech. Jeden příkladný záznam je schematicky vyjádřen na obrázku \ref{obr_impl_subscript_element}.
+%TODO: obrazek chyby, ktera by nastala SET drive nez GET
+%\begin{figure}[htp]
+%	\begin{center}
+%		\includegraphics[width=15cm]{obrazky/04_obecne_schema.png}
+%		\caption{Schéma navrhovahého systému}
+%		\label{obr_impl_transformace_schema}
+%	\end{center}
+%\end{figure}
+%TODO: obrazek schematickeho vyjadreni transformace
+
+Každý záznam je identifikován jedinečným číslem a zároveň i zařízením, ve kterém se nachází. Dále element subscription obsahuje informace o frekvenci zasílání, 
+url manažera, kam se mají pakety doručovat a v poslední řadě jsou to jednotlivé XPath výrazy pro identifikaci uzlů z databáze dat.
+Veškeré úpravy - přidávání, změna a mazání - jsou ponechány ve správě tohoto vlákna.
+
+\subsubsection*{Přidání záznamu}
+Když manažer zašle požadavek na zapsání, je obsluhujícím vláknem vytvořen nový element \textit{subscription}, naplněn daty, umístěn do XML dokumentu a 
+distribuční vlákno je upozorněno, že nastala změna. Jsou prohlédnuty všechny záznamy a vygenerovány interní datové struktury pro další správu.
+
+\subsubsection*{Úprava záznamu}
+Vlákno, které zpracovává požadavek klienta, upraví daný záznam v XML dokumentu a oznámí distribučnímu vláknu změnu. To se pak, identicky jako v předchozím případě,
+přesvědčí, jaké změny nastaly a upraví interní data.
+
+\subsubsection*{Smazání záznamu}
+Záznam, pakliže existuje, je označen jako smazaný, ale vlastní smazání provádí až distribuční vlákno.
+
+\subsubsection*{Zasílání informací}
+Vlastní zasílání informací probíhá v jednoduchém cyklu. Jestli není jediný záznam k dispozici, vlákno se uspí a čeká na příchozí zprávy Subscribe. Jsou-li záznamy
+k vyřizování, zvolí se nejmenčí časový krok, který je nutný čekat (dle frekvence zasílání jednotlivého záznamu) a vlákno se uspí. Po probuzení je odečten
+prospaný čas ode všech záznamů a u těch, které jsou připraveny k vyřízení, předá distribuční vlákno připravené komunikační jednotky SNMP modulu, pro vyřízení
+vlastní komunikace. Poté, co dostane odpověď, inicializuje spojení pomocí knihovny \textbf{\textit{libCUrl}} a zprávu Distribution zašle manažerovi na příslušnou
+adresu.
+
+Pakliže zpráva nedojde z jakéhokoliv důvodu - manažer je vypnutý, nemůže být zahájeno spojení - je započítán neplatný pokus o odeslání. V momentu, kdy tento počet
+překročí stanovenou hranici, je daný záznam smazán a manažer bude muset požádat o nové zapsání zprávou Subscribe. Tento systém je zvolen pro zamezení zahlcení 
+distribučního vlákna, které by pak v extrémním případě mohlo spravovat desítky až stovky nefunkčních záznamů, které si nikdo nevyzvedne.
+
+
 \subsection{Asynchronní události}
+Přijímání a zpracování veškerých asynchronních událostí, které agenti posílají na protokolovou bránu, má za úkol speciální vlákno ve správě SNMP modulu.
+Funkce tohoto vlákna je přijmout SNMP zprávu (Trap, Notification), zjistit o jaké zařízení se jedná, zvolit všechny manažery, kteří jsou nastaveni pro příjem
+XML zprávy Event a zprávu odeslat.
+
+Veškeré nastavení monitorovaných zařízení z hlediska příjemců těchto zpráv je v konfiguračním souboru. Při inicializaci vlákna je zpracován tento seznam pro každé
+zařízení.
+
+Vlákno se pak přesune do nekonečného cyklu, kde čeká na definovaném portu na příjem zprávy. Příjem a získání SNMP paketu z příslušného datového spojení je ponecháno
+na knihovně \textbf{\textit{net-snmp}}.
+
+Samotné zpracování pak v sobě zahrnuje získání informací o události, inicializaci jednotlivých spojení pomocí knihovny \textbf{\textit{libCUrl}} a zaslání XML zprávy
+Event jednotlivým manažerům. Z navrženého protokolu vyplývá povinnost získat potvrzení o doručení paketu. To za nás vykoná transportní protokol TCP, který je knihovnou libCUrl
+použit. Není-li možné paket doručit - manažer neexistuje či je vypnutý - pak je informace zahozena a brána se již o tento fakt nezajímá.
 
 
 \section{Paměťové optimalizace}
+Hlavním bodem zadání této práce není jenom implementace protokolové brány, ale i optimalizace využití operační paměti. Při vývoji se objevily dva body, kdy bylo nutno 
+vymyslet optimalizaci systému. Oba dva body se opírají o manipulaci a uložení XML dokumentů, které v paměti zabírají velký prostor.
 
-\section{Použité knihovny}
+Prvním je správa XSD schémat, která popisují jednotlivá monitorovaná zařízení. Každou příchozí zprávou Discovery se manažer dotazuje na tyto popisná schémata. Bylo by, pro 
+rychlejší odbavení požadavku, snadnější uchovávat celá schémata v paměti. Za předpokladu, že jedno schéma zabírá minimálně několik stovek kB (při použití pouze standardní
+sady MIB databáze) paměti a že bychom spravovali několik desítek zařízení, mohla by se nutná paměť rozrůst do desítek MB. Proto se každé takovéto schéma ukládá do
+souboru na pevném disku a v případě potřeby je soubor načten a zaslán manažerovi. Časový rozdíl je relativně malý v porovnání s množstvím paměti, která se ušetří.
+
+Druhým bodem je minimalizace velikosti hlavního XML dokumentu, který je udržován po celou dobu chodu protokolové brány v paměti. Není dost dobře možné, bez zásadních změn
+navrženého protokolu, sdílet části virtuálního stromu dat. Proto vycházejme z předpokladu, že na spravované síti reálně existují identická zařízení, která používají
+stejnou sadu MIB databází. Zároveň je tu druhý předpoklad, že v rámci běžné sítě se nepoužívá mnoho jednotlivých zařízení, která by v rámci SNMP protokolu nabízela ke správě odlišná data.
+Kdybychom měli u každého takového zařízení spravovat v hlavním XML dokumentu celý datový strom, nebylo by možné udržet tento v paměti a zároveň na něm provádět
+efektivně vyhledávání a jiné operace.
+
+Proto byl stanoven takzvaný sdílený systém, který se dotýká i prvního bodu. Zařízení, která mají v konfiguračním souboru nastavenu stejnou sadu MIB databází, jsou prohlášena za shodná, co se týče
+dat, a je vytvořeno pouze jedno popisné XSD schéma a do hlavního dokumentu je uložen pouze jeden takovýto strom. Ostatní zařízení mají nastaveno identifikační číslo shodného agenta.
+Při jakémkoliv požadavku na vyhledání elementů ve stromu či popisné schéma, je vyhledáváno právě v tom jediném sdíleném stromu, nebo navráceno jediné sdílené schéma.
+
+Tímto nejenom, že v rámci předpokladů ušetříme aktuální operační pamět, ale zároveň i místo na pevném disku, kde jsou popisná schémata ukládána. Z hlediska splnění zadání bylo tedy
+dosaženo optimálního řešení.
+
 
 \section{XML Manažer}
+Nedílnou součástí implementační části je vytvoření XML manažera, který by dovolil otestovat protokolovou bránu v praxi. Vzhledem k tomu, že není náplní práce vytvořit plnohodnotného
+klienta, který by postkytoval veškeré uživatelské pohodlí grafické aplikace a jiných možných aspektů, byl vývoj omezen na tvorbu aplikace ovládané pomocí příkazového řádku.
+
+K tvorbě manažerské aplikace byly použity knihovny:
+\begin{itemize}
+	\item \textbf{ \textit{libCUrl} } - zajištující klientské spojení s HTTP serverem na bráně
+	\item \textbf{ \textit{libMicroHTTPD} } - HTTP server použitý pro příjem asynchronních událostí a periodiské distribuce dat
+	\item \textbf{ \textit{libargv2} } - knihovna zajišťující pohodlnné zpracování vstupních parametrů programu
+\end{itemize}
+
+Aplikace funguje ve dvou možných formách - aktivní nebo pasivní (kompletní instalační a uživatelská příručka je v příloze \ref{kap_uzivatelska_prirucka_manazer}).
+
+\subsubsection*{Aktivní mód}
+V tomto módu je součástí vstupních parametrů URL protokolové brány, XML heslo a soubor, který obsahuje jednotlivé požadavky, které chce
+uživatel provést. Systém načte vstupní soubor a pakliže je vše bez chyby zpracováno, vygeneruje XML zprávu dle navrženého protokolu. 
+
+Tuto zprávu pak odešle a čeká na odpověď. V případě, že byla odeslána zpráva Subscribe a jsou tedy očekávány periodické dodání informací,
+je spuštěn HTTP server a jako v předchozím případě, aplikace čeká na odpovědi.
+
+Při ukončení tohoto čekání zašle aplikace XML zprávu, kterou zruší veškeré Subscribe záznamy, které předtím odeslala.
+
+\subsubsection*{Pasivní mód}
+Tento mód slouží jako takzvaný "poslouchací". Při něm se pouze aktivuje webový server a očekávají se příchozí zprávy ohledně asynchronních událostí.
+V tomto módu nelze odesílat žádné požadavky.
