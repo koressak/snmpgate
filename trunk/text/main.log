@@ -1,4 +1,4 @@
-This is pdfTeXk, Version 3.141592-1.40.3 (Web2C 7.5.6) (format=pdflatex 2009.4.1)  21 APR 2009 12:45
+This is pdfTeXk, Version 3.141592-1.40.3 (Web2C 7.5.6) (format=pdflatex 2009.4.1)  21 APR 2009 13:53
 entering extended mode
  file:line:error style messages enabled.
  %&-line parsing enabled.
@@ -549,39 +549,40 @@ File: obrazky/04_beh_programu.png Graphic file (type png)
 
  (./05_implementace.tex
 Kapitola 5.
+<obrazky/05_schema_trid.png, id=195, 326.72063pt x 292.09125pt>
+File: obrazky/05_schema_trid.png Graphic file (type png)
 
-LaTeX Warning: Reference `obr_impl_vztahy_trid' on page 31 undefined on input l
-ine 30.
-
-[31
-
+<use obrazky/05_schema_trid.png> [31
 
 
-] [32] [33]
+
+] [32 <./obrazky/05_schema_trid.png>]
+[33]
 
 LaTeX Warning: Reference `obr_impl_trasformace_schema' on page 34 undefined on 
-input line 122.
-
-
-LaTeX Warning: Reference `kap_analyza' on page 34 undefined on input line 165.
-
-
-LaTeX Warning: Reference `obr_impl_http_vlakno' on page 34 undefined on input l
-ine 170.
+input line 119.
 
 [34]
 
-LaTeX Warning: Reference `obr_impl_snmp_komunikace' on page 35 undefined on inp
-ut line 214.
+LaTeX Warning: Reference `kap_analyza' on page 35 undefined on input line 162.
 
 
-LaTeX Warning: Reference `obr_impl_komun_vlakno' on page 35 undefined on input 
-line 224.
+LaTeX Warning: Reference `obr_impl_http_vlakno' on page 35 undefined on input l
+ine 167.
 
-[35] [36] [37] [38]
+[35]
+
+LaTeX Warning: Reference `obr_impl_snmp_komunikace' on page 36 undefined on inp
+ut line 211.
+
+
+LaTeX Warning: Reference `obr_impl_komun_vlakno' on page 36 undefined on input 
+line 221.
+
+[36] [37] [38]
 
 LaTeX Warning: Reference `obr_impl_subscript_element' on page 39 undefined on i
-nput line 362.
+nput line 359.
 
 [39] [40] [41]) [42]
 \openout2 = `06_testovani.aux'.
@@ -648,10 +649,10 @@ LaTeX Warning: There were undefined references.
 
  ) 
 Here is how much of TeX's memory you used:
- 1679 strings out of 95025
- 20511 string characters out of 1181940
- 71305 words of memory out of 1500000
- 4767 multiletter control sequences out of 10000+50000
+ 1684 strings out of 95025
+ 20652 string characters out of 1181940
+ 71316 words of memory out of 1500000
+ 4771 multiletter control sequences out of 10000+50000
  20083 words of font info for 44 fonts, out of 1200000 for 2000
  37 hyphenation exceptions out of 8191
  25i,10n,21p,335b,347s stack positions out of 5000i,500n,6000p,200000b,5000s
@@ -670,9 +671,9 @@ c/ecbx1440.600pk> </home/hippi/.texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1200.
 600pk></usr/share/texmf-texlive/fonts/type1/bluesky/cm/cmr10.pfb></usr/share/te
 xmf-texlive/fonts/type1/bluesky/cm/cmr8.pfb></usr/share/texmf-texlive/fonts/typ
 e1/bluesky/cm/cmsy10.pfb>
-Output written on main.pdf (69 pages, 833414 bytes).
+Output written on main.pdf (69 pages, 874595 bytes).
 PDF statistics:
- 954 PDF objects out of 1000 (max. 8388607)
+ 957 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 131072)
- 76 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 81 words of extra memory for PDF output out of 10000 (max. 10000000)
 
