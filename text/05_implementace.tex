@@ -1,6 +1,8 @@
 \chapter{Implementace}
 \label{kap_implementace}
 
+%TODO: zamyslet se, jestli ty velke uml diagramy nedat do appendixu
+
 Vlastní implementace protokolové brány je v této kapitole vysvětlena v rámci několika částí. Nejprve je popsána
 struktura programu, popis tříd, jejich vztah mezi sebou a hlavní funkce, kterou plní. Následuje přehled všech použitých knihoven pro
 lepší pochopení dalšího popisu funkce aplikace. Další část tvoří vysvětlení výkonného cyklu programu krok za krokem od spuštění až po
@@ -29,7 +31,7 @@ Vzájemné vztahy těchto tříd jsou vyjádřeny na obrázku \ref{obr_impl_vzta
 
 \begin{figure}[htp]
 	\begin{center}
-		\includegraphics{obrazky/05_schema_trid.png}
+		\includegraphics[width=12cm]{obrazky/05_schema_trid.png}
 		\caption{Schéma tříd aplikace}
 		\label{obr_impl_vztahy_trid}
 	\end{center}
@@ -97,17 +99,16 @@ se tedy základní požadavek a je očekávána jakákoliv odpověď. Když je a
 systém tuto položku vynechá a nebude ji dále brát v úvahu. 
 
 Následuje zpracování seznamu MIB souborů, které popisují nabízené informace. Tyto soubory je nutné vlastnit a přiložit je do dříve specifikovaného
-adresáře, odkud si je systém načte a později zpracuje. Jestli všechny soubory existují a jsou načteny, zařízení je finálně "odsouhlaseno".
+adresáře, odkud si je systém načte a později zpracuje. Jestli všechny soubory existují a jsou načteny, zařízení je finálně "odsouhlaseno" (viz schéma
+\ref{obr_impl_inicializacni_faze}).
 
-%TODO: diagram znazornujici pr;beh inicializacni faze
-%\begin{figure}[htp]
-%	\begin{center}
-%		\includegraphics[width=15cm]{obrazky/04_obecne_schema.png}
-%		\caption{Schéma navrhovahého systému}
-%		\label{obr_impl_transformace_schema}
-%	\end{center}
-%\end{figure}
-%TODO: obrazek schematickeho vyjadreni transformace
+\begin{figure}[htp]
+	\begin{center}
+		\includegraphics[width=15cm]{obrazky/05_inicializacni_faze.png}
+		\caption{Inicializační fáze}
+		\label{obr_impl_inicializacni_faze}
+	\end{center}
+\end{figure}
 
 Po zpracování údajů o všech zařízeních, inicializační fáze končí a systém započne fázi transformační.
 
@@ -115,17 +116,7 @@ Po zpracování údajů o všech zařízeních, inicializační fáze končí a 
 V této chvíli přebírá úlohu třída \textit{\textbf{Mib2Xsd}}, která se stará o převod MIB popisu databáze do XSD formátu. Pro manipulaci se SNMP je
 použita knihovna \textit{\textbf{net-snmp}}. %TODO: citace zdroje netsnmp
 
-Samotný převod a generování XSD popisu je rekurzivní sestup po jednotlivých uzlech virtuálního stromu MIB databáze. Proces je schématicky naznačen
-na obrázku \ref{obr_impl_trasformace_schema}.
-%\begin{figure}[htp]
-%	\begin{center}
-%		\includegraphics[width=15cm]{obrazky/04_obecne_schema.png}
-%		\caption{Schéma navrhovahého systému}
-%		\label{obr_impl_transformace_schema}
-%	\end{center}
-%\end{figure}
-%TODO: obrazek schematickeho vyjadreni transformace
-%Vyhodit tento obrazek. Co budeme k transformaci kreslit, kdyz uz to tam je milionkrat?
+Samotný převod a generování XSD popisu je rekurzivní sestup po jednotlivých uzlech virtuálního stromu MIB databáze.
 
 Pro každé zařízení systém načte všechny specifikované MIB soubory a započne s transformací. Proces se řídí pravidly, které byly definovány v kapitole \ref{kap_xml}.
 Jednotlivé uzly jsou popsány svým typem, který obsahuje jejich unikátní identifikační číslo (OID), typ dat a přístupová práva. Samotné uzly jsou pak zařazeny
@@ -139,16 +130,14 @@ Oproti navrženému systému mapování MIB do XSD (\cite{macejko_dipl}) byla vy
 k tomu, že každý element je popsán unikátním jménem a OID, nedojde při zpracování požadavků ke konfliktu.
 
 Abychom ušetřili procesorový čas, je paralelně s generováním schématu vytvářen i XML dokument, který za běhu slouží k vyhledávání a ostatním potřebným
-operacím. Oproti schématu vypadá element specifikující uzel v MIB databázi následovně:
-%TODO obrazek struktury XML dokumentu
-%\begin{figure}[htp]
-%	\begin{center}
-%		\includegraphics[width=15cm]{obrazky/04_obecne_schema.png}
-%		\caption{Schéma navrhovahého systému}
-%		\label{obr_impl_transformace_schema}
-%	\end{center}
-%\end{figure}
-%TODO: obrazek schematickeho vyjadreni transformace
+operacím. Oproti schématu vypadá element specifikující uzel v MIB databázi jako na obrázku \ref{obr_impl_xml_element}.
+\begin{figure}[htp]
+	\begin{center}
+		\includegraphics[height=10cm]{obrazky/05_element_xml.png}
+		\caption{Příklad struktury hlavního XML dokumentu}
+		\label{obr_impl_xml_element}
+	\end{center}
+\end{figure}
 
 Tento dokument je pak spravován a využíván třídou \textit{\textbf{XmlModule}}.
 
@@ -165,15 +154,14 @@ aplikace, abychom měli větší kontrolu nad posílanými daty. Proto byl použ
 Tento server je napsán v jazyce C a velice dobře posloužil našemu účelu. 
 
 Jednotlivá spojení jsou zpracovávána samostatnými vlákny, aby bylo zaručeno co nejrychlejší odbavení požadavků. Funkční cyklus vlánka je znázorněn
-na schématu \ref{obr_impl_http_vlakno}. 
-%\begin{figure}[htp]
-%	\begin{center}
-%		\includegraphics[width=15cm]{obrazky/04_obecne_schema.png}
-%		\caption{Schéma navrhovahého systému}
-%		\label{obr_impl_transformace_schema}
-%	\end{center}
-%\end{figure}
-%TODO: obrazek schematickeho vyjadreni transformace
+na schématu \ref{obr_impl_xmlmod_vlakno}. 
+\begin{figure}[htp]
+	\begin{center}
+		\includegraphics[width=13cm]{obrazky/05_xmlmod_vlakno.png}
+		\caption{Zpracování manažerského požadavku}
+		\label{obr_impl_xmlmod_vlakno}
+	\end{center}
+\end{figure}
 
 Nejprve je zpracována HTTP zpráva. Systém operuje pouze s HTTP zprávami typu POST. Jakékoliv GET zprávy jsou zahazovány a zpět klientovi je zasláno
 chybové upozornění. Poté je na data použit XML parser, který zpracuje požadavek a ujistí se, že je ve formátu specifikovaném v kapitole \ref{kap_xml}.
@@ -210,14 +198,13 @@ Tato struktura pak obsahuje informace o jednom požadavku (Get, Set, Subscribe),
 \subsubsection*{SnmpModule}
 Komunikace se SNMP agentama je založen na systému front. Každé monitorované zařízení má na straně protokolové brány k dispozici jedno obslužné vlákno
 a frontu zpráv. Schématicky naznačeno na obrázku \ref{obr_impl_snmp_komunikace}. Zpracování a vytváření SNMP zpráv se děje pomocí knihovny \textbf{net-snmp}.
-%\begin{figure}[htp]
-%	\begin{center}
-%		\includegraphics[width=15cm]{obrazky/04_obecne_schema.png}
-%		\caption{Schéma navrhovahého systému}
-%		\label{obr_impl_transformace_schema}
-%	\end{center}
-%\end{figure}
-%TODO: obrazek schematickeho vyjadreni transformace
+\begin{figure}[htp]
+	\begin{center}
+		\includegraphics[width=14cm,height=8cm]{obrazky/05_snmp_komunikace.png}
+		\caption{Komunikační vlákna brány pro spojení se SNMP agenty}
+		\label{obr_impl_snmp_komunikace}
+	\end{center}
+\end{figure}
 
 Práce komunikačních vláken probíhá v "nekonečném" cyklu (znázorněném na obrázku \ref{obr_impl_komun_vlakno}). Vstupní informací pro vlákno je identifikační
 číslo monitorovaného zařízení, ke kterému patří. S touto informací získá přístup k frontě zpráv a dalším potřebným strukturám, příslušející pouze danému agentovi.
@@ -442,7 +429,7 @@ K tvorbě manažerské aplikace byly použity knihovny:
 \begin{itemize}
 	\item \textbf{ \textit{libCUrl} } - zajištující klientské spojení s HTTP serverem na bráně
 	\item \textbf{ \textit{libMicroHTTPD} } - HTTP server použitý pro příjem asynchronních událostí a periodiské distribuce dat
-	\item \textbf{ \textit{libargv2} } - knihovna zajišťující pohodlnné zpracování vstupních parametrů programu
+	\item \textbf{ \textit{libargtable2} } - knihovna zajišťující pohodlnné zpracování vstupních parametrů programu
 \end{itemize}
 
 Aplikace funguje ve dvou možných formách - aktivní nebo pasivní (kompletní instalační a uživatelská příručka je v příloze \ref{kap_uzivatelska_prirucka_manazer}).
