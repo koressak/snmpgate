@@ -36,16 +36,16 @@
 \contentsline {subsection}{\numberline {5.3.1}Inicializa\IeC {\v c}n\IeC {\'\i } f\IeC {\'a}ze}{33}
 \contentsline {subsection}{\numberline {5.3.2}Transforma\IeC {\v c}n\IeC {\'\i } f\IeC {\'a}ze}{34}
 \contentsline {subsection}{\numberline {5.3.3}Komunika\IeC {\v c}n\IeC {\'\i } moduly}{35}
-\contentsline {subsection}{\numberline {5.3.4}Zpr\IeC {\'a}vy}{37}
-\contentsline {subsection}{\numberline {5.3.5}Fronty a atomicita po\IeC {\v z}adavk\IeC {\r u}}{38}
-\contentsline {subsection}{\numberline {5.3.6}Periodick\IeC {\'e} zas\IeC {\'\i }l\IeC {\'a}n\IeC {\'\i } informac\IeC {\'\i }}{39}
-\contentsline {subsection}{\numberline {5.3.7}Asynchronn\IeC {\'\i } ud\IeC {\'a}losti}{40}
-\contentsline {section}{\numberline {5.4}Pam\IeC {\v e}\IeC {\v t}ov\IeC {\'e} optimalizace}{41}
-\contentsline {section}{\numberline {5.5}XML Mana\IeC {\v z}er}{42}
-\contentsline {chapter}{\numberline {6}Testov\IeC {\'a}n\IeC {\'\i }}{43}
-\contentsline {chapter}{\numberline {7}Z\IeC {\'a}v\IeC {\v e}r}{45}
-\contentsline {chapter}{Literatura}{47}
-\contentsline {chapter}{\numberline {A}Struktura konfigura\IeC {\v c}n\IeC {\'\i }ho souboru}{49}
-\contentsline {chapter}{\numberline {B}U\IeC {\v z}ivatelsk\IeC {\'a} p\IeC {\v r}\IeC {\'\i }ru\IeC {\v c}ka protokolov\IeC {\'e} br\IeC {\'a}ny}{51}
-\contentsline {chapter}{\numberline {C}U\IeC {\v z}ivatelsk\IeC {\'a} p\IeC {\v r}\IeC {\'\i }ru\IeC {\v c}ka mana\IeC {\v z}ersk\IeC {\'e} aplikace}{53}
-\contentsline {chapter}{\numberline {D}Obsah p\IeC {\v r}ilo\IeC {\v z}en\IeC {\'e}ho CD}{55}
+\contentsline {subsection}{\numberline {5.3.4}Zpr\IeC {\'a}vy}{39}
+\contentsline {subsection}{\numberline {5.3.5}Fronty a atomicita po\IeC {\v z}adavk\IeC {\r u}}{41}
+\contentsline {subsection}{\numberline {5.3.6}Periodick\IeC {\'e} zas\IeC {\'\i }l\IeC {\'a}n\IeC {\'\i } informac\IeC {\'\i }}{42}
+\contentsline {subsection}{\numberline {5.3.7}Asynchronn\IeC {\'\i } ud\IeC {\'a}losti}{43}
+\contentsline {section}{\numberline {5.4}Pam\IeC {\v e}\IeC {\v t}ov\IeC {\'e} optimalizace}{43}
+\contentsline {section}{\numberline {5.5}XML Mana\IeC {\v z}er}{44}
+\contentsline {chapter}{\numberline {6}Testov\IeC {\'a}n\IeC {\'\i }}{47}
+\contentsline {chapter}{\numberline {7}Z\IeC {\'a}v\IeC {\v e}r}{49}
+\contentsline {chapter}{Literatura}{51}
+\contentsline {chapter}{\numberline {A}Struktura konfigura\IeC {\v c}n\IeC {\'\i }ho souboru}{53}
+\contentsline {chapter}{\numberline {B}U\IeC {\v z}ivatelsk\IeC {\'a} p\IeC {\v r}\IeC {\'\i }ru\IeC {\v c}ka protokolov\IeC {\'e} br\IeC {\'a}ny}{55}
+\contentsline {chapter}{\numberline {C}U\IeC {\v z}ivatelsk\IeC {\'a} p\IeC {\v r}\IeC {\'\i }ru\IeC {\v c}ka mana\IeC {\v z}ersk\IeC {\'e} aplikace}{57}
+\contentsline {chapter}{\numberline {D}Obsah p\IeC {\v r}ilo\IeC {\v z}en\IeC {\'e}ho CD}{59}
