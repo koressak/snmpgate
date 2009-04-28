@@ -1,5 +1,35 @@
 \chapter{Uživatelská příručka protokolové brány}
 \label{kap_uzivatelska_prirucka_brana}
+Samotná protokolová brána funguje jako démon. Je ovládána pomocí spouštěcího skriptu, který je k
+programu přiložen. Vzhledem k tomu, že za cílový operační systém je zvolen Linux, budeme se v dalším 
+popisu adresářů opírat o jeho strukturu souborů.
+
+\subsection*{Instalace}
+Pro úspěšnou instalaci je nejprve nutné program zkompilovat. Pro přeložení je nutné mít v systému nainstalovány následující knihovny
+(pro každou knihovnu platí, že je nutné mít hlavičkové soubory, nikoliv jenom runtime verzi).
+\begin{itemize}
+	\item \textbf{Xerces-C++} - verze 2.8.0 a vyšší
+	\item \textbf{Xalan-C++} - verze 1.10 a vyšší
+	\item \textbf{libsnmp} - verze 5.4.1
+	\item \textbf{libmicrohttpd} - 0.4.0
+	\item \textbf{libcurl} - 7.18.2
+\end{itemize}
+
+Zkompilovaný program zkopírujeme do libovolného adresáře (nejlépe však \verb|/usr/bin| či \verb|/usr/share/bin|). 
+Spouštěcí skript umístíme do adresáře \verb|/etc/init.d/|. Je nutné jej však upravit a nastavit přesné umístění
+binárního souboru, který bude spouštěn.
+
+\subsection*{Spuštení a běh}
+Samotné spuštění a běh není nikterak náročné. Jediným parametrem, který program přijímá je umístění konfiguračního souboru.
+Cesta k souboru je uvedena v rámci spouštěcího skriptu. Proto jakékoliv změny je nutné promítnout i tam, aby program nahrával
+aktuální konfiguraci.
+
+Protokolovou bránu lze spouštět při startu programu, či později manuálně. Vše je ponecháno na administrátorovi systému.
+
+\subsubsection*{MIB soubory}
+Při specifikaci MIB databázových souborů v konfiguračním souboru je nutné dbát na to, aby všechny uvedené existovaly
+v umístění, které je součástí konfigurace zařízení brány. Pakliže některé soubory jsou nedostupné, systém nebude moci
+dané zařízení spravovat.
 
 
 

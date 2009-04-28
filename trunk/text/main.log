@@ -1,4 +1,4 @@
-This is pdfTeXk, Version 3.141592-1.40.3 (Web2C 7.5.6) (format=pdflatex 2009.4.1)  28 APR 2009 11:32
+This is pdfTeXk, Version 3.141592-1.40.3 (Web2C 7.5.6) (format=pdflatex 2009.4.1)  28 APR 2009 16:50
 entering extended mode
  file:line:error style messages enabled.
  %&-line parsing enabled.
@@ -618,34 +618,34 @@ Kapitola 7.
 
 ]
 Dodatek A.
-) [53]
+[53] [54] [55]) [56]
 \openout2 = `0B_uzivat_brana.aux'.
 
- (./0B_uzivat_brana.tex [54
-
-
-
-]
+ (./0B_uzivat_brana.tex
 Dodatek B.
-) [55]
+[57
+
+
+
+]) [58]
 \openout2 = `0C_uzivat_manager.aux'.
 
- (./0C_uzivat_manager.tex [56
-
-
-
-]
+ (./0C_uzivat_manager.tex
 Dodatek C.
-) [57]
+[59
+
+
+
+] [60]) [61]
 \openout2 = `0D_obsahcd.aux'.
 
- (./0D_obsahcd.tex [58
+ (./0D_obsahcd.tex [62
 
 
 
 ]
 Dodatek D.
-) [59] (./main.aux (./01_uvod.aux) (./02_snmp.aux) (./03_xml.aux)
+) [63] (./main.aux (./01_uvod.aux) (./02_snmp.aux) (./03_xml.aux)
 (./04_analyza.aux) (./05_implementace.aux) (./06_testovani.aux) (./07_zaver.aux
 ) (./0A_konfig_file.aux) (./0B_uzivat_brana.aux) (./0C_uzivat_manager.aux)
 (./0D_obsahcd.aux))
@@ -676,9 +676,9 @@ c/ecbx1440.600pk> </home/hippi/.texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1200.
 600pk></usr/share/texmf-texlive/fonts/type1/bluesky/cm/cmr10.pfb></usr/share/te
 xmf-texlive/fonts/type1/bluesky/cm/cmr8.pfb></usr/share/texmf-texlive/fonts/typ
 e1/bluesky/cm/cmsy10.pfb>
-Output written on main.pdf (73 pages, 1083725 bytes).
+Output written on main.pdf (77 pages, 1104748 bytes).
 PDF statistics:
- 976 PDF objects out of 1000 (max. 8388607)
+ 1010 PDF objects out of 1200 (max. 8388607)
  0 named destinations out of 1000 (max. 131072)
  111 words of extra memory for PDF output out of 10000 (max. 10000000)
 
