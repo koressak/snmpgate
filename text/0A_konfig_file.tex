@@ -1,4 +1,166 @@
 \chapter{Struktura konfiguračního souboru}
 \label{kap_struktura_conf_souboru}
+Konfigurační soubor je samostatný XML dokument, který se skládá z několika definovaných částí.
+Hlavní element je \verb|<devices>...</devices>|. Tento vymezuje všechna spravovaná a monitorovaná zařízení.
 
+Existují dva typy zařízení - protokolová brána a jakékoliv jiné. 
+
+\subsection*{Běžné zařízení}
+Každé zařízení musí být specifikováno dle následujícího příkladu:
+
+\begin{verbatim}
+<device id="XY">
+  <name>Název zařízení</name>
+  <description>Popis pro lepší pochopení.</description>
+  <snmpAddr>ip_adresa</snmpAddr>
+  <protocolVersion>2</protocolVersion>
+  <mibs>
+    <mib>RFC1213-MIB.txt</mib>
+    ...
+  </mibs>
+  <traps>
+    <manager>
+      <address>ip_adresa</address>
+      <port>7878</port>
+    </manager>
+    ...
+  </traps>
+  <access>
+    <read>public</read>
+    <write>private</write>
+  </access>
+</device>
+\end{verbatim}
+
+Nejprve je nutné definovat identifikační číslo zařízení. Id 0 je rezervováno pro protokolovou bránu
+a systém nepovolí zařazení jiného zařízení místo ní. Tímto identifikačním číslem jsou pak opatřeny
+jednotlivé zprávy.
+
+Následuje jméno a popis zařízení. To vše pro lepší uživatelský přístup administrátora při správě brány.
+Je nutné definovat adresu snmp agenta (url či ip adresa) a verzi SNMP protokolu (je podporována verze 1 a 2).
+
+Dalším prvkem jsou vyjmenované jednotlivé MIB databáze, které specifikují škálu nabízených informací. Tyto
+soubory s definicí dat musejí být přítomny na stroji brány. Budou zpracovávány v transformační fázi. Pakliže
+není specifikována ani jedna, je nahrána základní sada MIB databází dle knihovny net-snmp.
+
+Element \verb|<traps>...</traps>| definuje množinu manažerů, kteří budou obesláni, pakliže nastane nějaká
+asynchronní událost. Každý manažer je definován adresou a portem, na kterém poslouchá.
+
+Posledním základním elementem je definice přístupu. Zde je možné definovat SNMP hesla (community řetězce)
+pro čtení a zápis. Tyto nemají nic společného s definovavými hesly XML protokolu (viz níže). Danému manažerskému
+požadavku se přiřadí takový řetězec, jaká práva mu příslušejí dle XML hesla.
+
+\subsection*{Protkolová brána}
+Samotná brána má, oproti běžným zařízením, ještě několik speciálních XML elementů, které definují podstatné
+součásti chování programu. Úplný soupis elementů následuje:
+
+\begin{verbatim}
+<logFile>/tmp/snmpxmld.log</logFile>
+<snmp>
+  <mibPath>/usr/share/snmp/mibs/</mibPath>
+  <listenPort>3111</listenPort>
+</snmp>
+<xml>
+  <xsdPath>/tmp/</xsdPath>
+  <listenPort>8888</listenPort>
+  <transmitPort>2555</transmitPort>
+  <access>
+    <read>cteni</read>
+    <write>zapis</write>
+  </access>
+  <protocolVersion>1</protocolVersion>
+</xml>
+<security>
+  <key>key.pem</key>
+  <certificate>cert.pem</certificate>
+</security>
+\end{verbatim}
+
+Je možné specifikovat logovací soubor, nebo používat již předdefinovanou cestu.
+
+Následující elementy specifikují části SNMP a XML modulů. V rámci SNMP lze nastavit
+cestu k MIB souborům a port, na kterém jsou poslouchány asynchronní události.
+
+XML modul je možné definovat o poznání více. Neprve cesta, kam se budou ukládat
+Xsd popisné soubory. 
+
+\verb|listenPort| specifikuje, na kterém portu bude puštěn HTTP server. Zde se očekávají
+požadavky od manažerů.
+
+\verb|transmitPort| definuje port, na který se odesílají zprávy Distribution.
+
+Element přístupu specifikuje, stejně jako v SNMP části běžného zařízení, jaká jsou hesla pro
+čtení a zápis.
+
+Posledním elementem je definice klíče a certifikátu, které HTTP server používá při spojení s manažery.
+Tento element je volitelný.
+
+\subsection*{Příklad souboru}
+Následuje příklad funkčního konfiguračního souboru o dvou monitorovaných zařízeních.
+
+\begin{verbatim}
+<?xml version="1.0" encoding="UTF-8"?>
+<devices>
+  <!-- Brana -->
+  <device id="0">
+    <name>SNMP Gate</name>
+    <description>Popis brany</description>
+    <snmpAddr>localhost</snmpAddr>
+    <protocolVersion>2</protocolVersion>
+    <mibs>
+      <mib>RFC1213-MIB.txt</mib>
+    </mibs>
+    <traps>
+      <manager>
+        <address>127.0.0.1</address>
+        <port>7878</port>
+      </manager>
+    </traps>
+    <access>
+      <read>public</read>
+      <write>private</write>
+    </access>
+
+    <!--
+    Specificke elementy brany
+    -->
+    <logFile>/tmp/snmpxmld.log</logFile>
+    <snmp>
+      <mibPath>/usr/share/snmp/mibs/</mibPath>
+      <listenPort>3111</listenPort>
+    </snmp>
+    <xml>
+      <xsdPath>/tmp/</xsdPath>
+      <listenPort>8888</listenPort>
+      <transmitPort>2555</transmitPort>
+      <access>
+        <read>cteni</read>
+        <write>zapis</write>
+      </access>
+      <protocolVersion>1</protocolVersion>
+    </xml>
+  </device>
+
+  <!-- Monitorovany notebook -->
+  <device id="1">
+    <name>notebook</name>
+    <description>Domaci notebook</description>
+    <snmpAddr>192.168.1.100</snmpAddr>
+    <protocolVersion>2</protocolVersion>
+    <mibs>
+      <mib>RFC1213-MIB.txt</mib>
+    </mibs>
+    <traps>
+      <manager>
+        <address>192.168.1.50</address>
+        <port>1048</port>
+      </manager>
+    </traps>
+    <access>
+      <read>home</read>
+      <write>house</write>
+    </access>
+  </device>
+</devices>
+\end{verbatim}
 

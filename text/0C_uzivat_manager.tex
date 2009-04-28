@@ -1,5 +1,98 @@
 \chapter{Uživatelská příručka manažerské aplikace}
 \label{kap_uzivatelska_prirucka_manazer}
+Manažerská aplikace byla vytvořena jako dokumentační a testovací nástroj, kterým je možné
+ověřit rozsah funkcí protokolové brány. Aplikace je konstruována pro práci v rámci
+příkazové řádky. Není dostupný žádné uživatelsky příjemné grafické rozhraní.
 
+\subsection*{Instalace}
+Pro úspěšnou kompilaci programu je nutné mít v systému nainstalovány následující knihovny ve vývojové verzi.
+\begin{itemize}
+	\item \textbf{libmicrohttpd} - 0.4.0
+	\item \textbf{libcurl} - 7.18.2
+	\item \textbf{libargtable2} - 9
+\end{itemize}
 
+Binární zkompilovaná forma je postačující k veškeré práci. Není nutné provádět žádné další operace.
+
+\subsection*{Spouštěcí parametry}
+Program je možné ovládat sadou vstupních parametrů. Seznam následuje:
+\begin{itemize}
+	\item \textbf{-n} - určuje, že instance programu bude poslouchat příchozí asynchronní události.
+	\item \textbf{--lport <port>} - port, na kterém je spuštěn http server pro poslouchání.
+	\item \textbf{-v <protocol>} - verze XML komunikačního protokolu (v současnosti verze 1)
+	\item \textbf{-a <agent ip>} - url či IP adresa brány
+	\item \textbf{-p <port>} - port, na kterém brána poslouchá požadavky
+	\item \textbf{--password <heslo>} - heslo pro danou sadu požadavků
+	\item \textbf{-m <soubor s daty>} - soubor, ve kterém jsou obsaženy požadavky
+	\item \textbf{--no-listen} - nezapne se http server
+\end{itemize}
+
+Aplikace pracuje v několika režimech - běžný dotaz/odpověď; poslouchání asynchronních událostí; poslouchání periodicky
+zasílaných dat.
+
+\textbf{Běžný mód} se vyznačuje tím, že v rámci souboru s požadavky uvedeme několik dotazů, které chceme provést. Dále
+vstupními parametry specifikujeme agenta, port a heslo a odešleme žádost. Agent odpoví a systém vypíše přijatá data.
+
+\textbf{Poslouchání asynchronních událostí} je specifikováno prvním a druhým přepínačem. Systém neočekává žádný vstupní
+soubor s daty, ale pouze spustí HTTP server a poslouchá jakákoliv příchozí data.
+
+\textbf{Distribution} zprávy je možné přijímat poté, co jsme v požadavcích specifikovali nějakou zprávu Subscribe.
+Nyní aplikace spustí HTTP server a očekává, že jí bude agent/brána zasílat v daných frekvencích data. Zároveň 
+systém čeká na vstup od uživatele, který zadá identifikační číslo daného zápisu, aby mohl ukončit odebírání
+těchto informací a zároveň zaslat ukončující zprávu na bránu.
+
+Zde je ještě možnost upravovat daný zápis k zasílání dat. Použijeme-li přepínač \verb|--no-listen|, systém pouze provede
+požadavky v souboru, ale i když je tam přítomna zpráva subscribe, nespustí HTTP server. Tato funkce demonstruje možnou změnu
+jednotlivých parametrů zápisu na protokolové bráně.
+
+\subsection*{Struktura příkazového souboru}
+Požadavky v datovém souboru definují obsah jedné XML zprávy, kterou zasílá manažer agentovi. Každá řádka
+specifikuje jeden příkaz. Je možné specifikovat pouze čtyři požadavky - Discovery, Get, Set, Subscribe.
+Každý příkaz má svoji přesně definovanou strukturu, která je odvozena od navrženého protokolu. Jednotlivé
+elementy v rámci požadavku jsou odděleny středníkem.
+
+Následný výčet specifikuje jednotlivé možnosti požadavků.
+
+\subsubsection*{Discovery}
+\begin{verbatim}
+discovery;
+discovery;id_zarizeni;
+\end{verbatim}
+
+Prvním příkazem se dotážeme na seznam všech zařízení, které brána spravuje. V druhém případě se ptáme na popisné schéma specifického
+zařízení.
+
+\subsubsection*{Get}
+\begin{verbatim}
+get;id_zarizeni;xpath_vyraz;
+\end{verbatim}
+
+V rámci zprávy Get je možné se dotázat pouze jedním XPath výrazem na uzel či skupinu uzlů v datovém stromu.
+
+\subsubsection*{Set}
+\begin{verbatim}
+set;id_zarizeni;xpath_vyraz;hodnota;
+\end{verbatim}
+
+Zprávou Set je možno nastavit hodnotu jednoho konkrétního uzlu.
+
+\subsubsection*{Subscribe}
+\begin{verbatim}
+subscribe;id_zarizeni;frekvence;distrid;delete;xpath;...
+\end{verbatim}
+
+Pro zpracování zprávy Subscribe je nutné definovat, pro které zařízení je tato zpráva určena. Dále specifikujeme frekvenci
+zasílání dat. Pro změny či smazání zápisu slouží další dva parametry - distrid, delete - tyto mohou být nezadané a systém
+to interpretuje jako novou zprávu. Posledním argumentem je sekvence xpath výrazů, které definují data, jež chceme dostávat.
+
+Argument \verb|delete| je pouze booleovská hodnota. Pro smazání daného zápisu bude nabývat hodnoty 1.
+
+\subsubsection*{Příklad sekvence požadavků}
+\begin{verbatim}
+discovery;0;
+get;1;/iso/org/dod/internet/mgmt/mib-2/system/sysDescr;
+get;0;/iso/org/dod/internet/mgmt/mib-2/tcp;
+subscribe;1;120;;;/iso/org/dod/internet/mgmt/mib-2/tcp;\
+  /iso/org/dod/internet/mgmt/mib-2/system;
+\end{verbatim}
 
