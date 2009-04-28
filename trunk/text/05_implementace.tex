@@ -1,8 +1,6 @@
 \chapter{Implementace}
 \label{kap_implementace}
 
-%TODO: zamyslet se, jestli ty velke uml diagramy nedat do appendixu
-
 Vlastní implementace protokolové brány je v této kapitole vysvětlena v rámci několika částí. Nejprve je popsána
 struktura programu, popis tříd, jejich vztah mezi sebou a hlavní funkce, kterou plní. Následuje přehled všech použitých knihoven pro
 lepší pochopení dalšího popisu funkce aplikace. Další část tvoří vysvětlení výkonného cyklu programu krok za krokem od spuštění až po
@@ -206,17 +204,9 @@ a frontu zpráv. Schématicky naznačeno na obrázku \ref{obr_impl_snmp_komunika
 	\end{center}
 \end{figure}
 
-Práce komunikačních vláken probíhá v "nekonečném" cyklu (znázorněném na obrázku \ref{obr_impl_komun_vlakno}). Vstupní informací pro vlákno je identifikační
+Práce komunikačních vláken probíhá v "nekonečném" cyklu. Vstupní informací pro vlákno je identifikační
 číslo monitorovaného zařízení, ke kterému patří. S touto informací získá přístup k frontě zpráv a dalším potřebným strukturám, příslušející pouze danému agentovi.
 V cyklu se pak opakuje několik dílčích bloků stále dokola.
-%\begin{figure}[htp]
-%	\begin{center}
-%		\includegraphics[width=15cm]{obrazky/04_obecne_schema.png}
-%		\caption{Schéma navrhovahého systému}
-%		\label{obr_impl_transformace_schema}
-%	\end{center}
-%\end{figure}
-%TODO: obrazek schematickeho vyjadreni transformace
 
 Vlákno zjistí, jestli v příslušné frontě je přítomen nějaký požadavek na vyřízení. Když není, vlákno se uspí. Jinak vyjme všechny dotazy, tím frontu vyprázdní a
 požadavky zpracuje. Tento funkční blok závisí na typu zprávky, která se má vyřídit. 
@@ -224,8 +214,8 @@ požadavky zpracuje. Tento funkční blok závisí na typu zprávky, která se m
 Zprávy Get a Set, které mají za úkol dostat nebo nastavit hodnotu koncového uzlu stromu, plně korespondují se SNMP. Je vytvořen SNMP packet, do kterého je vloženo
 heslo (community string) na základě přístupových práv, které manažer má, je naplněno daty, které se mají nastavit či získat a dotaz je odeslán.
 
-Po přijetí odpovědi jsou data opět z paketu vyjmuta, upravena do požadovaného formátu v rámci komunikační struktury. Pakliže se vyskytl error při zpracování, opět
-je nastaven příznak ve struktuře, aby manažer dostal informace o chybě. Takto vygenerovaná odpověď je poslána do odpovědní fronty a je probuzeno vlákno, které na
+Po přijetí odpovědi jsou data opět z paketu vyjmuta, upravena do požadovaného formátu v rámci komunikační struktury. Pakliže se vyskytla chyba při zpracování, opět
+je nastaven příznak ve struktuře, aby manažer dostal informace o problému. Takto vygenerovaná odpověď je poslána do odpovědní fronty a je probuzeno vlákno, které na
 data čeká (samotná funkce je ve správě XML modulu).
 
 Složitější je zpracování požadavku na uzel, který není koncový a obsahuje pod sebou celý podstrom dalších uzlů (z hlediska MIB databáze). Poté je nutno opakovat
@@ -280,7 +270,8 @@ Práva k mazání a úpravám daného záznamu jsou ponechána pouze na znalosti
 \subsubsection*{Změny oproti navrženému XML protokolu}
 Oproti navrženému XML protokolu bylo nutno udělat několik drobných změn, abychom mohli celý systém implementovat. Jedná se pouze o
 minoritní změny - přidání volitelného atributu \textbf{objectid} ke všem typům požadavků, které manažer zasílá. Je to z důvodu
-identifiace monitorovaného zařízení, což by bez tohoto zásahu nebylo vůbec možné.
+identifiace monitorovaného zařízení, což by bez tohoto zásahu nebylo vůbec možné. Zároveň tento zásah umožňuje ponechat stejnou
+strukturu protokolu (co se týče dotazů a odpovědí) pro stroj agenta a brány. 
 
 Abychom nezměnili dosavadní protokol, byl tento atribut zvolen jako volitelný. Jeho nepřítomnost signalizuje, že dotaz je mířen
 na samotné zařízení brány, která následně přepošle požadavek na SNMP agenta běžícího na tom samém stroji.
@@ -294,28 +285,17 @@ dotazy budou mít jakou prioritu. To bohužel zcela nevyhovuje požadavku zajiš
 integritě dat.
 
 Předpokládejme situaci, kdy manažer v jedné XML zprávě zašle dotaz na hodnotu jednoho uzlu s nižší prioritou a zároveň také nastavení
-jiné hodnoty s vyšší prioritou. Stalo by se, že při zpracovávání se nastavení provede dříve a manažer by se nikdy nedozvěděl starou hodnotu.
-%TODO: obrazek chyby, ktera by nastala SET drive nez GET
-%\begin{figure}[htp]
-%	\begin{center}
-%		\includegraphics[width=15cm]{obrazky/04_obecne_schema.png}
-%		\caption{Schéma navrhovahého systému}
-%		\label{obr_impl_transformace_schema}
-%	\end{center}
-%\end{figure}
-%TODO: obrazek schematickeho vyjadreni transformace
+jiné hodnoty s vyšší prioritou (viz obrázek \ref{obr_impl_atom1}). Stalo by se, že při zpracovávání se nastavení provede dříve a manažer by se nikdy nedozvěděl starou hodnotu.
+\begin{figure}[htp]
+	\begin{center}
+		\includegraphics[width=10cm]{obrazky/05_atom1.png}
+		\caption{Chyba prioritního zpracování požadavků}
+		\label{obr_impl_atom1}
+	\end{center}
+\end{figure}
 
 Druhým problémem je "atomicita" prováděných operací. Kdyby systém zpracovával jeden požadavek z přijaté zprávy, čekal na odpověď agenta, a pak
 přešel na další, mohlo by se stát, že druhý manažer by mohl do tohoto cyklu vstoupit a narušit tak výsledek celé posloupnosti operací.
-%TODO: obrazek chyby, ktera by nastala SET drive nez GET
-%\begin{figure}[htp]
-%	\begin{center}
-%		\includegraphics[width=15cm]{obrazky/04_obecne_schema.png}
-%		\caption{Schéma navrhovahého systému}
-%		\label{obr_impl_transformace_schema}
-%	\end{center}
-%\end{figure}
-%TODO: obrazek schematickeho vyjadreni transformace
 
 Proto byl systém přepracován tak, že každé monitorované zařízení má v SNMP modulu jedno obslužné vlákno a frontu požadavků (jak bylo vysvětleno 
 dříve v této kapitole). Nyní se v XML modulu zpracují všechny požadavky v rámci jedné zprávy, vygenerují se příslušné komunikační struktury a ty jsou
@@ -323,15 +303,6 @@ následně všechny najednou vloženy do příslušné fronty požadavků. Tato 
 k dané frontě, aby všechny zprávy tvořily souvislý blok, který bude sekvenčně zpracován.
 
 Je možné, že uživatel v rámci jedné zprávy zašle dotazy na více zařízení. Každé takové zařízení obdrží svůj blok dotazů individuálně.
-%TODO: obrazek chyby, ktera by nastala SET drive nez GET
-%\begin{figure}[htp]
-%	\begin{center}
-%		\includegraphics[width=15cm]{obrazky/04_obecne_schema.png}
-%		\caption{Schéma navrhovahého systému}
-%		\label{obr_impl_transformace_schema}
-%	\end{center}
-%\end{figure}
-%TODO: obrazek schematickeho vyjadreni transformace
 
 Předávání odpovědí ze SNMP do XML modulu slouží pouze jediná odpovědní fronta. Do ní se vkládají postupně vyřízené požadavky ze všech zařízení.
 Vždy, když je vložena odpověď, jsou probuzena klientská vlákna, zkontrolují frontu a případně si vyberou jim určené odpovědi. Zde by se mohlo zdát,
@@ -345,15 +316,13 @@ předávání dále.
 
 Celý systém správy záznamů je založen na hlavním XML dokumentu. Každé spravované zařízení má ve své části element \textit{subscriptions}, kam jsou ukládány
 informace o jednotlivých manažerech. Jeden příkladný záznam je schematicky vyjádřen na obrázku \ref{obr_impl_subscript_element}.
-%TODO: obrazek chyby, ktera by nastala SET drive nez GET
-%\begin{figure}[htp]
-%	\begin{center}
-%		\includegraphics[width=15cm]{obrazky/04_obecne_schema.png}
-%		\caption{Schéma navrhovahého systému}
-%		\label{obr_impl_transformace_schema}
-%	\end{center}
-%\end{figure}
-%TODO: obrazek schematickeho vyjadreni transformace
+\begin{figure}[htp]
+	\begin{center}
+		\includegraphics[width=14cm]{obrazky/05_subscr_element.png}
+		\caption{Element subscription v rámci hlavního XML dokumentu}
+		\label{obr_impl_subscript_element}
+	\end{center}
+\end{figure}
 
 Každý záznam je identifikován jedinečným číslem a zároveň i zařízením, ve kterém se nachází. Dále element subscription obsahuje informace o frekvenci zasílání, 
 url manažera, kam se mají pakety doručovat a v poslední řadě jsou to jednotlivé XPath výrazy pro identifikaci uzlů z databáze dat.

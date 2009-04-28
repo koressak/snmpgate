@@ -1,4 +1,4 @@
-This is pdfTeXk, Version 3.141592-1.40.3 (Web2C 7.5.6) (format=pdflatex 2009.4.1)  27 APR 2009 16:52
+This is pdfTeXk, Version 3.141592-1.40.3 (Web2C 7.5.6) (format=pdflatex 2009.4.1)  28 APR 2009 11:32
 entering extended mode
  file:line:error style messages enabled.
  %&-line parsing enabled.
@@ -513,7 +513,7 @@ Kapitola 4.
 File: obrazky/04_obecne_schema.png Graphic file (type png)
 
 <use obrazky/04_obecne_schema.png>
-Overfull \hbox (9.88583pt too wide) in paragraph at lines 18--19
+Overfull \hbox (9.88583pt too wide) in paragraph at lines 14--15
  [] 
  []
 
@@ -561,7 +561,7 @@ File: obrazky/05_schema_trid.png Graphic file (type png)
 File: obrazky/05_inicializacni_faze.png Graphic file (type png)
 
 <use obrazky/05_inicializacni_faze.png>
-Overfull \hbox (9.88583pt too wide) in paragraph at lines 107--108
+Overfull \hbox (9.88583pt too wide) in paragraph at lines 105--106
  [] 
  []
 
@@ -570,7 +570,7 @@ File: obrazky/05_element_xml.png Graphic file (type png)
 
 <use obrazky/05_element_xml.png>
 
-LaTeX Warning: Reference `kap_analyza' on page 35 undefined on input line 152.
+LaTeX Warning: Reference `kap_analyza' on page 35 undefined on input line 150.
 
 <obrazky/05_xmlmod_vlakno.png, id=211, 556.0775pt x 767.86874pt>
 File: obrazky/05_xmlmod_vlakno.png Graphic file (type png)
@@ -580,26 +580,25 @@ File: obrazky/05_xmlmod_vlakno.png Graphic file (type png)
 <obrazky/05_snmp_komunikace.png, id=225, 486.81876pt x 308.15125pt>
 File: obrazky/05_snmp_komunikace.png Graphic file (type png)
 
-<use obrazky/05_snmp_komunikace.png>
+<use obrazky/05_snmp_komunikace.png> [38] [39 <./obrazky/05_snmp_komunikace.png
+>] [40] <obrazky/05_atom1.png, id=236, 466.74374pt x 364.36125pt>
+File: obrazky/05_atom1.png Graphic file (type png)
 
-LaTeX Warning: Reference `obr_impl_komun_vlakno' on page 38 undefined on input 
-line 209.
+<use obrazky/05_atom1.png> [41 <./obrazky/05_atom1.png>]
+<obrazky/05_subscr_element.png, id=242, 451.6875pt x 104.64093pt>
+File: obrazky/05_subscr_element.png Graphic file (type png)
 
-[38] [39 <./obrazky/05_snmp_komunikace.png>] [40] [41]
-
-LaTeX Warning: Reference `obr_impl_subscript_element' on page 42 undefined on i
-nput line 347.
-
-[42] [43] [44]) [45]
+<use obrazky/05_subscr_element.png> [42 <./obrazky/05_subscr_element.png>]
+[43] [44]) [45] [46]
 \openout2 = `06_testovani.aux'.
 
- (./06_testovani.tex [46
+ (./06_testovani.tex
+Kapitola 6.
+) [47
 
 
 
 ]
-Kapitola 6.
-) [47]
 \openout2 = `07_zaver.aux'.
 
  (./07_zaver.tex [48
@@ -655,10 +654,10 @@ LaTeX Warning: There were undefined references.
 
  ) 
 Here is how much of TeX's memory you used:
- 1705 strings out of 95025
- 21305 string characters out of 1181940
- 71360 words of memory out of 1500000
- 4788 multiletter control sequences out of 10000+50000
+ 1715 strings out of 95025
+ 21565 string characters out of 1181940
+ 71382 words of memory out of 1500000
+ 4796 multiletter control sequences out of 10000+50000
  20083 words of font info for 44 fonts, out of 1200000 for 2000
  37 hyphenation exceptions out of 8191
  25i,10n,21p,335b,347s stack positions out of 5000i,500n,6000p,200000b,5000s
@@ -677,9 +676,9 @@ c/ecbx1440.600pk> </home/hippi/.texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1200.
 600pk></usr/share/texmf-texlive/fonts/type1/bluesky/cm/cmr10.pfb></usr/share/te
 xmf-texlive/fonts/type1/bluesky/cm/cmr8.pfb></usr/share/texmf-texlive/fonts/typ
 e1/bluesky/cm/cmsy10.pfb>
-Output written on main.pdf (73 pages, 1064546 bytes).
+Output written on main.pdf (73 pages, 1083725 bytes).
 PDF statistics:
- 977 PDF objects out of 1000 (max. 8388607)
+ 976 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 131072)
- 101 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 111 words of extra memory for PDF output out of 10000 (max. 10000000)
 

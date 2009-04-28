@@ -9,10 +9,16 @@ Protokol SNMP byl navržen v dřívějších dobách a nemusí plně vyhovovat d
 technologií XML a návrhu protokolu, který by umožňoval minimálně stejnou funkcionalitu jako protokol SNMP a tento zefektivnil.
 
 Tato práce se zaobírá vytvořením protokolové brány, která by umožnila použít navržený XML protokol ke správě strojů, které stále používají protokol SNMP. Cílem je vytvořit softwarový produkt, který bude plnit úkol prostředníka mezi správcem a spravovaným
-strojem. Hlavními problémy jsou implementace navrženého XML protokolu a spojení jej s několika verzemi protokolu SNMP.
+strojem. Hlavními problémy jsou implementace navrženého XML protokolu a spojení jej s několika verzemi protokolu SNMP. Důležitým aspektem vývoje je i orientace na snížení nároků na operační paměť. Proto bude v každé části programu kladen důraz na efektivní správu
+datových struktur.
 
-V kapitole \ref{kap_snmp} je podrobně popsán protokol SNMP.
+V kapitole \ref{kap_snmp} bude podrobně popsán protokol SNMP, jeho komunikační struktury a typy zpráv.
 
-%TODO: nutno doplnit informaci, ze nam jde o optimalni pametovou narocnost a s tim spojene optimalizace
+Kapitola \ref{kap_xml} se zabývá rozborem navrženého XML protokolu. 
 
-%TODO: doplnit vsechny ostatni kapitoly
+Analýza systému a diskuse o možných směrech implementace bude popsána v kapitole \ref{kap_navrh_systemu}.
+
+V kapitole \ref{kap_implementace} bude probrána detailní funkčnost implementovaného programu.
+
+Ověření funkce a další testování systému bude popsáno v kapitole \ref{kap_testovani}.
+

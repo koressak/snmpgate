@@ -1,7 +1,3 @@
-%TODO: Zmenit a pridat par radku o id ve zpravach -> tim bude zajisten transparentni pristup k jednotlivym
-%monitorovanym zarizenim. Tudiz zminit to, ze pridavame nepovinny atribut do kazde zpravy (NE message) a pak, proc to tak je a co tim zajistujeme
-%TODO: oprava odstavce o adresaci dat, kde musime zminit, ze adresujeme strom pouze od device dal. Nikoliv cesta pres cely strom brany!!!!
-%TODO: opravit informace o notification tagu - ze bude muset obsahovat info o OID trapu
 \chapter{Návrh systému}
 \label{kap_navrh_systemu}
 V předchozích dvou kapitolách byla rozebrána teoretická část problému. V této kapitole shrneme požadavky vyplývající z teorie, které je nutno zakomponovat do
@@ -95,19 +91,20 @@ Jednotlivé podelementy uzlu \textbf{subscriptions} musí z podstaty věci obsah
 manažera, aby mu mohly být data doručena a specifikovat časový interval, tj. frekvenci sledování příslušné veličiny.
 
 Děti uzlu \textbf{notifications} určují, které typy událostí jsou sledovány u daného zařízení. V rámci konfigurace systému je nezbytné, aby pro každé zařízení
-bylo jasně definováno, kam mají být příslušné zprávy o událostech zasílány. Tudíž v rámci typu události je nutné uvést příjemce, který bude zprávy očekávat. Přesná 
-specifikace jednotlivých uzlů dokumentu je v příloze 
-%TODO dopsat referenci na prilohu, kde jsou specifikace jednotlivych uzlu
+bylo jasně definováno, kam mají být příslušné zprávy o událostech zasílány. Tato informace bude součástí konfiguračního souboru a systém ji bude
+interně zpracovávat. Samotný XML tag bude obsahovat unikátní identifikační číslo (OID) dané události, aby jej bylo možno poté identifikovat a správně formulovat
+XML zprávu manažerovi.
 
 Mapování dat z MIB bylo obecně popsáno v kapitole \ref{kap_xml} a přesný algoritmus bude specifikován v následující kapitole. Pro adresaci jednotlivých objektů
 je, jak bylo již nastíněno v předchozí kapitole, použito mechanismů XPath či XQuery. Dotaz na položku z MIB může vypadat následovně
 \begin{verbatim}
-	/device/services/xmlbnmgate/device[@id='1']/data/...
+	/iso/org/dod/internet/mgmt/mib-2/...
 \end{verbatim}
 
+Důležitým faktem je, že manažer se ptá přímo na uzly datového stromu. Nemusí tedy uvádět cestu v rámci celého stromu, který popisuje strukturu brány.
+
 \subsubsection*{Zprávy}
-Zprávy, které budou posílány mezi manažerem a bránou, mají formu XML dokumentu. Schématicky je znázorněna a popsána v kapitole \ref{kap_xml}, obrázek .
-%TODO dodat cislo obrazku odkazujici na message format v ramci xml kapitoly
+Zprávy, které budou posílány mezi manažerem a bránou, mají formu XML dokumentu. Schématicky je znázorněna a popsána v kapitole \ref{kap_xml}, obrázek \ref{obr_xml_struktura_zpravy}.
 
 Kořenový element message obaluje veškerá posílaná data. Může obsahovat několik dílčích dotazů, nastavení a ostatních informací, které budou vykonávány postupně
 jedna po druhé. V rámci teorie byla nastíněna možnost použití několika různých front, které by byly specifikovány identifikátorem a zaručovaly by různou
@@ -149,8 +146,6 @@ Informace budou posílány ve formátu HTTP POST zprávy. Strukturu dotazu a odp
 		\label{obr_an_http_request}
 	\end{center}
 \end{figure}
-
-%TODO: dodelat schema posilani dotazu a odpovedi. Tento obrazek je moc malej, aby byl sam na cele strance.
 
 Otázka bezpečného přenosu dat byla řešena v předchozí kapitole a byl zvolen protokol HTTPS. Zajištění distribuce a zpracování certifikátů bude
 diskutováno dále v této kapitole.
