@@ -260,10 +260,19 @@ void SnmpXmlGate::initialize_config()
 					
 					getDeviceInfo( currElem, dev );
 
+					char dd[10];
+					sprintf( dd, "%d", dev->id );
+					log_message( log_file, dd );
+
 					//Jestli je to brana, nastavime zakladni promenne
-					if ( dev->id == 0 && !gate_set )
+					if ( dev->id == 0 )
 					{
-						gate_set = true;
+						if ( !gate_set )
+							gate_set = true;
+						else
+						{
+							throw (char *)"Gate element already set. You have an error in config file";
+						}
 
 						/*
 						porty - kdyz nic, tak defaultni
@@ -292,10 +301,6 @@ void SnmpXmlGate::initialize_config()
 						if ( dev->xml_trans_port == 0 )
 							dev->xml_trans_port = XML_SEND_PORT;
 
-					}
-					else
-					{
-						throw (char *)"Gate element already set. You have an error in config file";
 					}
 
 					string log_msg = "Monitored device:";

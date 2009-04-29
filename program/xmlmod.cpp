@@ -692,7 +692,7 @@ string * XmlModule::build_response_string( struct request_data *data )
 			
 
 			//Jestli budeme posilat main xsd, nebo xsd zarizeni
-			if ( data->object_id == -1 )
+			if ( data->object_id == -1 || data->object_id == 0 )
 			{
 				//main xsd
 				try {
@@ -1243,6 +1243,17 @@ int XmlModule::process_discovery_message( DOMElement *elem )
 	{
 		xr->object_id = atoi( XMLString::transcode( value ) );
 	}
+	else
+	{
+		xr->object_id = 0;
+	}
+
+	if ( ( xr->object_id > 0 ) && !snmpmod->is_device( xr->object_id ) )
+	{
+		//Error, takove zarizeni neexistuje
+		xr->error = XML_MSG_ERR_XML;
+		xr->error_str = "Such device does not exist!";
+	}
 
 	//zaradime odpoved do fronty
 	enqueue_response( xr );
@@ -1310,12 +1321,14 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 	/*
 	Nastaveni search_id
 	*/
+
+	log_message( log_file, "XML: before pointer to device" );
 	dev = snmpmod->get_device_ptr( xr->object_id );
 	if ( dev == NULL )
 	{
 		//Internal ERROR
 		xr->error = XML_MSG_ERR_XML;
-		xr->error_str = string("Cannot fulfil the request. Internal server error");
+		xr->error_str = string("Cannot fulfil the request. Such device does not exist.");
 		enqueue_response( xr );
 		return NULL;
 	}
@@ -1328,11 +1341,12 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 		else
 			search_id = xr->object_id;
 	}
+	log_message( log_file, "XML: after pointer to device" );
 
 	/*
 	ACCESS CONTROL
 	*/
-	if ( (permission=operation_permitted( password, dev, msg_type )) == 0 )
+	if ( (permission=operation_permitted( password, snmpmod->get_gate_device(), msg_type )) == 0 )
 	{
 		xr->error = XML_MSG_ERR_XML;
 		xr->error_str = string( "You have no permission for this operation" );
@@ -1341,8 +1355,12 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 	}
 	else
 	{
+
+	log_message( log_file, "XML: before get community" );
 		xr->community = get_snmp_community( permission, dev );
 	}
+
+	log_message( log_file, "XML: before parsing requests" );
 
 
 	//Parsovani <xpath> elementu
@@ -1378,7 +1396,10 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 				tmp_str_xpath += string( tmp_buf );
 				XMLString::release( &tmp_buf );
 
+				log_message( log_file, tmp_str_xpath.c_str() );
+
 				found_el = find_element( X( tmp_str_xpath.c_str() ), main_xa_doc->doc, xr, true );
+				log_message( log_file, "XML: after found element" );
 
 				if ( found_el == NULL )
 				{
@@ -1912,6 +1933,7 @@ int XmlModule::operation_permitted( const char *passwd, SNMP_device *dev, int ms
 	bool read_perm = false;
 
 	//Nejprve porovname xml passwords
+	log_message( log_file, "XML: a" );
 	if ( strcmp( passwd, dev->xml_read ) == 0 )
 	{
 		read_perm = true;
@@ -1925,6 +1947,8 @@ int XmlModule::operation_permitted( const char *passwd, SNMP_device *dev, int ms
 		//nema pravo jakehokoliv pristupu. Heslo je spatne
 		return 0;
 	}
+
+	log_message( log_file, "XML: b" );
 
 	//o jakou operaci jde
 	switch ( msg_type )

@@ -119,7 +119,7 @@ class Mib2Xsd
 		Vytvoreni hlavniho dokumentu pro celou gate 
 		*/
 		void create_main_document();
-		void create_device_element( SNMP_device *, DOMElement* );
+		void create_device_element( SNMP_device *, DOMElement*, bool similar );
 		void end_main_document();
 
 		/*

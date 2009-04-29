@@ -81,6 +81,11 @@ class SnmpModule {
 
 		u_char map_type_to_pdu( int );
 
+		/*
+		Pro osetreni, jestli existuje zarizeni s danym id
+		*/
+		bool is_device( int id );
+
 
 		/*
 		Funkce pro XmlModule na posilani zprav a ocekavani odpovedi

@@ -261,13 +261,21 @@ int SnmpModule::start_transform()
 	{
 		//pouze paklize je jinej, nez jakekoliv doposud transformovane
 		if ( (*it)->similar_as == -1 )
+		{
 			transform->parse_device_mib( *it );
+		}
+		else
+		{
+			/*
+			Paklize je stejny jako jiny device, nechame to byt a budeme
+			urcovat vyhledavani az u prijimani zprav. Tam zvolime
+			vzdy ID elementu, ktery je bud jeho id ci similar_as
+			*/
+			log_message( log_file, "SNMP: before similar device" );
+			transform->create_device_element( *it, NULL, true );
+			log_message( log_file, "SNMP: after similar device" );
+		}
 
-		/*
-		Paklize je stejny jako jiny device, nechame to byt a budeme
-		urcovat vyhledavani az u prijimani zprav. Tam zvolime
-		vzdy ID elementu, ktery je bud jeho id ci similar_as
-		*/
 	}
 
 	transform->end_main_document();
@@ -319,6 +327,23 @@ SNMP_device* SnmpModule::get_gate_device()
 	}
 
 	return NULL;
+
+}
+
+/*
+Vrati true/false jestli existuje zarizeni s danym id
+*/
+bool SnmpModule::is_device( int id )
+{
+	list<SNMP_device *>::iterator it;
+
+	for( it = devices.begin(); it != devices.end(); it++ )
+	{
+		if ( (*it)->id == id )
+			return true;
+	}
+
+	return false;
 
 }
 
