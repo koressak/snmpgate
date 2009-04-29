@@ -46,7 +46,7 @@
 	<!-- Monitorovany notebook -->
 	<device id="1">
 		<name>notebook</name>
-		<description>dalsi zarizeni domaci notebook</description>
+		<description>Domaci notebook</description>
 		<snmpAddr>192.168.1.53:5555</snmpAddr>
 		<protocolVersion>2</protocolVersion>
 		<mibs>

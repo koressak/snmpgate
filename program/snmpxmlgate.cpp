@@ -260,9 +260,6 @@ void SnmpXmlGate::initialize_config()
 					
 					getDeviceInfo( currElem, dev );
 
-					char dd[10];
-					sprintf( dd, "%d", dev->id );
-					log_message( log_file, dd );
 
 					//Jestli je to brana, nastavime zakladni promenne
 					if ( dev->id == 0 )
