@@ -43,9 +43,9 @@
 \contentsline {section}{\numberline {5.4}Pam\IeC {\v e}\IeC {\v t}ov\IeC {\'e} optimalizace}{44}
 \contentsline {section}{\numberline {5.5}XML Mana\IeC {\v z}er}{45}
 \contentsline {chapter}{\numberline {6}Testov\IeC {\'a}n\IeC {\'\i }}{47}
-\contentsline {chapter}{\numberline {7}Z\IeC {\'a}v\IeC {\v e}r}{49}
-\contentsline {chapter}{Literatura}{51}
-\contentsline {chapter}{\numberline {A}Struktura konfigura\IeC {\v c}n\IeC {\'\i }ho souboru}{53}
-\contentsline {chapter}{\numberline {B}U\IeC {\v z}ivatelsk\IeC {\'a} p\IeC {\v r}\IeC {\'\i }ru\IeC {\v c}ka protokolov\IeC {\'e} br\IeC {\'a}ny}{57}
-\contentsline {chapter}{\numberline {C}U\IeC {\v z}ivatelsk\IeC {\'a} p\IeC {\v r}\IeC {\'\i }ru\IeC {\v c}ka mana\IeC {\v z}ersk\IeC {\'e} aplikace}{59}
-\contentsline {chapter}{\numberline {D}Obsah p\IeC {\v r}ilo\IeC {\v z}en\IeC {\'e}ho CD}{63}
+\contentsline {chapter}{\numberline {7}Z\IeC {\'a}v\IeC {\v e}r}{53}
+\contentsline {chapter}{Literatura}{55}
+\contentsline {chapter}{\numberline {A}Struktura konfigura\IeC {\v c}n\IeC {\'\i }ho souboru}{57}
+\contentsline {chapter}{\numberline {B}U\IeC {\v z}ivatelsk\IeC {\'a} p\IeC {\v r}\IeC {\'\i }ru\IeC {\v c}ka protokolov\IeC {\'e} br\IeC {\'a}ny}{61}
+\contentsline {chapter}{\numberline {C}U\IeC {\v z}ivatelsk\IeC {\'a} p\IeC {\v r}\IeC {\'\i }ru\IeC {\v c}ka mana\IeC {\v z}ersk\IeC {\'e} aplikace}{63}
+\contentsline {chapter}{\numberline {D}Obsah p\IeC {\v r}ilo\IeC {\v z}en\IeC {\'e}ho CD}{67}
