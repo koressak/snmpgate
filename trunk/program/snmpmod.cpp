@@ -271,9 +271,7 @@ int SnmpModule::start_transform()
 			urcovat vyhledavani az u prijimani zprav. Tam zvolime
 			vzdy ID elementu, ktery je bud jeho id ci similar_as
 			*/
-			log_message( log_file, "SNMP: before similar device" );
 			transform->create_device_element( *it, NULL, true );
-			log_message( log_file, "SNMP: after similar device" );
 		}
 
 	}
@@ -653,7 +651,7 @@ void SnmpModule::request_handler( struct snmp_req_handler *hr )
 			req_data = requests.front();
 			requests.pop_front();
 
-			log_message( log_file, "SNMP: dalsi getnext" );
+			//log_message( log_file, "SNMP: dalsi getnext" );
 
 			response = NULL;
 			error = false;
@@ -1039,11 +1037,11 @@ void SnmpModule::get_response_value( struct variable_list* vars, struct value_pa
 
 	//buf = NULL;
 
-	/*sprint_realloc_value( &buf, &buf_len, &out_len, 1, vars->name, vars->name_length, vars);
-	vp->value = string( (char *)buf );*/
+	sprint_realloc_value( &buf, &buf_len, &out_len, 1, vars->name, vars->name_length, vars);
+	vp->value = string( (char *)buf );
 	
 	
-	if ( vars->name_loc )
+	/*if ( vars->name_loc )
 	{
 		var_buf = new char[ 1 + vars->val_len ];
 		switch ( vars->type )
@@ -1100,7 +1098,7 @@ void SnmpModule::get_response_value( struct variable_list* vars, struct value_pa
 
 		if ( buf )
 			delete (buf );
-	}
+	}*/
 
 //	vp->value = string( "" );
 

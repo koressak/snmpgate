@@ -1322,7 +1322,6 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 	Nastaveni search_id
 	*/
 
-	log_message( log_file, "XML: before pointer to device" );
 	dev = snmpmod->get_device_ptr( xr->object_id );
 	if ( dev == NULL )
 	{
@@ -1341,7 +1340,6 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 		else
 			search_id = xr->object_id;
 	}
-	log_message( log_file, "XML: after pointer to device" );
 
 	/*
 	ACCESS CONTROL
@@ -1356,11 +1354,9 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 	else
 	{
 
-	log_message( log_file, "XML: before get community" );
 		xr->community = get_snmp_community( permission, dev );
 	}
 
-	log_message( log_file, "XML: before parsing requests" );
 
 
 	//Parsovani <xpath> elementu
@@ -1399,7 +1395,6 @@ struct request_data * XmlModule::process_get_set_message( DOMElement *elem, cons
 				log_message( log_file, tmp_str_xpath.c_str() );
 
 				found_el = find_element( X( tmp_str_xpath.c_str() ), main_xa_doc->doc, xr, true );
-				log_message( log_file, "XML: after found element" );
 
 				if ( found_el == NULL )
 				{
@@ -1755,6 +1750,10 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 		attr->setNodeValue( X( tmpid ) );
 		sub_append->setAttributeNode( attr );
 
+		attr = doc->createAttribute( X( "password" ) );
+		attr->setNodeValue( X( password ) );
+		sub_append->setAttributeNode( attr );
+
 		pthread_mutex_unlock( &subscr_cond_lock );
 
 		xr->distr_id = distr_id;
@@ -1876,6 +1875,10 @@ struct request_data* XmlModule::process_subscribe_message( DOMElement *elem, con
 		attr->setNodeValue( X( tmpid ) );
 		subscription->setAttributeNode( attr );
 
+		attr = doc->createAttribute( X( "password" ) );
+		attr->setNodeValue( X( password ) );
+		subscription->setAttributeNode( attr );
+
 
 
 		//Zapsani do celkoveho seznamu subscriptions
@@ -1933,7 +1936,6 @@ int XmlModule::operation_permitted( const char *passwd, SNMP_device *dev, int ms
 	bool read_perm = false;
 
 	//Nejprve porovname xml passwords
-	log_message( log_file, "XML: a" );
 	if ( strcmp( passwd, dev->xml_read ) == 0 )
 	{
 		read_perm = true;
@@ -1947,8 +1949,6 @@ int XmlModule::operation_permitted( const char *passwd, SNMP_device *dev, int ms
 		//nema pravo jakehokoliv pristupu. Heslo je spatne
 		return 0;
 	}
-
-	log_message( log_file, "XML: b" );
 
 	//o jakou operaci jde
 	switch ( msg_type )
@@ -2217,12 +2217,18 @@ int XmlModule::distribution_handler()
 						el->object_id = tmp_int;
 						XMLString::release( &tmp_buf );
 
+						value = subscription->getAttribute( X( "password" ) );
+						tmp_buf = XMLString::transcode( value );
+						el->password = tmp_buf;
+						XMLString::release( &tmp_buf );
+
 						subscription->removeAttribute( X( "changed" ) );
 						subscription->removeAttribute( X( "obj_id" ) );
+						subscription->removeAttribute( X( "password" ) );
 
 						//ziskani hesla pro get
-						struct SNMP_device *dev = snmpmod->get_device_ptr( el->object_id );
-						el->password = dev->xml_read;
+						//struct SNMP_device *dev = snmpmod->get_device_ptr( el->object_id );
+						//el->password = dev->xml_read;
 
 						el->in_list = true;
 
