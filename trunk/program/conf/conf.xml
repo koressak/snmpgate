@@ -44,10 +44,10 @@
 		</security>-->
 	</device>
 	<!-- Monitorovany notebook -->
-	<!-- <device id="1">
+	<device id="1">
 		<name>notebook</name>
 		<description>dalsi zarizeni domaci notebook</description>
-		<snmpAddr>192.168.1.100</snmpAddr>
+		<snmpAddr>192.168.1.53:5555</snmpAddr>
 		<protocolVersion>2</protocolVersion>
 		<mibs>
 			<mib>RFC1213-MIB.txt</mib>
@@ -58,6 +58,10 @@
 				<port>1048</port>
 			</manager>
 		</traps>
-	</device>-->
+		<access>
+			<read>public</read>
+			<write>private</write>
+		</access>
+	</device>
 </devices>
 

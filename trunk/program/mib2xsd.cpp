@@ -94,7 +94,7 @@ void Mib2Xsd::parse_device_mib( SNMP_device *dev )
 	mi += output;
 	output_xml2file( mi.c_str() , doc );
 
-	create_device_element( dev, root );
+	create_device_element( dev, root, false );
 
 	shutdown_mib();
 
@@ -1420,7 +1420,7 @@ void Mib2Xsd::create_main_document()
 /*
 Zapsani informaci o device do hlavniho dokumentu
 */
-void Mib2Xsd::create_device_element( SNMP_device *dev, DOMElement *r )
+void Mib2Xsd::create_device_element( SNMP_device *dev, DOMElement *r, bool similar )
 {
 	DOMElement *tmel;
 	DOMElement *info;
@@ -1521,47 +1521,52 @@ void Mib2Xsd::create_device_element( SNMP_device *dev, DOMElement *r )
 	/*
 	Zde nacteme znova celej dokument pomoci parseru
 	a setDoNamespaces(true)
+	Pouze neni-li stejny jako neco jineho
 	*/
 	//Nutno nejprve releasnout ten hlavni dokument
-	doc->release();
 
-	XercesDOMParser *conf_parser = new XercesDOMParser;
-
-	conf_parser->setValidationScheme( XercesDOMParser::Val_Never );
-	conf_parser->setDoNamespaces( true );
-	conf_parser->setDoSchema( false );
-	conf_parser->setLoadExternalDTD( false );
-
-	
-	sprintf( out, "%s%d.xsd", xsd_dir, dev->id );
-
-	try {
-
-		conf_parser->parse( out );
-
-		DOMDocument *xmlDoc = conf_parser->getDocument();
-		DOMElement *rootElem = xmlDoc->getDocumentElement();
-
-		if ( !rootElem )
-			throw (char *)"Empty config file.";
-
-		/*
-		Budovani XML casti Notifications
-		*/
-		 notifications =  create_xml_from_xsd( rootElem );
-		 device->appendChild( notifications );
-
-		//devices_root->push_back(rootElem);
-
-		//Nyni muzeme dokument znicit, jiz jej nepotrebujeme.
-		xmlDoc->release();
-	}
-	catch ( ... )
+	if ( !similar )
 	{
-		log_message( log_file, "Cannot parse the xsd file" );
-	}
+		doc->release();
 
-	device->appendChild( xml_root );
+		XercesDOMParser *conf_parser = new XercesDOMParser;
+
+		conf_parser->setValidationScheme( XercesDOMParser::Val_Never );
+		conf_parser->setDoNamespaces( true );
+		conf_parser->setDoSchema( false );
+		conf_parser->setLoadExternalDTD( false );
+
+		
+		sprintf( out, "%s%d.xsd", xsd_dir, dev->id );
+
+		try {
+
+			conf_parser->parse( out );
+
+			DOMDocument *xmlDoc = conf_parser->getDocument();
+			DOMElement *rootElem = xmlDoc->getDocumentElement();
+
+			if ( !rootElem )
+				throw (char *)"Empty config file.";
+
+			/*
+			Budovani XML casti Notifications
+			*/
+			 notifications =  create_xml_from_xsd( rootElem );
+			 device->appendChild( notifications );
+
+			//devices_root->push_back(rootElem);
+
+			//Nyni muzeme dokument znicit, jiz jej nepotrebujeme.
+			xmlDoc->release();
+		}
+		catch ( ... )
+		{
+			log_message( log_file, "Cannot parse the xsd file" );
+		}
+
+		device->appendChild( xml_root );
+	}
 	
 
 }
