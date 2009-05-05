@@ -1,4 +1,4 @@
-This is pdfTeXk, Version 3.141592-1.40.3 (Web2C 7.5.6) (format=pdflatex 2009.4.1)  29 APR 2009 15:39
+This is pdfTeXk, Version 3.141592-1.40.3 (Web2C 7.5.6) (format=pdflatex 2009.4.1)  5 MAY 2009 15:30
 entering extended mode
  file:line:error style messages enabled.
  %&-line parsing enabled.
@@ -401,10 +401,6 @@ File: obrazky/02_snmp_communication.png Graphic file (type png)
 
 <use obrazky/02_snmp_communication.png> [4 <./obrazky/02_snmp_communication.png
 >]
-
-LaTeX Warning: Citation `RFC1155' on page 5 undefined on input line 52.
-
-
 Overfull \hbox (2.89378pt too wide) in paragraph at lines 52--55
 \T1/cmr/m/n/10.95 SMI je zkrat-kou pro Structure and Iden-ti-fi-cation of Ma-na
 ge-ment In-for-mation for TCP/IP-
@@ -430,9 +426,6 @@ Overfull \hbox (4.52902pt too wide) in paragraph at lines 148--150
 ozna-£o-vané ná-zvy SNMPv2c, SNMPv2u,
  []
 
-
-LaTeX Warning: Citation `RFC2570' on page 8 undefined on input line 164.
-
 [8] <obrazky/02_snmpv3_pdu.pdf, id=99, 323.2075pt x 327.2225pt>
 File: obrazky/02_snmpv3_pdu.pdf Graphic file (type pdf)
 
@@ -450,11 +443,11 @@ Kapitola 3.
 File: obrazky/03_popis_zarizeni.png Graphic file (type png)
 
 <use obrazky/03_popis_zarizeni.png>
-Overfull \hbox (9.88583pt too wide) in paragraph at lines 38--39
+Overfull \hbox (9.88583pt too wide) in paragraph at lines 37--38
  [] 
  []
 
-LaTeX Font Info:    Try loading font information for T1+cmtt on input line 49.
+LaTeX Font Info:    Try loading font information for T1+cmtt on input line 48.
 (/usr/share/texmf-texlive/tex/latex/base/t1cmtt.fd
 File: t1cmtt.fd 1999/05/25 v2.5h Standard LaTeX font definitions
 ) [12 <./obrazky/03_popis_zarizeni.png>] <obrazky/03_mapovani_smiv1.png, id=119
@@ -462,31 +455,31 @@ File: t1cmtt.fd 1999/05/25 v2.5h Standard LaTeX font definitions
 File: obrazky/03_mapovani_smiv1.png Graphic file (type png)
 
 <use obrazky/03_mapovani_smiv1.png>
-Overfull \hbox (23.48872pt too wide) in paragraph at lines 77--78
+Overfull \hbox (23.48872pt too wide) in paragraph at lines 76--77
  [] 
  []
 
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <9> on input line 86.
+(Font)              <9> on input line 85.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <5> on input line 86.
+(Font)              <5> on input line 85.
 
-Overfull \hbox (21.88583pt too wide) in paragraph at lines 86--105
+Overfull \hbox (21.88583pt too wide) in paragraph at lines 85--104
  [][] 
  []
 
 [13] [14 <./obrazky/03_mapovani_smiv1.png>]
-Overfull \hbox (21.88583pt too wide) in paragraph at lines 131--146
+Overfull \hbox (21.88583pt too wide) in paragraph at lines 130--145
  [][] 
  []
 
 
-Overfull \hbox (21.88583pt too wide) in paragraph at lines 153--167
+Overfull \hbox (21.88583pt too wide) in paragraph at lines 152--166
  [][] 
  []
 
 
-Overfull \hbox (21.88583pt too wide) in paragraph at lines 178--195
+Overfull \hbox (21.88583pt too wide) in paragraph at lines 177--194
  [][] 
  []
 
@@ -495,7 +488,7 @@ File: obrazky/03_struktura_zpravy.png Graphic file (type png)
 
 <use obrazky/03_struktura_zpravy.png> [16] [17 <./obrazky/03_struktura_zpravy.p
 ng>]
-Overfull \hbox (160.24834pt too wide) in paragraph at lines 309--309
+Overfull \hbox (160.24834pt too wide) in paragraph at lines 308--308
 []\T1/cmtt/m/n/10.95 <event msgid="123" timestamp="" senderID="router1" eventSp
 ec="/device/notifications/dhcp/noFreeLease">[] 
  []
@@ -561,7 +554,7 @@ File: obrazky/05_schema_trid.png Graphic file (type png)
 File: obrazky/05_inicializacni_faze.png Graphic file (type png)
 
 <use obrazky/05_inicializacni_faze.png>
-Overfull \hbox (9.88583pt too wide) in paragraph at lines 105--106
+Overfull \hbox (9.88583pt too wide) in paragraph at lines 104--105
  [] 
  []
 
@@ -569,9 +562,6 @@ Overfull \hbox (9.88583pt too wide) in paragraph at lines 105--106
 File: obrazky/05_element_xml.png Graphic file (type png)
 
 <use obrazky/05_element_xml.png>
-
-LaTeX Warning: Reference `kap_analyza' on page 35 undefined on input line 150.
-
 <obrazky/05_xmlmod_vlakno.png, id=211, 556.0775pt x 767.86874pt>
 File: obrazky/05_xmlmod_vlakno.png Graphic file (type png)
 
@@ -620,7 +610,25 @@ Kapitola 7.
 ) [53] (./main.bbl [54
 
 
-]) [55]
+]
+Overfull \hbox (26.16678pt too wide) in paragraph at lines 10--15
+\T1/cmr/m/n/10.95 http://www.cisco.com/en/US/docs/internetworking/technology/ha
+ndbook/SNMP.html. 
+ []
+
+
+Underfull \hbox (badness 7649) in paragraph at lines 45--47
+[]\T1/cmr/m/n/10.95 Net-SNMP. Knihovna pro práci s pro-to-ko-lem SNMP v ja-zyce
+ C++.
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 49--52
+[]\T1/cmr/m/n/10.95 Christian Gro-thoff.  GNU li-b-micro-httpd. C++ HTTP ser-ve
+r.
+ []
+
+) [55]
 \openout2 = `0A_konfig_file.aux'.
 
  (./0A_konfig_file.tex [56
@@ -658,37 +666,33 @@ Dodatek D.
 ) [67] (./main.aux (./01_uvod.aux) (./02_snmp.aux) (./03_xml.aux)
 (./04_analyza.aux) (./05_implementace.aux) (./06_testovani.aux) (./07_zaver.aux
 ) (./0A_konfig_file.aux) (./0B_uzivat_brana.aux) (./0C_uzivat_manager.aux)
-(./0D_obsahcd.aux))
-
-LaTeX Warning: There were undefined references.
-
- ) 
+(./0D_obsahcd.aux)) ) 
 Here is how much of TeX's memory you used:
- 1715 strings out of 95025
- 21565 string characters out of 1181940
- 71382 words of memory out of 1500000
- 4796 multiletter control sequences out of 10000+50000
+ 1722 strings out of 95025
+ 21635 string characters out of 1181940
+ 71428 words of memory out of 1500000
+ 4803 multiletter control sequences out of 10000+50000
  20083 words of font info for 44 fonts, out of 1200000 for 2000
  37 hyphenation exceptions out of 8191
  25i,10n,21p,335b,347s stack positions out of 5000i,500n,6000p,200000b,5000s
- </home/hippi/.texmf-var/fonts/pk/ljfour/jknappen/ec/ecbi1095.600pk> </home/h
-ippi/.texmf-var/fonts/pk/ljfour/jknappen/ec/ectt0900.600pk> </home/hippi/.texmf
--var/fonts/pk/ljfour/jknappen/ec/ectt1095.600pk> </home/hippi/.texmf-var/fonts/
-pk/ljfour/jknappen/ec/ecti1095.600pk> </home/hippi/.texmf-var/fonts/pk/ljfour/j
-knappen/ec/ecbx1200.600pk> </home/hippi/.texmf-var/fonts/pk/ljfour/jknappen/ec/
-ecsl1095.600pk> </home/hippi/.texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1095.60
-0pk> </home/hippi/.texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx2488.600pk> </home
-/hippi/.texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm0600.600pk> </home/hippi/.tex
-mf-var/fonts/pk/ljfour/jknappen/ec/ecbx2074.600pk> </home/hippi/.texmf-var/font
-s/pk/ljfour/jknappen/ec/ecrm1095.600pk> </home/hippi/.texmf-var/fonts/pk/ljfour
-/jknappen/ec/ecti1440.600pk> </home/hippi/.texmf-var/fonts/pk/ljfour/jknappen/e
-c/ecbx1440.600pk> </home/hippi/.texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1200.
-600pk></usr/share/texmf-texlive/fonts/type1/bluesky/cm/cmr10.pfb></usr/share/te
-xmf-texlive/fonts/type1/bluesky/cm/cmr8.pfb></usr/share/texmf-texlive/fonts/typ
-e1/bluesky/cm/cmsy10.pfb>
-Output written on main.pdf (81 pages, 1111451 bytes).
+ </home/hippi/.texmf-var/fonts/pk/ljfour/jknappen/ec/ecbi1
+095.600pk> </home/hippi/.texmf-var/fonts/pk/ljfour/jknappen/ec/ectt0900.600pk> 
+</home/hippi/.texmf-var/fonts/pk/ljfour/jknappen/ec/ectt1095.600pk> </home/hipp
+i/.texmf-var/fonts/pk/ljfour/jknappen/ec/ecti1095.600pk> </home/hippi/.texmf-va
+r/fonts/pk/ljfour/jknappen/ec/ecbx1200.600pk> </home/hippi/.texmf-var/fonts/pk/
+ljfour/jknappen/ec/ecsl1095.600pk> </home/hippi/.texmf-var/fonts/pk/ljfour/jkna
+ppen/ec/ecbx1095.600pk> </home/hippi/.texmf-var/fonts/pk/ljfour/jknappen/ec/ecb
+x2488.600pk> </home/hippi/.texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm0600.600pk
+> </home/hippi/.texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx2074.600pk> </home/hi
+ppi/.texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1095.600pk> </home/hippi/.texmf-
+var/fonts/pk/ljfour/jknappen/ec/ecti1440.600pk> </home/hippi/.texmf-var/fonts/p
+k/ljfour/jknappen/ec/ecbx1440.600pk> </home/hippi/.texmf-var/fonts/pk/ljfour/jk
+nappen/ec/ecrm1200.600pk></usr/share/texmf-texlive/fonts/type1/bluesky/cm/cmr10
+.pfb></usr/share/texmf-texlive/fonts/type1/bluesky/cm/cmr8.pfb></usr/share/texm
+f-texlive/fonts/type1/bluesky/cm/cmsy10.pfb>
+Output written on main.pdf (81 pages, 1116624 bytes).
 PDF statistics:
- 1026 PDF objects out of 1200 (max. 8388607)
+ 1038 PDF objects out of 1200 (max. 8388607)
  0 named destinations out of 1000 (max. 131072)
  111 words of extra memory for PDF output out of 10000 (max. 10000000)
 

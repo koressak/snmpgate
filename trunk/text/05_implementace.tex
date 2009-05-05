@@ -39,14 +39,13 @@ Vzájemné vztahy těchto tříd jsou vyjádřeny na obrázku \ref{obr_impl_vzta
 \section{Použité knihovny}
 Při tvorbě programu bylo použito několik knihoven, které zajišťují bezproblémový chod aplikace.
 
-%TODO: reference na jednotlive knihovny
 \begin{itemize}
-	\item \textbf{ \textit{Xerces-C++ a Xalan-C++} } - knihovny zajišťující manipulace s XML dokumenty, vyhledávání pomocí XPath výrazů.
+	\item \textbf{ \textit{Xerces-C++ a Xalan-C++} } - knihovny zajišťující manipulace s XML dokumenty, vyhledávání pomocí XPath výrazů (\cite{xerces}, \cite{xalan}).
 	\item \textbf{ \textit{Net-SNMP} } - knhovna napsaná v jazyce C, určená pro interpretaci a manipulaci s daty MIB databází, zasílání a 
-	přijímání datových SNMP paketů.
-	\item \textbf{ \textit{libMicroHTTPD} } - volně dostupný HTTP server s podporou použití SSL protokolu při spojení.
+	přijímání datových SNMP paketů (\cite{net_snmp}).
+	\item \textbf{ \textit{libMicroHTTPD} } - volně dostupný HTTP server s podporou použití SSL protokolu při spojení (\cite{libmicrohttpd}).
 	\item \textbf{ \textit{libCUrl} } - volně dostupná knihovna určená pro klientskou stranu spojení. Podporuje mimo jiné protokoly HTTP, FTP a
-	umožňuje použít i SSL certifikáty pro zabezpečení daného spojení.
+	umožňuje použít i SSL certifikáty pro zabezpečení daného spojení (\cite{libcurl}).
 \end{itemize}
 
 Knihovny Xerces, Xalan, libCUrl a libMicroHTTPD využívá XML modul, který má na starosti běh HTTP serveru, operace s XML dokumenty a periodické zasílání
@@ -112,7 +111,7 @@ Po zpracování údajů o všech zařízeních, inicializační fáze končí a 
 
 \subsection{Transformační fáze}
 V této chvíli přebírá úlohu třída \textit{\textbf{Mib2Xsd}}, která se stará o převod MIB popisu databáze do XSD formátu. Pro manipulaci se SNMP je
-použita knihovna \textit{\textbf{net-snmp}}. %TODO: citace zdroje netsnmp
+použita knihovna \textit{\textbf{net-snmp}} (\cite{net_snmp}).
 
 Samotný převod a generování XSD popisu je rekurzivní sestup po jednotlivých uzlech virtuálního stromu MIB databáze.
 
@@ -147,8 +146,8 @@ moduly pak zajišťují kompletní provoz protokolové brány.
 
 \subsubsection*{XmlModule}
 \label{kap_impl_xmlmod}
-Dle návrhu programu v kapitole \ref{kap_analyza} bylo uvedeno, že pro komunikaci mezi bránou a manažery bude použit HTTP server zabudovaný do
-aplikace, abychom měli větší kontrolu nad posílanými daty. Proto byl použit nejvhodnější kandidát - microHTTP server %TODO cite reference na libmicrohhtpd.
+Dle návrhu programu v kapitole \ref{kap_navrh_systemu} bylo uvedeno, že pro komunikaci mezi bránou a manažery bude použit HTTP server zabudovaný do
+aplikace, abychom měli větší kontrolu nad posílanými daty. Proto byl použit nejvhodnější kandidát - microHTTP server (\cite{libmicrohttpd}).
 Tento server je napsán v jazyce C a velice dobře posloužil našemu účelu. 
 
 Jednotlivá spojení jsou zpracovávána samostatnými vlákny, aby bylo zaručeno co nejrychlejší odbavení požadavků. Funkční cyklus vlánka je znázorněn
@@ -396,9 +395,9 @@ klienta, který by postkytoval veškeré uživatelské pohodlí grafické aplika
 
 K tvorbě manažerské aplikace byly použity knihovny:
 \begin{itemize}
-	\item \textbf{ \textit{libCUrl} } - zajištující klientské spojení s HTTP serverem na bráně
-	\item \textbf{ \textit{libMicroHTTPD} } - HTTP server použitý pro příjem asynchronních událostí a periodiské distribuce dat
-	\item \textbf{ \textit{libargtable2} } - knihovna zajišťující pohodlnné zpracování vstupních parametrů programu
+	\item \textbf{ \textit{libCUrl} } - zajištující klientské spojení s HTTP serverem na bráně (\cite{libcurl})
+	\item \textbf{ \textit{libMicroHTTPD} } - HTTP server použitý pro příjem asynchronních událostí a periodiské distribuce dat (\cite{libmicrohttpd})
+	\item \textbf{ \textit{libargtable2} } - knihovna zajišťující pohodlnné zpracování vstupních parametrů programu (\cite{argtable})
 \end{itemize}
 
 Aplikace funguje ve dvou možných formách - aktivní nebo pasivní (kompletní instalační a uživatelská příručka je v příloze \ref{kap_uzivatelska_prirucka_manazer}).
