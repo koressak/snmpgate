@@ -6,7 +6,7 @@ Byl vyvinut skupinout IETF (Internet Engineering Task Force) a přijat jako stan
 \section{Správní struktura}
 SNMP je tvořen sadou standardů, které popisují správu sítě, zahrnující samotný komunikační protokol, definici databázové struktury (SMI) a datové objekty (MIB).
 
-Základním funkčním principem je model Klient - Server. Struktura spravované sítě se tak dělí na tři klíčové elementy - spravované zařízení, agenta a manažera (viz obrázek \ref{obr_snmp1}).
+Základním funkčním principem je model Klient - Server (\cite{cisco_snmp}). Struktura spravované sítě se tak dělí na tři klíčové elementy - spravované zařízení, agenta a manažera (viz obrázek \ref{obr_snmp1}).
 
 \begin{figure}[htp]
 	\begin{center}
@@ -25,7 +25,7 @@ Základním funkčním principem je model Klient - Server. Struktura spravované
 	čímž dává možnost administrátorovi mít přehled o celé síti. Zároveň umožňuje měnit sledované parametry přímo u agenta.
 \end{itemize}
 
-Komunikace můžeme rozdělit do dvou kategorií dle toho, kdo jí započal. Základní schéma je vyjádřeno na obrázku \ref{obr_snmp2}.
+Komunikace můžeme rozdělit do dvou kategorií dle toho, kdo jí započal. Základní schéma je vyjádřeno na obrázku \ref{obr_snmp2} (\cite{tcpip_snmp}).
 
 \begin{figure}[htp]
 	\begin{center}
@@ -49,7 +49,7 @@ ke svému cíli, o čemž se druhá strana nikdy nedozví. Tento fakt může bý
 Jak již bylo zmíněno dříve, SNMP je sada standardů, která kromě komunikačního protokolu musí definovat i strukturu sledované databáze a samotná data. Tyto informace byly definovány ve standardech SMI a MIB.
 
 \subsection*{SMI}
-SMI je zkratkou pro Structure and Identification of Management Information for TCP/IP-based Internets. Tento standard (\cite{RFC1155}) popisuje a definuje základní datové struktury a typy, které protokol využívá.
+SMI je zkratkou pro Structure and Identification of Management Information for TCP/IP-based Internets. Tento standard (\cite{rfc1155}) popisuje a definuje základní datové struktury a typy, které protokol využívá.
 Jednotlivé objekty jsou pojmenovány a organizovány, aby bylo možné k těmto datům logicky přistupovat. Dle standardu musí mít každý objekt jméno, syntaxi a kódování. Jméno jednoznačně identifikuje objekt. Datový typ
 (číslo, řetězec) je určen syntaxí. Kódování zajišťuje správnou serializaci dat při přenosu mezi systémy.
 
@@ -161,7 +161,7 @@ Ostatní zprávy SNMPv2 přebírá z předchozí verze a zachovává jejich stru
 
 \subsection*{SNMPv3}
 Třetí verze protokolu SNMP je definována sadou standardů, které nepostihují celkovou funkčnost protokolu jako takového, ale 
-dodávají do systému chybějící prvky, hlavně bezpečnosti. Přímo v jednom ze standardů \cite{RFC2570} je řečeno, že tato verze může být chápána jako 
+dodávají do systému chybějící prvky, hlavně bezpečnosti. Přímo v jednom ze standardů \cite{rfc2570} je řečeno, že tato verze může být chápána jako 
 SNMPv2 s dodatečnými administrativními a bezpečnostními schopnostmi.
 
 SNMPv3 definuje tři základní služby:

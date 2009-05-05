@@ -1,8 +1,62 @@
-\begin{thebibliography}{1}
+\begin{thebibliography}{10}
 
 \bibitem{macejko_dipl}
-I.~P. Macejko.
-\newblock {\em XML SNMP protocol}, volume~1.
-\newblock CVUT, Oval Road, London, UK, 4th edition, 2006.
+Peter Macejko.
+\newblock {XML} {B}ased {N}etwork {M}anagement.
+\newblock Diplomová práce, České vysoké učení technické v Praze,
+  Fakulta elektrotechnická, Praha, 2006.
+
+\bibitem{cisco_snmp}
+Internetworking {T}echnology {H}andbook - {S}imple {N}etwork {M}anagement
+  {P}rotocol.
+\newblock Cisco, Inc., \\
+  http://www.cisco.com/en/US/docs/internetworking/technology/handbook/SNMP.htm%
+l.
+
+\bibitem{tcpip_snmp}
+Charles~M. Kozierok.
+\newblock {TCP/IP} {S}imple {N}etwork {M}anagement {P}rotocol {O}verview.
+\newblock
+  http://www.tcpipguide.com/free/\\t\_TCPIPSimpleNetworkManagementProtocolSNMP%
+Protocol.htm.
+
+\bibitem{rfc1155}
+Keith~McCloghrie Marshall T.~Rose.
+\newblock {\em {S}tructure and {I}dentification of {M}anagement {I}nformation
+  for {TCP/IP}-based {I}nternets}.
+\newblock RFC1155, IETF, 1990.
+
+\bibitem{rfc2570}
+J.~Case, R.~Mundy, D.~Partain, and Bob Stewart.
+\newblock {\em Introduction to {V}ersion 3 of the {I}nternet-standard {N}etwork
+  {M}anagement {F}ramework}.
+\newblock RFC2570, IETF, 1999.
+
+\bibitem{xerces}
+Apache {X}erces. {K}nihovna pro manipulaci s {XML} dokumenty v jazyce {C}++.
+\newblock The Apache Software Foundation, http://xerces.apache.org/.
+
+\bibitem{xalan}
+Apache {X}alan. {K}nihovna pro vyhledávání v {XML} dokumentech v jazyce
+  {C}++.
+\newblock The Apache Software Foundation, http://xalan.apache.org/.
+
+\bibitem{net_snmp}
+Net-{SNMP}. {K}nihovna pro práci s protokolem {SNMP} v jazyce {C}++.
+\newblock http://www.net-snmp.org/.
+
+\bibitem{libmicrohttpd}
+Christian Grothoff.
+\newblock {GNU} libmicrohttpd. {C}++ {HTTP} server.
+\newblock http://www.gnu.org/software/libmicrohttpd/.
+
+\bibitem{libcurl}
+c{URL}. {C}++ knihovna pro práci s {HTTP} dotazy.
+\newblock http://curl.haxx.se/.
+
+\bibitem{argtable}
+Stewart Heitmann.
+\newblock {ANSI C} command line parser.
+\newblock http://argtable.sourceforge.net/.
 
 \end{thebibliography}
