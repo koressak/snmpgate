@@ -1,0 +1,35 @@
+Instalační a uživatelská příručka protokolové brány
+---------------------------------------------------
+
+Instalace
+---------
+
+Pro úspěšnou instalaci je nejprve nutné program zkompilovat. Pro přeložení je nutné mít v systému nainstalovány následující knihovny
+(pro každou knihovnu platí, že je nutné mít hlavičkové soubory, nikoliv jenom runtime verzi).
+	Xerces-C++ - verze 2.8.0 a vyšší
+	Xalan-C++ - verze 1.10 a vyšší
+	libsnmp - verze 5.4.1
+	libmicrohttpd - 0.4.0
+	libcurl - 7.18.2
+
+Zkompilovaný program zkopírujeme do libovolného adresáře (nejlépe však \verb|/usr/bin| či \verb|/usr/share/bin|). 
+Spouštěcí skript umístíme do adresáře \verb|/etc/init.d/|. Je nutné jej však upravit a nastavit přesné umístění
+binárního souboru, který bude spouštěn.
+
+
+Spuštění a běh
+--------------
+
+Samotné spuštění a běh není nikterak náročné. Jediným parametrem, který program přijímá je umístění konfiguračního souboru.
+Cesta k souboru je uvedena v rámci spouštěcího skriptu. Proto jakékoliv změny je nutné promítnout i tam, aby program nahrával
+aktuální konfiguraci.
+
+Protokolovou bránu lze spouštět při startu programu, či později manuálně. Vše je ponecháno na administrátorovi systému.
+
+
+MIB soubory
+-----------
+
+Při specifikaci MIB databázových souborů v konfiguračním souboru je nutné dbát na to, aby všechny uvedené existovaly
+v umístění, které je součástí konfigurace zařízení brány. Pakliže některé soubory jsou nedostupné, systém nebude moci
+dané zařízení spravovat.
