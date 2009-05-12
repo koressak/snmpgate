@@ -11,7 +11,7 @@
 \contentsline {figure}{\numberline {3.2}{\ignorespaces Mapov\IeC {\'a}n\IeC {\'\i } aplika\IeC {\v c}n\IeC {\'\i }ch typ\IeC {\r u} SMIv1 do XML sch\IeC {\'e}matu (\cite {macejko_dipl})}}{14}
 \contentsline {figure}{\numberline {3.3}{\ignorespaces Struktura XML zpr\IeC {\'a}vy}}{17}
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {4.1}{\ignorespaces Sch\IeC {\'e}ma navrhovah\IeC {\'e}ho syst\IeC {\'e}mu}}{21}
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Sch\IeC {\'e}ma navrhovan\IeC {\'e}ho syst\IeC {\'e}mu}}{21}
 \contentsline {figure}{\numberline {4.2}{\ignorespaces Obecn\IeC {\'a} struktura XML dokumentu}}{23}
 \contentsline {figure}{\numberline {4.3}{\ignorespaces Struktura elementu device}}{23}
 \contentsline {figure}{\numberline {4.4}{\ignorespaces Struktura elementu info}}{24}
@@ -19,13 +19,13 @@
 \contentsline {figure}{\numberline {4.6}{\ignorespaces HTTP komunikace mezi mana\IeC {\v z}erem a agentem/br\IeC {\'a}nou}}{26}
 \contentsline {figure}{\numberline {4.7}{\ignorespaces F\IeC {\'a}ze b\IeC {\v e}hu programu}}{28}
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {5.1}{\ignorespaces Sch\IeC {\'e}ma t\IeC {\v r}\IeC {\'\i }d aplikace}}{32}
-\contentsline {figure}{\numberline {5.2}{\ignorespaces Inicializa\IeC {\v c}n\IeC {\'\i } f\IeC {\'a}ze}}{35}
-\contentsline {figure}{\numberline {5.3}{\ignorespaces P\IeC {\v r}\IeC {\'\i }klad struktury hlavn\IeC {\'\i }ho XML dokumentu}}{36}
-\contentsline {figure}{\numberline {5.4}{\ignorespaces Zpracov\IeC {\'a}n\IeC {\'\i } mana\IeC {\v z}ersk\IeC {\'e}ho po\IeC {\v z}adavku}}{37}
-\contentsline {figure}{\numberline {5.5}{\ignorespaces Komunika\IeC {\v c}n\IeC {\'\i } vl\IeC {\'a}kna br\IeC {\'a}ny pro spojen\IeC {\'\i } se SNMP agenty}}{39}
-\contentsline {figure}{\numberline {5.6}{\ignorespaces Chyba prioritn\IeC {\'\i }ho zpracov\IeC {\'a}n\IeC {\'\i } po\IeC {\v z}adavk\IeC {\r u}}}{41}
-\contentsline {figure}{\numberline {5.7}{\ignorespaces Element subscription v r\IeC {\'a}mci hlavn\IeC {\'\i }ho XML dokumentu}}{42}
+\contentsline {figure}{\numberline {5.1}{\ignorespaces Sch\IeC {\'e}ma t\IeC {\v r}\IeC {\'\i }d aplikace}}{34}
+\contentsline {figure}{\numberline {5.2}{\ignorespaces Inicializa\IeC {\v c}n\IeC {\'\i } f\IeC {\'a}ze}}{37}
+\contentsline {figure}{\numberline {5.3}{\ignorespaces P\IeC {\v r}\IeC {\'\i }klad struktury hlavn\IeC {\'\i }ho XML dokumentu}}{38}
+\contentsline {figure}{\numberline {5.4}{\ignorespaces Zpracov\IeC {\'a}n\IeC {\'\i } mana\IeC {\v z}ersk\IeC {\'e}ho po\IeC {\v z}adavku}}{39}
+\contentsline {figure}{\numberline {5.5}{\ignorespaces Komunika\IeC {\v c}n\IeC {\'\i } vl\IeC {\'a}kna br\IeC {\'a}ny pro spojen\IeC {\'\i } se SNMP agenty}}{41}
+\contentsline {figure}{\numberline {5.6}{\ignorespaces Chyba prioritn\IeC {\'\i }ho zpracov\IeC {\'a}n\IeC {\'\i } po\IeC {\v z}adavk\IeC {\r u}}}{43}
+\contentsline {figure}{\numberline {5.7}{\ignorespaces Element subscription v r\IeC {\'a}mci hlavn\IeC {\'\i }ho XML dokumentu}}{44}
 \addvspace {10\p@ }
 \addvspace {10\p@ }
 \addvspace {10\p@ }

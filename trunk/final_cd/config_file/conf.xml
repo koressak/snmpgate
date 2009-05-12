@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<devices>
+	<!-- Gate -->
+	<device id="0">
+		<name>SNMP Gate</name>
+		<description>Popis brany</description>
+		<snmpAddr>localhost</snmpAddr>
+		<protocolVersion>2</protocolVersion>
+		<mibs>
+			<mib>RFC1213-MIB.txt</mib>
+		</mibs>
+		<traps>
+			<manager>
+				<address>127.0.0.1</address>
+				<port>7878</port>
+			</manager>
+		</traps>
+		<access>
+			<read>public</read>
+			<write>private</write>
+		</access>
+
+		<!--
+		 Gate specific elements
+		-->
+		<logFile>/tmp/snmpxmld.log</logFile>
+		<snmp>
+			<mibPath>/usr/share/snmp/mibs/</mibPath>
+			<listenPort>3111</listenPort>
+		</snmp>
+		<xml>
+			<xsdPath>/tmp/</xsdPath>
+			<listenPort>8888</listenPort>
+			<transmitPort>2555</transmitPort>
+			<access>
+				<read>cteni</read>
+				<write>zapis</write>
+			</access>
+			<protocolVersion>1</protocolVersion>
+		</xml>
+		<!--<security>
+			<key>aa</key>
+			<certificate>bb</certificate>
+		</security>-->
+	</device>
+	<!-- Monitorovany notebook -->
+	<device id="1">
+		<name>notebook</name>
+		<description>Domaci notebook</description>
+		<snmpAddr>192.168.1.53</snmpAddr>
+		<protocolVersion>2</protocolVersion>
+		<mibs>
+			<mib>RFC1213-MIB.txt</mib>
+		</mibs>
+		<traps>
+			<manager>
+				<address>localhost</address>
+				<port>7878</port>
+			</manager>
+		</traps>
+		<access>
+			<read>public</read>
+			<write>private</write>
+		</access>
+	</device>
+</devices>
+

@@ -1,18 +1,18 @@
 \chapter{XML protokol}
 \label{kap_xml}
 Pan Ing. Peter Macejko ve své diplomové práci navrh systém vzdálené správy strojů pomocí komunikačního protokolu, využívajícího XML. V této kapitole budou shrnuty všechny 
-navržené postupy od mapování SNMP informačního modelu až po komunikační struktury využívané správcem a spravovanými zařízeními.
+navržené postupy od mapování SNMP informačního modelu až, po komunikační struktury využívané správcem a spravovanými zařízeními.
 
 \section{Obecný informační model}
 Informační model je nedílnou součástí celého systému správy dat. Do něj jsou mapována veškerá monitorovaná data a jsou zde i vyjádřeny vztahy mezi daty. Ve skutečnosti
-omezuje počet a druh možných dotazů. Výsledný systém, který byl pro popis jednotlivých zařízení navržen vychází z několika různých přístupů abstrakce a popisu dat.
+omezuje počet a druh možných dotazů. Výsledný systém, který byl pro popis jednotlivých zařízení navrženi, vychází z několika různých přístupů abstrakce a popisu dat.
 
 Nejprve byla analýza problému založena na dvou možnostech - přímém mapování MIB stromu do XML dokumentu, kdy by jednotlivé uzly přesně odpovídaly MIB struktuře; objektově
 orientovaném využívajícím objektové paradigma. První přístup má výhodu ve snadném převodu MIB databáze do nového formátu, ale naopak ztrácí výhodu snadné rozšiřitelnosti,
 která je vlastní XML technolgoii. Problém objektového mapování je nejednoznačné rozmístění uzlů ve stromu na objekty. Takovéto mapování by bylo nutno provádět
-neautomatizovaně, tj. s dopomocí člověka.
+neautomatizovaně, tj. za asistence člověka.
 
-Výsledkem analýzy problému je systém využívající kousek od obou přístupů. Na nejvyšší úrovni abstrakce je každé zařízení složeno z modulů. Každý model obsahuje jistou
+Výsledkem analýzy problému je systém využívající kousek od obou přístupů. Na nejvyšší úrovni abstrakce je každé zařízení složeno z modulů. Každý modul obsahuje jistou
 funkcionalitu, která je úplně oddělena od těch zbývajících. Mezi tyto moduly patří i v této práci navrhovaná brána, která propojuje zařízení bez XML podpory s ostatními
 částmi sítě. V této chvíli se jedná pouze o obecný návrh každého zařízení.
 
@@ -29,7 +29,7 @@ SNMP moduly mají definován kořenový element, který je využit pro spojován
 Přesný popis je možné nalézt v \cite{macejko_dipl} v kapitole 5.2.3.
 
 \subsection{Popis zařízení}
-Pro popis zařízení je využito XML schéma, stejně jako pro popis dalších částí (modulů, apod.). Na obrázku \ref{obr_xml_popis_zarizeni} je znázorněno,
+Pro popis zařízení je využito XML schéma, stejně jako pro popis dalších částí (modulů apod.). Na obrázku \ref{obr_xml_popis_zarizeni} je znázorněno,
 jak vypadá zařízení popsané od nejvyšší úrovně. 
 
 \begin{figure}[htp]
@@ -42,10 +42,10 @@ jak vypadá zařízení popsané od nejvyšší úrovně.
 
 \subsection{Oznamovací zprávy}
 Oznámení jsou takové zprávy, které jsou zasílány manažerovi v případě, že se na monitorovaném zařízení vyskytne nějaká událost (shodné s SNMP Trap zprávami).
-V rámci SNMP jsou tyto zprávy součástí datového modelu, nicméně tyto specifické uzly MIB stromu nenesou žádná data a jsou tudíž použité pouze při generování typu
+V rámci SNMP jsou tyto zprávy součástí datového modelu, nicméně tyto specifické uzly MIB stromu nenesou žádná data, a jsou tudíž použité pouze při generování typu
 chyby či události. 
 
-V navrženém systému jsou všechny možné upozornění (ať již předdefinované, či definované administrátorem) umístěny ve speciálním uzlu stromu \verb|notifications|, 
+V navrženém systému jsou všechna možné upozornění (ať již předdefinované, či definované administrátorem) umístěny ve speciálním uzlu stromu \verb|notifications|, 
 kde je velice jednoduché dohledat, jaké události mohou způsobit zaslání oznamuvací zprávy. Každý modul pak může mít specifikován speciální typ \verb|NotificationType|,
 který popisuje právě onu událost.
 
@@ -58,11 +58,11 @@ rámci spravované databáze.
 V předchozí části byl rozebrán čistě obecný model popisu zařízení. Pro monitorované stroje, které nejsou kompatibilní s XML protokolem, musí existovat brána,
 která bude překládat dotazy z jednoho protokolu na druhý a stejně tak i odpovědi. Je tedy nutné přesně definovat postup přepisu MIB na XML.
 
-Je nutné vyřešit tři základní problémy - jak vyřešit importy jednotlivých MIB do sebe; jak předefinovat datové typy a jak konvertovat celý MIB strom.
+Je nutné vyřešit tři základní problémy - jak importovat jednotlivé MIB do sebe; jak předefinovat datové typy a jak konvertovat celý MIB strom.
 
 \subsection{Importy}
 V rámci jednotlivých MIB jsou časté odkazy na báze vyšší úrovně, kdy pak na nižších úrovních definujeme jenom část podstromu. V rámci XML budou definovány 
-odkazy jako prostory jmen, které jsou odvozeny od názvu daného MIB. Odkaz na jiné schéma bude proveden použitím odkazů na typ s příslučným názvem prostoru jmen. 
+odkazy jako prostory jmen, které jsou odvozeny od názvu daného MIB. Odkaz na jiné schéma bude proveden použitím odkazů na typ s příslušným názvem prostoru jmen. 
 
 \subsection{Datové typy}
 V SNMP, jak bylo řečeno v předchozí kapitole, existuje několik druhů datových typů. Jednoduché (integer, string,...), aplikačně rozšířené (Gauge, IpAddress,...) a 
@@ -110,7 +110,7 @@ výčet, délka řetězce a rozmezí hodnot. Všechny tyto typy jsou detailně p
 
 \subsection{MIB strom}
 Navržený systém využívá při mapování celého stromu oddělení definicí typů od samotné struktury stromu. Typy jsou definovány globálně a zároveň separátně od 
-struktury a to z důvodu možného použití typů v rámci jiného modulu a zároveň při omezení přístupových práv do danéh oblasti stromu. V MIB jsou objekty
+struktury a to z důvodu možného použití typů v rámci jiného modulu a zároveň při omezení přístupových práv do dané oblasti stromu. V MIB jsou objekty
 definovány makry (specifikované v SMI), které popisují několik základních typů uzlů. SMIv1 specifikuje OBJECT-TYPE a TRAP-TYPE makra.
 
 OBJECT-TYPE makro definuje uzel, který obsahuje nějaká data. Může to být samotná hodnota, položka, nebo celá řádka tabulky. Mapování pak závisí na
@@ -200,9 +200,9 @@ v části \verb|appinfo|.
 \section{Zprávy}
 Navrhovaný systém by měl využívat spolehlivého a potvrzovaného přenosového protokolu, na rozdíl od nepotvrzovaného SNMP. Zaroveň by mělo být možno
 přenášet zprávy v co nejjednodušším formátu. Proto bylo rozhodnuto o použití protokolu HTTP, který využívá přenosový protokol TCP, čímž je zajištěn 
-splehlivý přenos. Všecha data se budou přenášet pomocí HTTP zprávy POST.
+spolehlivý přenos. Všecha data se budou přenášet pomocí HTTP zprávy POST.
 
-HTTP je bezestavový protokol. Veškerá komunikace se sestává z dvojice dotaz a odpověď. Na serveru se neudržují jakékoliv další informace ohledně probíhajícím
+HTTP je bezestavový protokol. Veškerá komunikace se sestává z dvojice dotaz a odpověď. Na serveru se neudržují jakékoliv další informace ohledně probíhajícího
 spojení. Tato nenáročnost dovoluje implementaci na velice různorodém hardwaru.
 
 Bezpečnost přenosu může být řešena za použití tunelování paketů (IPSec, STunel,...), nebo je možno využít výhody HTTPS (HTTP over SSL). 
@@ -284,7 +284,7 @@ Zpráva SET je určena pro nastavení hodnoty uzlu. Struktura je podobná zpráv
 \end{verbatim}
 
 \subsubsection*{RESPONSE}
-Odpověď na zprávy GET a SET. V případě GET nese zpráva příslušná data. Pakliže je to odpověď na SET, je to pouze potvrzení, že hodnota byla uzlu úspěšně nastavena.
+Odpověď na zprávy GET a SET. V případě GET nese zpráva příslušná data. Pakliže je to odpověď na SET, je to pouze potvrzení, že hodnota uzlu byla úspěšně nastavena.
 
 \begin{verbatim}
 <response msgid="123">
@@ -295,7 +295,7 @@ Odpověď na zprávy GET a SET. V případě GET nese zpráva příslušná data
 \end{verbatim}
 
 \subsubsection*{EVENT}
-Pro oznamování asynchronních událostí, je tu zpráva EVEN (stejná funkcionalita jako TRAP u SNMP). Přenášené informace specifikují, která událost vyvolala toto oznámení,
+Pro oznamování asynchronních událostí je tu zpráva EVEN (stejná funkcionalita jako TRAP u SNMP). Přenášené informace specifikují, která událost vyvolala toto oznámení,
 kdo to poslal, datum a čas, případně nějaká další data, která by mohla být při řešení problému užitečná.
 
 \begin{verbatim}

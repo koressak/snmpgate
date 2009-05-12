@@ -19,13 +19,13 @@ Základním funkčním principem je model Klient - Server (\cite{cisco_snmp}). S
 \begin{itemize}
 	\item \textbf{Spravovaný systém} - je zařízení (přepínač, router, atd.), na kterém je spuštěn SNMP agent. Toto zařízení shromažďuje sledované informace a pak je
 	dává k dispozici manažerovi pomocí SNMP protokolu.
-	\item \textbf{Agent} - je software určený pro pro správný překlad požadavků manažera a jejích vykonání na sledovaném systému. Navíc může při sledování posílat manažerovi 
+	\item \textbf{Agent} - je software určený pro pro správný překlad požadavků manažera a jejich vykonání na sledovaném systému. Navíc může při sledování posílat manažerovi 
 	upozornění, že něco není se systémem v pořádku.
 	\item \textbf{Manažer} (NMS - Network Managemet System) - je aplikace, která sleduje a spravuje všechny systémy na sledované síti. Tento systém získává od agentů data, zpracovává je do vizuální podoby, 
 	čímž dává možnost administrátorovi mít přehled o celé síti. Zároveň umožňuje měnit sledované parametry přímo u agenta.
 \end{itemize}
 
-Komunikace můžeme rozdělit do dvou kategorií dle toho, kdo jí započal. Základní schéma je vyjádřeno na obrázku \ref{obr_snmp2} (\cite{tcpip_snmp}).
+Komunikace můžeme rozdělit do dvou kategorií dle toho, kdo ji započal. Základní schéma je vyjádřeno na obrázku \ref{obr_snmp2} (\cite{tcpip_snmp}).
 
 \begin{figure}[htp]
 	\begin{center}
@@ -38,8 +38,8 @@ Komunikace můžeme rozdělit do dvou kategorií dle toho, kdo jí započal. Zá
 V první části schématu je vyobrazeno standardní chování managera, který posílá dotazy agentovi, který mu odpovídá. Přesný výpis příkazů a zpráv, které si mohou tyto dva systémy mezi sebou vyměňovat, bude 
 diskutován dále v této kapitole.
 
-Druhá část schématu popisuje moment, kdy na sledovaném systému nastala nějaká extrémní situace (např. zatížení síťového spoje se blíží k maximu) a agent informuje manažera pomocí zprávi Alert (v SNMP jsou to zprávy
-TRAP či INFORM, obě budoudiskutovány dále).
+Druhá část schématu popisuje moment, kdy na sledovaném systému nastala nějaká extrémní situace (např. zatížení síťového spoje se blíží k maximu) a agent informuje manažera pomocí zprávy Alert (v SNMP jsou to zprávy
+TRAP či INFORM, obě budou diskutovány dále).
 
 Je nutné zmínit, že SNMP protokol pracuje nad transportním protokolem UDP, který je nepotvrzovaný. Není tedy zaručeno, že bude komunikace probíhat bezchybně. Je možné, že některé dotazy a příkazy vůbec nedojdou
 ke svému cíli, o čemž se druhá strana nikdy nedozví. Tento fakt může být překážkou při správě rozsáhlých sítí, kde jsou špatné síťové spoje.
@@ -50,16 +50,16 @@ Jak již bylo zmíněno dříve, SNMP je sada standardů, která kromě komunika
 
 \subsection*{SMI}
 SMI je zkratkou pro Structure and Identification of Management Information for TCP/IP-based Internets. Tento standard (\cite{rfc1155}) popisuje a definuje základní datové struktury a typy, které protokol využívá.
-Jednotlivé objekty jsou pojmenovány a organizovány, aby bylo možné k těmto datům logicky přistupovat. Dle standardu musí mít každý objekt jméno, syntaxi a kódování. Jméno jednoznačně identifikuje objekt. Datový typ
+Jednotlivé objekty jsou pojmenovány a organizovány, aby bylo možno k těmto datům logicky přistupovat. Dle standardu musí mít každý objekt jméno, syntaxi a kódování. Jméno jednoznačně identifikuje objekt. Datový typ
 (číslo, řetězec) je určen syntaxí. Kódování zajišťuje správnou serializaci dat při přenosu mezi systémy.
 
 Objekty, identifikovány svým jménem (OID), jsou seřazeny do hierarchické struktury. K identifikaci je použito Abstract Syntax Notation One (ASN.1). Každý OID identifikátor je složen ze skupiny přirozených čísel, které
 vyjadřují jeho pozici v pomyslném stromu. Strom má kořen, který je spojen hranami s očíslovanými uzly. Každý uzel může mít vlastní děti, čímž tvoří vlastní podstrom. Takto je možno pokračovat dále do značné hloubky stromu. 
-Tento standard též specifikuje, jaké identifikátory jsou přiřazeny počátku správní databáze.
+Tento standard též specifikuje, jaké objekty tvoří počátek správní databáze.
 
 \subsection*{MIB}
 MIB je zkratka pro Management Information Base. Je to soubor definicí, které popisují parametry a vlastnosti sledovaného zařízení. Existuje více než 100 různých MIB, které popisují různá zařízení. Každý takovýto
-soubor definic musí splňovat předpisy SMI, aby bylo zaručena správná interpretace objektů. Každý objekt (někdy také nazýván MIB objekt) je unikátně identifikován svým OID a všechny dohromady jsou uspořádány do
+soubor definic musí splňovat předpisy SMI, aby byla zaručena správná interpretace objektů. Každý objekt (někdy také nazýván MIB objekt) je unikátně identifikován svým OID a všechny dohromady jsou uspořádány do
 stromové struktury tak, jak to bylo popsáno v minulém odstavci. 
 
 Objekty v dané databázi se dělí na \textit{skalární} a \textit{tabelární}. Skalární objekty reprezentují jeden parametr sledovaného zařízení (např. počet ethernetových karet v přepínači), kdežto tabelární objekty
@@ -90,10 +90,10 @@ Základní typy jsou definovány v SNMPv1 SMI a definují základní používan�
 
 Aplikační specifické typy pak jsou:
 \begin{itemize}
-	\item \textbf{Network Address} - obecná síťová adresa pro podporu mnoha rodin protokolů.
+	\item \textbf{Network Address} - obecná síťová adresa pro podporu mnoha rodin protokolů
 	\item \textbf{IpAddress} - přímo definovaný typ pro IP adresu. SMIv1 podporuje pouze 32 bitovou adresu (IPv4)
-	\item \textbf{Counter} - čítač, vyjádřen celým číslem bez znaménka; Jeho hodnota se pouze zvyšuje a to až do maxima a pak se vrací zpět na nulu
-	\item \textbf{Gauge} - je definována jako nezáporné celé číslo. Může hodnotu zvyšovat i snižovat a to v definovaných mezích minima a maxima
+	\item \textbf{Counter} - čítač, vyjádřen celým číslem bez znaménka; jeho hodnota se pouze zvyšuje a to až do maxima a pak se vrací zpět na nulu
+	\item \textbf{Gauge} - je definována jako nezáporné celé číslo; může hodnotu zvyšovat i snižovat a to v definovaných mezích minima a maxima
 	\item \textbf{Time Ticks} - počet hodinových tiků od nějaké události, měřeno v setinách vteřiny
 	\item \textbf{Opaque} - typ dovolující přenášet libovolná data v kódování ASN.1. Tato data jsou zakódována jako OCTET STRING a následně přenesena médiem.
 	\item \textbf{Integers} - celočíselný typ, který předefinovává specifikaci v SMI
@@ -104,9 +104,9 @@ Komunikační mechanismus mezi manažerem a agentem je definován pomocí datov�
 \begin{itemize}
 	\item \textbf{Get Request} - získání hodnoty uzlu identifikovaného OID (zpráva od manažera agentovi)
 	\item \textbf{Get Next Request} - žádost o hodnotu uzlu následujícího po zaslaném OID (od manažera k agentovi)
-	\item \textbf{Set Request} - Nastavení hodnoty uzlu specifikovaném OID (od manažera k agentovi) 
+	\item \textbf{Set Request} - nastavení hodnoty uzlu specifikovaném OID (od manažera k agentovi) 
 	\item \textbf{Get Response} - odpověď agenta manažerovi na Get a Set zprávy. Obsahují požadovanou hodnotu
-	\item \textbf{Trap} - zpráva od agenta manažerovi, která upozorňuje na nastálé situace na monitorovaném systému.
+	\item \textbf{Trap} - zpráva od agenta manažerovi, která upozorňuje na nastalé situace na monitorovaném systému.
 \end{itemize}
 
 Strukturu jednotlivých SNMP paketů zobrazuje obrázek \ref{obr_snmp3}.
@@ -152,7 +152,7 @@ Nové datové typy zahrnují rozšíření podpory z 32-bitových čísel na 64-
 
 Přidané zprávy jsou:
 \begin{itemize}
-	\item \textbf{Get Bulk} - tento operátor se snaží efektivněji využít přenosovou kapacitu kanálu tím, že od agenta si vyžádá sérii informací pomocí jediného dotazu.
+	\item \textbf{Get Bulk} - tento operátor se snaží efektivněji využít přenosovou kapacitu kanálu tím, že od agenta si vyžádá sérii informací pomocí jediného dotazu
 	\item \textbf{Inform} - stejná funkcionalita jako zpráva Trap ve verzi 1, ale nutné je potvrzení od manažera, že zprávu přijal (Response paket)
 	\item \textbf{Response} - odpověď na předcházející Inform zprávu (od manažera k agentovi)
 \end{itemize}
@@ -168,11 +168,11 @@ SNMPv3 definuje tři základní služby:
 \begin{itemize}
 	\item \textit{Autentifikaci} - datový přenos od manažera k agentovi může být autentifikován, aby se zajistilo ověření identity odesílajícího.
 	\item \textit{Soukromí} - šifrování přenášených zpráv.
-	\item \textit{Přístupová práva} - agent může definovat přístupová práva, omezovat přístup manažerům k pouze některým akcím a částem dat.
+	\item \textit{Přístupová práva} - agent může definovat přístupová práva, omezovat přístup manažerům pouze k některým akcím a částem dat.
 \end{itemize}
 
 Základním principem SNMPv3 je modularita. Každá SNMP entita je tvořena SNMP řídícím systémem a vlastní aplikací. Řídící systém má za úkol 
-přijímat, odesílat, šifrovat, dešifrovat všechny zprávy a dále spravuje a kontroluje monitorované objekty. Tyto funkce jsou poté k dispozici jedné či více
+přijímat, odesílat, šifrovat a dešifrovat všechny zprávy a dále spravuje a kontroluje monitorované objekty. Tyto funkce jsou poté k dispozici jedné či více
 aplikací.
 
 Stejně jako předchozí verze, je SNMPv3 založena primárně na transportním protokolu UDP, ale není na něj vázána. Pro přenos dat tak může být použit i jiný protokol.
@@ -180,7 +180,7 @@ Vlastní aplikační protokol SNMP je rozdělen do dvou úrovní. První zpracov
 Nejvyšší úroveň - PDU processing layer - se stará o zpracování příkazů (Get, Get Next, ...), které přijdou v daném paketu. Zpracovaný paket pak předá nižší úrovni - 
 message processing layer - která tomuto paketu dodá hlavičku, kde jsou uložena bezpečnostní data.
 
-Na obrázku \ref{obr_snmp4} je vyobrazen formát SNMPv3 zprávy. První část je tvořena systémem zpracování zpráv. Nese informace ohledně verzi protokolu, identifikaci zprávy,
+Na obrázku \ref{obr_snmp4} je vyobrazen formát SNMPv3 zprávy. První část je tvořena systémem zpracování zpráv. Nese informace ohledně verze protokolu, identifikaci zprávy,
 maximální délce zprávy a nastavení bezpečnostího modelu. Druhá část je generována bezpečnostním systémem a obsahuje informace o kódování a autorizaci. Třetí část obsahuje samotná 
 data.
 

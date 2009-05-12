@@ -3,7 +3,7 @@
 Cílem této práce bylo vytvoření funkčního prototypu protokolové brány v jazyze C++. Proto
 veškeré testování bude zaměřeno na ověření funkce a prověření reakce-schopnosti na jednotlivé
 manažerské požadavky. Z podstaty práce vyplývá, že krom výše zmíněných parametrů není nutné provádět
-jakákoliv měření, jelikož povaha programu není založena na rychlosti odpovědí, ani jiných časových parametrech
+jakákoliv měření, jelikož povaha programu není založena na rychlosti odpovědí, ani jiných časových parametrech.
 
 \subsection*{Testovací systém}
 Síť agentů spojená s bránou, na které bylo prováděno měření, se sestává ze dvou autonomních systémů.
@@ -22,7 +22,7 @@ Dotaz:
 \end{verbatim}
 
 Zpráva má vyvolat odpověď obecného popisu a seznamu všech zařízení, které brána spravuje. Schéma
-jednotlivých zařízení je natolik obsáhlý, že jej nění možné do této práce vložit.
+jednotlivých zařízení je natolik obsáhlé, že jej není možné do této práce vložit.
 
 \newpage
 Odpověď (výstup zkrácen kvůli lepší čitelnosti):
@@ -182,7 +182,7 @@ Data received:
 \subsection*{Test zprávy Event}
 V této fázi je manažer nastartován pouze s HTTP serverem poslouchajícím na definovaném portu.
 Očekává se přijetí zprávy Event, nebo ukončení programu. V našem případě simulujeme
-nastálou událost pomocí aplikace \verb|snmptrap|. Simulujeme výpadek jednoho síťového spojení (linkDown), což
+nastalou událost pomocí aplikace \verb|snmptrap|. Simulujeme výpadek jednoho síťového spojení (linkDown), což
 je jedna ze standardních událostí (generic trap).
 
 Přijatá zpráva manažerem:
