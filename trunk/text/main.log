@@ -1,4 +1,4 @@
-This is pdfTeXk, Version 3.141592-1.40.3 (Web2C 7.5.6) (format=pdflatex 2009.4.1)  12 MAY 2009 11:40
+This is pdfTeXk, Version 3.141592-1.40.3 (Web2C 7.5.6) (format=pdflatex 2009.4.1)  12 MAY 2009 13:46
 entering extended mode
  file:line:error style messages enabled.
  %&-line parsing enabled.
@@ -590,7 +590,7 @@ Kapitola 6.
 
 
 ] [50]
-Overfull \hbox (7.47232pt too wide) in paragraph at lines 103--103
+Overfull \hbox (7.47232pt too wide) in paragraph at lines 102--102
 []      \T1/cmtt/m/n/10.95 Linux zoo 2.6.26-hrosi-jadro #4 SMP Fri Nov 21 19:19
 :38 CET 2008 i686[] 
  []
@@ -692,7 +692,7 @@ nappen/ec/ecbx1440.600pk> </home/hippi/.texmf-var/fonts/pk/ljfour/jknappen/ec/e
 crm1200.600pk></usr/share/texmf-texlive/fonts/type1/bluesky/cm/cmr10.pfb></usr/
 share/texmf-texlive/fonts/type1/bluesky/cm/cmr8.pfb></usr/share/texmf-texlive/f
 onts/type1/bluesky/cm/cmsy10.pfb>
-Output written on main.pdf (83 pages, 1118074 bytes).
+Output written on main.pdf (83 pages, 1117986 bytes).
 PDF statistics:
  1050 PDF objects out of 1200 (max. 8388607)
  0 named destinations out of 1000 (max. 131072)
