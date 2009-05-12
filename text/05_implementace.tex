@@ -37,11 +37,11 @@ Vzájemné vztahy těchto tříd jsou vyjádřeny na obrázku \ref{obr_impl_vzta
 
 
 \section{Použité knihovny}
-Při tvorbě programu bylo použito několik knihoven, které zajišťují bezproblémový chod aplikace.
+Při tvorbě programu bylo použito několik knihoven, které zajišťují potřebné využívané funkce.
 
 \begin{itemize}
 	\item \textbf{ \textit{Xerces-C++ a Xalan-C++} } - knihovny zajišťující manipulace s XML dokumenty, vyhledávání pomocí XPath výrazů (\cite{xerces}, \cite{xalan}).
-	\item \textbf{ \textit{Net-SNMP} } - knhovna napsaná v jazyce C, určená pro interpretaci a manipulaci s daty MIB databází, zasílání a 
+	\item \textbf{ \textit{Net-SNMP} } - knihovna napsaná v jazyce C, určená pro interpretaci a manipulaci s daty MIB databází, zasílání a 
 	přijímání datových SNMP paketů (\cite{net_snmp}).
 	\item \textbf{ \textit{libMicroHTTPD} } - volně dostupný HTTP server s podporou použití SSL protokolu při spojení (\cite{libmicrohttpd}).
 	\item \textbf{ \textit{libCUrl} } - volně dostupná knihovna určená pro klientskou stranu spojení. Podporuje mimo jiné protokoly HTTP, FTP a
@@ -82,7 +82,7 @@ manažer je definován IP adresou či url a portem, na který se budou zasílat 
 
 Specifickým elementem je definice samotné brány. Tento element obsahuje veškeré informace výše popsány, ale jsou přidány ještě povinné elementy:
 \begin{itemize}
-	\item \textbf{logFile} - identifikuje soubor, do kterého budou ukládány veškeré textové výstupy.
+	\item \textbf{logFile} - identifikuje soubor, do kterého budou ukládány veškeré textové výstupy
 	\item \textbf{snmp}    - obsahuje informace o cestě k souborům definujícím MIB databáze a portu, na kterém budou poslouchány asynchronní události
 	\item \textbf{xml}     - definuje xml modul systému. Je zde verze XML protokolu; přístupová práva pro čtení a zápis; cesta k ukládání XSD popisu zařízení;
 	porty pro poslouchání požadavků a odesílání odpovědí.
@@ -119,11 +119,11 @@ Pro každé zařízení systém načte všechny specifikované MIB soubory a zap
 Jednotlivé uzly jsou popsány svým typem, který obsahuje jejich unikátní identifikační číslo (OID), typ dat a přístupová práva. Samotné uzly jsou pak zařazeny
 do stromové hierarchie v rámci dokumentu.
 
-Informace vztahující se k jednotlivým zařízeními jsou generovány do oddělených souborů. Samostatný soubor
+Informace, vztahující se k jednotlivým zařízením, jsou generovány do oddělených souborů. Samostatný soubor
 pak obsahuje schéma brány a pouze identifikaci spravovaných zařízení. Tento systém byl vytvořen pro ušetření komunikační zátěže mezi manažerem a bránou.
 Bližší popis výhod tohoto přístupu dále v této kapitole.
 
-Oproti navrženému systému mapování MIB do XSD (\cite{macejko_dipl}) byla vynechána nutnost použítí prostorů jmen pro jednotlivé MIB databáze. Vzhledem
+Oproti navrženému systému mapování MIB do XSD (\cite{macejko_dipl}) byla vynechána nutnost použití prostorů jmen pro jednotlivé MIB databáze. Vzhledem
 k tomu, že každý element je popsán unikátním jménem a OID, nedojde při zpracování požadavků ke konfliktu.
 
 Abychom ušetřili procesorový čas, je paralelně s generováním schématu vytvářen i XML dokument, který za běhu slouží k vyhledávání a ostatním potřebným
@@ -148,7 +148,7 @@ moduly pak zajišťují kompletní provoz protokolové brány.
 \label{kap_impl_xmlmod}
 Dle návrhu programu v kapitole \ref{kap_navrh_systemu} bylo uvedeno, že pro komunikaci mezi bránou a manažery bude použit HTTP server zabudovaný do
 aplikace, abychom měli větší kontrolu nad posílanými daty. Proto byl použit nejvhodnější kandidát - microHTTP server (\cite{libmicrohttpd}).
-Tento server je napsán v jazyce C a velice dobře posloužil našemu účelu. 
+Tento server je napsán v jazyce C. 
 
 Jednotlivá spojení jsou zpracovávána samostatnými vlákny, aby bylo zaručeno co nejrychlejší odbavení požadavků. Funkční cyklus vlánka je znázorněn
 na schématu \ref{obr_impl_xmlmod_vlakno}. 
@@ -208,13 +208,13 @@ Práce komunikačních vláken probíhá v "nekonečném" cyklu. Vstupní inform
 V cyklu se pak opakuje několik dílčích bloků stále dokola.
 
 Vlákno zjistí, jestli v příslušné frontě je přítomen nějaký požadavek na vyřízení. Když není, vlákno se uspí. Jinak vyjme všechny dotazy, tím frontu vyprázdní a
-požadavky zpracuje. Tento funkční blok závisí na typu zprávky, která se má vyřídit. 
+požadavky zpracuje. Tento funkční blok závisí na typu zprávy, která se má vyřídit. 
 
 Zprávy Get a Set, které mají za úkol dostat nebo nastavit hodnotu koncového uzlu stromu, plně korespondují se SNMP. Je vytvořen SNMP packet, do kterého je vloženo
 heslo (community string) na základě přístupových práv, které manažer má, je naplněno daty, které se mají nastavit či získat a dotaz je odeslán.
 
 Po přijetí odpovědi jsou data opět z paketu vyjmuta, upravena do požadovaného formátu v rámci komunikační struktury. Pakliže se vyskytla chyba při zpracování, opět
-je nastaven příznak ve struktuře, aby manažer dostal informace o problému. Takto vygenerovaná odpověď je poslána do odpovědní fronty a je probuzeno vlákno, které na
+je nastaven chybový příznak ve struktuře, aby manažer dostal informace o problému. Takto vygenerovaná odpověď je poslána do odpovědní fronty a je probuzeno vlákno, které na
 data čeká (samotná funkce je ve správě XML modulu).
 
 Složitější je zpracování požadavku na uzel, který není koncový a obsahuje pod sebou celý podstrom dalších uzlů (z hlediska MIB databáze). Poté je nutno opakovat
@@ -238,9 +238,9 @@ mu brána zašle pouze XSD dokument popisující právě to jedno zařízení.
 Zpracování těchto požadavků prochází několika fázemi v rámci samotného XML modulu.
 
 Nejprve je nutné zjistit, jestli má manažer právo tyto operace provádět. Heslo, které se zasílá v elementu \textit{message}, určuje, jestli je
-povoleno čtení, či zápis. Nastavení hesel probíhá při inicializační fázi a tyto jsou čtena z konfiguračního souboru. Celý přístupový model je
+povoleno čtení, či zápis. Nastavení hesel probíhá při inicializační fázi, kdy jsou čtena z konfiguračního souboru. Celý přístupový model je
 založen na dvou heslech XML protokolu - pro čtení a zápis. Každé SNMP zařízení má pak definovány opět dvě hesla, která jsou odlišná od těch prvních jmenovaných.
-Systém pak na základě dodaného XML hesla zjistí, jaké má uživatel práva a použije pak příslušné SNMP heslo pro požadavek. Může se stát, že mangažer zadal
+Systém na základě dodaného XML hesla zjistí, jaké má uživatel práva a použije příslušné SNMP heslo pro požadavek. Může se stát, že mangažer zadal
 špatné heslo a systém mu přístup odepře. Pak je odpovědí na tyto požadavky chybová zpráva.
 
 Když uživatel má dostatečné oprávnění, je nutné zjistit, zda-li uzly, na které se dotazuje, opravdu existují. Dotazování probíhá pomcí jazyka XPath.
@@ -263,7 +263,7 @@ Jediný problém při implementaci nastal v rámci mazání jednotlivých zázna
 manažerovi zpráva Distribution s daty, která požaduje, nebo chyba, je nutno při smazání záznamu poslat opět zprávu Distribution, ale nyní
 prázdnou.
 
-Práva k mazání a úpravám daného záznamu jsou ponechána pouze na znalosti unikátního identifikátoru. 
+Práva k mazání a úpravám daného záznamu jsou ponechána pouze na znalosti unikátního identifikátoru daného záznamu. 
 
 
 \subsubsection*{Změny oproti navrženému XML protokolu}
@@ -329,7 +329,7 @@ Veškeré úpravy - přidávání, změna a mazání - jsou ponechány ve správ
 
 \subsubsection*{Přidání záznamu}
 Když manažer zašle požadavek na zapsání, je obsluhujícím vláknem vytvořen nový element \textit{subscription}, naplněn daty, umístěn do XML dokumentu a 
-distribuční vlákno je upozorněno, že nastala změna. Jsou prohlédnuty všechny záznamy a vygenerovány interní datové struktury pro další správu.
+distribuční vlákno je upozorněno, že nastala změna. Jsou prohlédnuty všechny záznamy a vygenerovány interní datové struktury k správné obsluze.
 
 \subsubsection*{Úprava záznamu}
 Vlákno, které zpracovává požadavek klienta, upraví daný záznam v XML dokumentu a oznámí distribučnímu vláknu změnu. To se pak, identicky jako v předchozím případě,
@@ -370,7 +370,7 @@ použit. Není-li možné paket doručit - manažer neexistuje či je vypnutý -
 Hlavním bodem zadání této práce není jenom implementace protokolové brány, ale i optimalizace využití operační paměti. Při vývoji se objevily dva body, kdy bylo nutno 
 vymyslet optimalizaci systému. Oba dva body se opírají o manipulaci a uložení XML dokumentů, které v paměti zabírají velký prostor.
 
-Prvním je správa XSD schémat, která popisují jednotlivá monitorovaná zařízení. Každou příchozí zprávou Discovery se manažer dotazuje na tyto popisná schémata. Bylo by, pro 
+Prvním je správa XSD schémat, která popisují jednotlivá monitorovaná zařízení. Každou příchozí zprávou Discovery se manažer dotazuje na tato popisná schémata. Bylo by, pro 
 rychlejší odbavení požadavku, snadnější uchovávat celá schémata v paměti. Za předpokladu, že jedno schéma zabírá minimálně několik stovek kB (při použití pouze standardní
 sady MIB databáze) paměti a že bychom spravovali několik desítek zařízení, mohla by se nutná paměť rozrůst do desítek MB. Proto se každé takovéto schéma ukládá do
 souboru na pevném disku a v případě potřeby je soubor načten a zaslán manažerovi. Časový rozdíl je relativně malý v porovnání s množstvím paměti, která se ušetří.
@@ -396,8 +396,8 @@ klienta, který by postkytoval veškeré uživatelské pohodlí grafické aplika
 K tvorbě manažerské aplikace byly použity knihovny:
 \begin{itemize}
 	\item \textbf{ \textit{libCUrl} } - zajištující klientské spojení s HTTP serverem na bráně (\cite{libcurl})
-	\item \textbf{ \textit{libMicroHTTPD} } - HTTP server použitý pro příjem asynchronních událostí a periodiské distribuce dat (\cite{libmicrohttpd})
-	\item \textbf{ \textit{libargtable2} } - knihovna zajišťující pohodlnné zpracování vstupních parametrů programu (\cite{argtable})
+	\item \textbf{ \textit{libMicroHTTPD} } - HTTP server použitý pro příjem asynchronních událostí a periodické distribuce dat (\cite{libmicrohttpd})
+	\item \textbf{ \textit{libargtable2} } - knihovna zajišťující pohodlné zpracování vstupních parametrů programu (\cite{argtable})
 \end{itemize}
 
 Aplikace funguje ve dvou možných formách - aktivní nebo pasivní (kompletní instalační a uživatelská příručka je v příloze \ref{kap_uzivatelska_prirucka_manazer}).

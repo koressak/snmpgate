@@ -5,21 +5,20 @@ implementován požadovaný systém pro jejich spojení. Byly vytvořeny postupy
 
 Při konstrukci jednotlivých částí programu se však vyskytly překážky, které nebyly vždy zcela uspokojivě vyřešeny. První z nich je
 použitý HTTP server, který byl vytvořen jako volně šiřitelný projekt a není tudíž plně optimalizován pro práci s mnoha desítkami
-současných dotazů. Též není optimalizována jeho práce s vlákny. Řešení tohoto problému, které by zahrnovalo přepracování onoho
-serveru, je mimo rámec této práce.
+současných dotazů. Též není optimalizována jeho práce s vlákny.
 
 Další obtíží je knihovna pracující s protokolem SNMP. Tato vznikla opět jako otevřený projekt bez jakékoliv záruky funkčnosti.
 Vyskytly se proto problémy s funkcemi pro práci s MIB databázemi. Při transformační fázi tak není možné získat naprosto všechny 
-informace ohledně jednotlivých uzlů datového stromu, např. popis. Nejsou to nikterak závažné informace, které by ohrozily
-hlavní funkci programu.
+informace ohledně jednotlivých uzlů datového stromu, např. popis. Nejsou to však nikterak závažné informace, které by ohrozily
+hlavní funkci programu či navrženého protokolu.
 
-Podobným problémem je i zpracování asynchronních událostí, kde knihovna ne zcela jasně definuje, jak přistoupit k specifickým informacím.
-Proto tato práce má v této oblasti minoritní nedostatky.
+Podobným problémem je i zpracování asynchronních událostí, kde knihovna ne zcela jasně definuje, jak přistoupit ke specifickým informacím.
 
 Budoucí rozšíření programu je možné směřovat do optimalizace jednotlivých součástí programu. První je již výše zmiňovaný HTTP server,
 kde by se dalo implementovat vlastní řešení, nebo předělat systém na komunikaci se samostatným serverem.
 
-Bylo by možné použít jinou knihovnu, než net-snmp, případně si komunikaci mezi SNMP agentem a bránou spravovat dle vlastního uvážení.
+Bylo by možné použít jinou knihovnu, než net-snmp, případně si komunikaci mezi SNMP agentem a bránou spravovat dle vlastního implementovaného
+přístupu.
 
 
 

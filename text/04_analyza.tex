@@ -4,7 +4,7 @@ V předchozích dvou kapitolách byla rozebrána teoretická část problému. V
 výsledného systému. Nejprve bude schématicky vyjádřena obecná funkcionalita systému, která se následně bude rozebírat detailněji.
 
 \section{Teoretické požadavky}
-Nároky na systém, které vyplývají z teorie můžeme rozdělit do třech částí - implementace SNMP protokolu, implementace navrženého XML protokolu a propojení těchto dvou protokolů dohromady.
+Nároky na systém, které vyplývají z teorie můžeme rozdělit do tří částí - implementace SNMP protokolu, implementace navrženého XML protokolu a propojení těchto dvou protokolů dohromady.
 
 Hlavním požadavkem, který vyplývá i ze zadání práce, je vytvořit modulární systém, který bude nejenom spojovat současné verze protokolů, ale bude počítat i s potenciálním rozšířením do
 budoucna. Obecné schéma navrhovaného systému zobrazuje obrázek \ref{obr_an_obecne_schema}. 
@@ -12,7 +12,7 @@ budoucna. Obecné schéma navrhovaného systému zobrazuje obrázek \ref{obr_an_
 \begin{figure}[htp]
 	\begin{center}
 		\includegraphics[width=15cm]{obrazky/04_obecne_schema.png}
-		\caption{Schéma navrhovahého systému}
+		\caption{Schéma navrhovaného systému}
 		\label{obr_an_obecne_schema}
 	\end{center}
 \end{figure}
@@ -57,7 +57,7 @@ Strukturu dat bude popisovat XML dokument, strom, který má strukturu vyjádře
 
 Kořenový uzel specifikuje celé zařízení vystupující jako protokolová brána, obsahuje tyto elementy:
 \begin{itemize}
-	\item \textbf{info} - tento element obsahuje text, kterým je popsáno dané zařízení.
+	\item \textbf{info} - tento element obsahuje text, kterým je popsáno dané zařízení
 	\item \textbf{services} - element vymezující poskytované služby (při širší implementaci může obsahovat služby DNS, DHCP, apod.)
 	\item \textbf{xmlbnmGate} - naše služba poskytující spojení XML a SNMP protokolu
 	\item \textbf{device} - je podelementem \textbf{xmlbnmGate} a vymezuje jedno monitorované zařízení
@@ -70,12 +70,11 @@ Strukturu elementu \textbf{device} popisuje obrázek \ref{obr_an_device_struktur
 	\item \textbf{info} - stejně jako kořenový element popisuje dané zařízení
 	\item \textbf{notifications} - obsahuje elementy a typy upozornění (TRAP zprávy v rámci SNMP), na které manažer čeká
 	\item \textbf{subscriptions} - obsahuje informace o datech, které si nechává manažer posílat v pravidelných intervalech (více v popisu komunikace)
-	\item \textbf{data} - sem jsou mapována veškerá data přímo z MIB.
+	\item \textbf{data} - dětmi tohoto elementu jsou veškerá data přímo z MIB.
 \end{itemize}
 
 Samotný element má atribut \textit{id}, což je jeho identifikace v rámci xml dokumentu. Dle tohoto unikátního čísla je pak možné
 v sadě dotazů rozpoznat, ke kterému zařízení se dotaz vztahuje.
-
 
 Element \textbf{info} obsahuje elementy, které specifikují jméno a popis zařízení (viz obrázek \ref{obr_an_info_element}).
 
@@ -88,7 +87,7 @@ Element \textbf{info} obsahuje elementy, které specifikují jméno a popis zař
 \end{figure}
 
 Jednotlivé podelementy uzlu \textbf{subscriptions} musí z podstaty věci obsahovat informace, které určují, jaké objekty chce manažer pravidelně sledovat, identifikovat
-manažera, aby mu mohly být data doručena a specifikovat časový interval, tj. frekvenci sledování příslušné veličiny.
+manažera, aby mu mohla být data doručena a specifikovat časový interval, tj. frekvenci sledování příslušné veličiny.
 
 Děti uzlu \textbf{notifications} určují, které typy událostí jsou sledovány u daného zařízení. V rámci konfigurace systému je nezbytné, aby pro každé zařízení
 bylo jasně definováno, kam mají být příslušné zprávy o událostech zasílány. Tato informace bude součástí konfiguračního souboru a systém ji bude
@@ -108,13 +107,13 @@ Zprávy, které budou posílány mezi manažerem a bránou, mají formu XML doku
 
 Kořenový element message obaluje veškerá posílaná data. Může obsahovat několik dílčích dotazů, nastavení a ostatních informací, které budou vykonávány postupně
 jedna po druhé. V rámci teorie byla nastíněna možnost použití několika různých front, které by byly specifikovány identifikátorem a zaručovaly by různou
-prioritu zpracování. Navrhovaný systém bude podporovat pouze jednu frontu zpracování zpráv, čímž budou jednotlivé dotazy zpracovány postupně. Bude tak zaručena
-integrita dat a předejde se různým extrémním situacím.
+prioritu zpracování. Navrhovaný systém bude podporovat rozdělení komunikačních front dle monitorovaných zařízení. Zajistí se tím správné pořadí vykonání
+příchozích požadavků.
 
 Komunikace mezi manažerem a bránou je na XML úrovni omezena na zprávy
 \begin{itemize}
 	\item Get
-	\item Sset
+	\item Set
 	\item Discovery
 	\item Publication
 	\item Subscription
@@ -126,7 +125,7 @@ Přesná struktura a popis funkce jednotlivých zpráv byla popsána v předchoz
 
 
 \subsubsection*{Komunikační protokol}
-Od protokolu SNMP se XML část komunikace liší taky tím, že bude probíhat na spolehlivém a potvrzovaném protokolu - HTTP. Každá zpráva, která
+Od protokolu SNMP se XML část komunikace liší také tím, že bude probíhat na spolehlivém a potvrzovaném protokolu - HTTP. Každá zpráva, která
 je poslána, musí mít potvrzeno doručení, což tento aplikační protokol, využívající transportního protokolu TCP, nabízí. 
 
 Informace budou posílány ve formátu HTTP POST zprávy. Strukturu dotazu a odpovědi zobrazuje obrázek \ref{obr_an_http_post} a komunikaci obrázek \ref{obr_an_http_request}.
@@ -161,11 +160,11 @@ Druhou část komunikace tvoří SNMP protokol. Z kapitoly \ref{kap_snmp} vychá
 	\item Trap
 \end{itemize}
 
-V rámci komunikace se v naší práci budeme zaobírat verzemi SNMPv1 a SNMPv2. Samotná implementace a mapování SNMP zpráv na XML dotazy
+V rámci komunikace se v této práci budeme zaobírat verzemi SNMPv1 a SNMPv2. Samotná implementace a mapování SNMP zpráv na XML dotazy
 bude diskutována až v kapitole \ref{kap_implementace}.
 
-Bezpečnost se v SNMP omezuje pouze na komunitní heslo, které je zasíláno jako součást XML zprávy a bude pouze přepsáno do SNMP paketu. 
-Je tedy zřejmé, že ponecháváme bezpečnost takovou, jak je standardizována v SNMP protokolu.
+Bezpečnost se v SNMP omezuje pouze na komunitní heslo. V rámci XML protokolu je bezpečnost založena jednak na šifrovaném přenosu dat mezi
+manažerem a bránou, druhak na přístupovém heslu, které vymezuje čtecí či zápisová práva při přístupu k zařízení. 
 
 
 \section{Struktura programu}
@@ -183,7 +182,7 @@ Bohužel tento přístup má ale i mnoho nevýhod. Zaprvé je to reakční doba,
 je nutno v paměti (či v souboru) udržovat XML reprezentaci MIB tak, jak bylo popsáno dříve. Při použití tohoto postupu se po každém přijatém požadavku musí načíst informace ze souboru
 a teprve poté je možno data zpracovat.
 
-Dalším sporným bodem je periodické zasílání zpráv manažerům, kteří o to požádali zprávou Subscription. V takovém případě musí běžet jeden proces, který v určených intervalech zasílý SNMP
+Dalším sporným bodem je periodické zasílání zpráv manažerům, kteří o to požádali zprávou Subscription. V takovém případě musí běžet jeden proces, který v určených intervalech zasílá SNMP
 dotazy na monitorované zařízení, což je neslučitelné se základní myšlenkou webových služeb.
 
 Asi největší nevýhodou tohoto přístupu je transformace dat z MIB do XML. Při spuštění webové služby je nutné, aby již všechna zařízení měla své monitorované informace uloženy v XML formátu, 
@@ -226,7 +225,7 @@ Proto bude použito následujícího schématu. Systém bude při prvním kontak
 s daty. Manažer si pak bude moci zvolit pouze určitá data, která ho zajímají. Tím se velmi sníží počáteční zatížení linky.
 
 \subsubsection{Zpracovávání požadavků}
-Po úspěšném přůchodu oběma přechozími fázemi se program dostává do situace, kdy vyčkává na příchozí požadavky, ať již ze strany manažera či SNMP zařízení.
+Po úspěšném průchodu oběma přechozími fázemi se program dostává do situace, kdy vyčkává na příchozí požadavky, ať již ze strany manažera či SNMP zařízení.
 
 Jak již bylo popsáno na začátku této kapitoly, o komunikaci se starají dva moduly - SNMP a XML. Proto taky komunikační rozhraní se dělí na dvě části.
 
@@ -246,7 +245,7 @@ V rámci spravovaných zařízení se naskýtá otázka, jestli by bylo možno s
 
 Navržený systém tuto skutečnost neumožňuje. Samotná brána nebude vykazovat vlastnosti agenta. Ke správě stroje, na kterém brána poběží, bude nutné použít XML či SNMP agenta, který tuto 
 funkcionalitu bude zajišťovat. Je možné pak v konfiguračním souboru nastavit, aby brána nabízela komunikaci se SNMP agentem na tomtéž stroji. XML agent bude komunikovat s manažerem přímo na definovaném portu.
-Implementace takvého agenta ale již přesahuje rámec této práce.
+Implementace takového agenta ale již přesahuje rámec této práce.
 
 Správa aplikace je pak omezena pouze na konfigurační soubor a bude ji nutné při každé změně restartovat (jak je tomu například i u konfigurace webových serverů). Je to z důvodu zachování integrity poskytovaných dat.
 Při změně informačních bází jednotlivých zařízení, přidání či odebrání monitorovaných strojů, je nutno přegenerovat všechny XML dokumenty, které jsou pak distribuovány manažerům. Nekorektnost dat, které manažer obdržel a které
