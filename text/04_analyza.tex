@@ -170,12 +170,12 @@ manažerem a bránou, druhak na přístupovém heslu, které vymezuje čtecí č
 \section{Struktura programu}
 \label{sec_an_struktura_programu}
 Před samotným návrhem jednotlivých funkčních elementů je nutno zvolit, jak bude program fungovat a jevit se globálně. Vzhledem k
-nabízeným službám a komunikaci, je možné zvolit koncepci podobnou webovým službám (založených na principu SOAP). Druhým možným přístupem je zvolit
+nabízeným službám a komunikaci je možné zvolit koncepci podobnou webovým službám (založených na principu SOAP). Druhým možným přístupem je zvolit
 na pozadí běžící aplikaci - démona, který bude po celou dobu svého běhu monitorovat a zpracovávat příchozí požadavky.
 
 \subsection{SOAP vs. démon}
 Kompozice struktury jako webové služby založené na SOAP architektuře má několik předností. Je tím hlavně přenositelnost a jednoduchost nasazení. Vše, co je potřeba k běhu,
-je aplikační server. Nainstalování a spuštění služby je již pak otázkou okamžiku. Samotná struktura kódu je též o něco jednodušší, než v případě démona. Je nutné se starat pouze o
+je aplikační server. Nainstalování a spuštění služby je již pak otázkou okamžiku. Samotná struktura kódu je též o něco jednodušší než v případě démona. Je nutné se starat pouze o
 příchozí požadavek a jeho zpracování.
 
 Bohužel tento přístup má ale i mnoho nevýhod. Zaprvé je to reakční doba, za kterou je systém schopen zaslat manažerovi odpověď. Pro samotné zpracování požadavku
@@ -185,7 +185,7 @@ a teprve poté je možno data zpracovat.
 Dalším sporným bodem je periodické zasílání zpráv manažerům, kteří o to požádali zprávou Subscription. V takovém případě musí běžet jeden proces, který v určených intervalech zasílá SNMP
 dotazy na monitorované zařízení, což je neslučitelné se základní myšlenkou webových služeb.
 
-Asi největší nevýhodou tohoto přístupu je transformace dat z MIB do XML. Při spuštění webové služby je nutné, aby již všechna zařízení měla své monitorované informace uloženy v XML formátu, 
+Asi největší nevýhodou tohoto přístupu je transformace dat z MIB do XML. Při spuštění webové služby je nutné, aby všechna zařízení již měla své monitorované informace uloženy v XML formátu, 
 protože při požadavku již není čas data transformovat. Tento akt by musel být od služby oddělen a buď svěřen periodicky se spouštěnému skriptu, nebo by jej administrátor musel provést pokaždé,
 když se změní počet, druh či monitorované údaje jednotlivých zařízení.
 
@@ -225,7 +225,7 @@ Proto bude použito následujícího schématu. Systém bude při prvním kontak
 s daty. Manažer si pak bude moci zvolit pouze určitá data, která ho zajímají. Tím se velmi sníží počáteční zatížení linky.
 
 \subsubsection{Zpracovávání požadavků}
-Po úspěšném průchodu oběma přechozími fázemi se program dostává do situace, kdy vyčkává na příchozí požadavky, ať již ze strany manažera či SNMP zařízení.
+Po úspěšném průchodu oběma předchozími fázemi se program dostává do situace, kdy vyčkává na příchozí požadavky, ať již ze strany manažerai, či SNMP zařízení.
 
 Jak již bylo popsáno na začátku této kapitoly, o komunikaci se starají dva moduly - SNMP a XML. Proto taky komunikační rozhraní se dělí na dvě části.
 
@@ -236,7 +236,7 @@ Komunikace v rámci XML je na bázi HTTP protokolu. Pro zpracování mnoha poža
 naimplementujeme. Výhodou již existujícího řešení by byla pouhá konstrukce komunikačního kanálu mezi protokolovou branou a zmíněným serverem. Je ale pravděpodobné, že bude potřeba mít větší kontrolu
 nad přijímanými a odesílanými zprávami, což vlastní implementovaný server poskytuje. Přednostně tedy bude vybrána varianta s embedded HTTP serverem.
 
-Ve spojitosti s protokolem HTTP je nutné zmínit použití certifikátů pro zabezpečený přenost a použití protokolu HTTPS. Pakliže by bylo využito externího webového serveru, bude ponechána
+Ve spojitosti s protokolem HTTP je nutné zmínit použití certifikátů pro zabezpečený přenost a použití protokolu HTTPS. Kdyby bylo využito externího webového serveru, bude ponechána
 veškerá zodpovědnost a konfigurace na administrátorovi serveru, který se bude muset postarat o obdržení a distribuci certifikátu. Jestli bude server součástí protokolové brány, bude
 nutno přiložit certifikát k aplikaci a v konfiguračním souboru zajistit jeho použití.
 
@@ -254,7 +254,7 @@ by byly aktuální, kdyby se změnily za plného provozu, by mohla mít pak vá�
 \section{XML manažerská aplikace}
 Součástí této práce je i implementace základního XML manažera tak, aby dovolil ukázat veškeré funkční aspekty protokolové brány.
 
-Program bude mít implementován celý XML komunikační protokol tak, jak byl navržen v kapitole \ref{kap_xml}. Tudíž základní příkazy - Discovery, Publication, Get, Set, Subscription, Distribution.
+Program bude mít implementován celý XML komunikační protokol tak, jak byl navržen v kapitole \ref{kap_xml}. Bude podporovat základní příkazy - Discovery, Publication, Get, Set, Subscription, Distribution.
 
 Správu monitorovaných zařízení zahajuje komunikací buď přímo s agentem či bránou. Vyžádá si od nich 
 dokument, který popisuje nabízené informace. Pakliže se jedná o komunikaci s bránou, tak nejprve zjistí, jaká zařízení jsou k dispozici a pak si některé vybere a teprve pak požádá o jejich XML popis dat.
