@@ -60,7 +60,7 @@ v rámci běhu programu je několik přesně definovaných fází, ve kterých s
 Některé z těchto fází byly oproti návrhu lehce pozměněny, či rozšířeny, dle potřebného rozsahu splňovaných funkcí.
 
 \subsection{Inicializační fáze}
-Je důležité připomenout, že již v návrhu bylo stanoveno, jako optimální řešení, že program bude běžet jako démon. Tomu odpovídá
+Je důležité připomenout, že již v návrhu bylo stanoveno jako optimální řešení, že program bude běžet jako démon. Tomu odpovídá
 i manipulace s programem. Byl vytvořen spouštěcí skript, který ovládá běh programu - spouští, zastavuje či restartuje (popis instalace,
 struktura spouštěcího skriptu a použití je v příloze \ref{kap_uzivatelska_prirucka_brana}).
 Jediným vstupním parametrem systému je konfigurační soubor, který je formátován jako dokument XML (přesná struktura souboru se všemi 
@@ -172,7 +172,7 @@ jako odpovědi (obsahují-li chybu, která znemožňuje její další zpracován
 i on probouzí příslušné vlákno ke zpracování požadavků.
 
 Vlákno se následně přesune do čekajícího cyklu, kde kontroluje odpovědní frontu na svoje požadavky do doby, než se dostaví všechny odpovědi. 
-Poté vygeneruje odpovědní zprávu a zašle manažerovi. Tím jeho životní cyklus prakticky končí. Je na serveru, jak s vlákny poté naloží a jak 
+Poté vygeneruje odpovědní zprávu a zašle manažerovi. Je na serveru, jak s vlákny poté naloží a jak 
 je recykluje. Takzvané zamrznutí a nekonečné čekání vlákna je ošetřeno maximální prodlevou pro jeden požadavek v SNMP modulu. Tím je zaručeno, že
 manažer určitě dostane odpověď.
 
@@ -239,12 +239,12 @@ Zpracování těchto požadavků prochází několika fázemi v rámci samotnéh
 
 Nejprve je nutné zjistit, jestli má manažer právo tyto operace provádět. Heslo, které se zasílá v elementu \textit{message}, určuje, jestli je
 povoleno čtení, či zápis. Nastavení hesel probíhá při inicializační fázi, kdy jsou čtena z konfiguračního souboru. Celý přístupový model je
-založen na dvou heslech XML protokolu - pro čtení a zápis. Každé SNMP zařízení má pak definovány opět dvě hesla, která jsou odlišná od těch prvních jmenovaných.
+založen na dvou heslech XML protokolu - pro čtení a zápis. Každé SNMP zařízení má pak definována opět dvě hesla, která jsou odlišná od těch prvních jmenovaných.
 Systém na základě dodaného XML hesla zjistí, jaké má uživatel práva a použije příslušné SNMP heslo pro požadavek. Může se stát, že mangažer zadal
 špatné heslo a systém mu přístup odepře. Pak je odpovědí na tyto požadavky chybová zpráva.
 
-Když uživatel má dostatečné oprávnění, je nutné zjistit, zda-li uzly, na které se dotazuje, opravdu existují. Dotazování probíhá pomcí jazyka XPath.
-Pakliže je dotaz špatně formulován, nebo element neexistuje, systém požadavek zamítne. V druhém případě mohou nastat dvě eventuality.
+Pokud uživatel má dostatečné oprávnění, je nutné zjistit, zda-li uzly, na které se dotazuje, opravdu existují. Dotazování probíhá pomocí jazyka XPath.
+Pokud je dotaz špatně formulován, nebo element neexistuje, systém požadavek zamítne. V druhém případě mohou nastat dvě eventuality.
 
 Element je koncovým uzlem stromu, tj. obsahuje pouze hodnotu danou definovaným typem. Systém takový dotaz interpretuje jako jediný SNMP dotaz GET.
 Když se ale jedná o kořenový uzel (obsahuje podstrom uzlů), je nutné tento dotaz interpretovat jako
@@ -257,7 +257,7 @@ Vygenerovaná komunikační jednotka je vložena do fronty požadavků a pak sou
 \subsubsection*{Subscribe}
 Touto zprávou se manažer upisuje k zasílání pravidelných informací o daném agentovi, nebo tyto údaje mění a maže. Každý takový záznam
 se zanese do hlavního XML dokumentu, aby bylo při úpravách a mazání možné vyhledávat pomocí XPath výrazu. Reakce na přidání a úprava
-vnitřních struktur je ponechána na speciální vlákno, které slouží k obsluze daných záznamů. Bližší specifikace dále v této kapitole.
+vnitřních struktur je ponechána na speciálním vláknu, které slouží k obsluze daných záznamů. Bližší specifikace dále v této kapitole.
 
 Jediný problém při implementaci nastal v rámci mazání jednotlivých záznamů. Vzhledem k tomu, že v navrženém protokolu je odpovědí
 manažerovi zpráva Distribution s daty, která požaduje, nebo chyba, je nutno při smazání záznamu poslat opět zprávu Distribution, ale nyní
