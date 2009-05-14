@@ -293,7 +293,7 @@ jiné hodnoty s vyšší prioritou (viz obrázek \ref{obr_impl_atom1}). Stalo by
 	\end{center}
 \end{figure}
 
-Druhým problémem je "atomicita" prováděných operací. Kdyby systém zpracovával jeden požadavek z přijaté zprávy, čekal na odpověď agenta, a pak
+Druhým problémem je "atomicita" prováděných operací. Kdyby systém zpracovával jeden požadavek z přijaté zprávy, čekal na odpověď agenta a pak
 přešel na další, mohlo by se stát, že druhý manažer by mohl do tohoto cyklu vstoupit a narušit tak výsledek celé posloupnosti operací.
 
 Proto byl systém přepracován tak, že každé monitorované zařízení má v SNMP modulu jedno obslužné vlákno a frontu požadavků (jak bylo vysvětleno 
@@ -406,7 +406,7 @@ Aplikace funguje ve dvou možných formách - aktivní nebo pasivní (kompletní
 V tomto módu je součástí vstupních parametrů URL protokolové brány, XML heslo a soubor, který obsahuje jednotlivé požadavky, které chce
 uživatel provést. Systém načte vstupní soubor a pakliže je vše bez chyby zpracováno, vygeneruje XML zprávu dle navrženého protokolu. 
 
-Tuto zprávu pak odešle a čeká na odpověď. V případě, že byla odeslána zpráva Subscribe a jsou tedy očekávány periodické dodání informací,
+Tuto zprávu pak odešle a čeká na odpověď. V případě, že byla odeslána zpráva Subscribe a jsou tedy očekávány periodické dodávky informací,
 je spuštěn HTTP server a jako v předchozím případě, aplikace čeká na odpovědi.
 
 Při ukončení tohoto čekání zašle aplikace XML zprávu, kterou zruší veškeré Subscribe záznamy, které předtím odeslala.
