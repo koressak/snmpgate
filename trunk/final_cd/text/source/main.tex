@@ -1,0 +1,150 @@
+\documentclass[11pt,twoside,a4paper]{book}   %two-page printing
+\usepackage[czech, english]{babel}
+\usepackage[T1]{fontenc} % pouzije EC fonty
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+%\usepackage{indentfirst} %1. odstavec jako v cestine.
+
+
+\usepackage{k336_thesis_macros} % specialni makra pro formatovani DP a BP
+
+\newcommand\TypeOfWork{Diplomová práce} \typeout{Diplomova prace}
+\newcommand\StudProgram{Elektrotechnika a informatika, strukturovaný, Navazující magisterský}
+\newcommand\StudBranch{Výpočetní technika}   % pro prgoram EaI mag. (dobihajici i strukt.)
+
+\renewcommand{\baselinestretch}{1.1}
+
+
+%Nazev prace, vedouci, autor
+\newcommand\WorkTitle{SNMP/XML brána}
+\newcommand\FirstandFamilyName{Bc. Tomáš Hroch}
+\newcommand\Supervisor{Ing. Peter Macejko}
+
+
+
+\begin{document}
+
+\selectlanguage{czech}
+
+
+\iflanguage{czech}{
+	 \typeout{************************************************}
+	 \typeout{Zvoleny jazyk: cestina}
+	 \typeout{Typ prace: \TypeOfWork}
+	 \typeout{Studijni program: \StudProgram}
+	 \typeout{Obor: \StudBranch}
+	 \typeout{Jmeno: \FirstandFamilyName}
+	 \typeout{Nazev prace: \WorkTitle}
+	 \typeout{Vedouci prace: \Supervisor}
+	 \typeout{***************************************************}
+	 \newcommand\Department{Katedra počítačů}
+	 \newcommand\Faculty{Fakulta elektrotechnická}
+	 \newcommand\University{České vysoké učení technické v Praze}
+	 \newcommand\labelSupervisor{Vedoucí práce}
+	 \newcommand\labelStudProgram{Studijní program}
+	 \newcommand\labelStudBranch{Obor}
+}{
+	 \typeout{************************************************}
+	 \typeout{Language: english}
+	 \typeout{Type of Work: \TypeOfWork}
+	 \typeout{Study Program: \StudProgram}
+	 \typeout{Study Branch: \StudBranch}
+	 \typeout{Author: \FirstandFamilyName}
+	 \typeout{Title: \WorkTitle}
+	 \typeout{Supervisor: \Supervisor}
+	 \typeout{***************************************************}
+	 \newcommand\Department{Department of Computer Science and Engineering}
+	 \newcommand\Faculty{Faculty of Electrical Engineering}
+	 \newcommand\University{Czech Technical University in Prague}
+	 \newcommand\labelSupervisor{Supervisor}
+	 \newcommand\labelStudProgram{Study Programme} 
+	 \newcommand\labelStudBranch{Field of Study}
+}
+
+
+\coverpagestarts
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%    Podekovani / Acknowledgements 
+
+\acknowledgements
+\noindent
+Na tomto místě bych rád poděkoval vedoucímu práce panu Ing. Peteru Macejkovi za jeho rady a připomínky,
+které vedly ke zdárnému dokončení práce. Zároveň můj dík patří i rodině za podporu po celou dobu mých
+studií.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%   Prohlaseni / Declaration 
+
+\declaration{V Praze dne 13.\,5.\,2009}
+%\declaration{In Kořenovice nad Bečvárkou on May 15, 2008}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%    Abstract 
+ 
+\abstractpage
+
+The main aim of this project is to develop system, which could connect two communication protocols. The first protocol is
+widely used SNMP and the second one is optimized XML-based protocol. The document describes implementation of the system which
+includes several optimalizations to reduce memory usage. The program is written in C++ programming language and is designed
+for OS Linux.
+
+% Prace v cestine musi krome abstraktu v anglictine obsahovat i
+% abstrakt v cestine.
+\vglue60mm
+
+\noindent{\Huge \textbf{Abstrakt}}
+\vspace{8ex}
+
+\noindent
+Cílem tohoto projektu je implementovat systém, jenž by dovoloval spojení dvou komunikačních protokolů. 
+Prvním z nich je široce rozšířený protokol SNMP a druhým je navržený optimalizovaný XML protokol. V dokumentu
+se kromě samotné implementace programu klade důraz na optimalizace, které snižují nároky na operační paměť. Program
+je napsán v jazyce C++, cílový operační systém je Linux. 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  Obsah / Table of Contents 
+
+\tableofcontents
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  Seznam obrazku / List of Figures 
+
+\listoffigures
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  Seznam tabulek / List of Tables
+
+\listoftables
+
+\mainbodystarts
+% horizontalní mezera mezi dvema odstavci
+%\parskip=5pt
+%JZ 11.12.2008 parskip bez tolerance? To neni rozumne, myslel jsem, ze sazime v TeXu, ne ve Wordu!
+\parskip=5pt plus 4pt minus 4pt
+% odstazeni prvniho radku odstavce (neaplikuje se na prvni odstace 
+% kapitol, sekci, podsekci atd.)
+%\parindent=10pt
+%JZ 11.12.2008 -- indent v zavislosti na base font, proc 10pt?
+\parindent=1.5em
+
+%nasleduje vstup jednotlivych kapitol
+\include{01_uvod}
+\include{02_snmp}
+\include{03_xml}
+\include{04_analyza}
+\include{05_implementace}
+\include{06_testovani}
+\include{07_zaver}
+
+%seznam literatury
+\bibliographystyle{unsrt}
+\bibliography{reference}
+
+\appendix
+
+\include{0A_konfig_file}
+\include{0B_uzivat_brana}
+\include{0C_uzivat_manager}
+\include{0D_obsahcd}
+
+\end{document}

@@ -1,0 +1,203 @@
+\chapter{Testování}
+\label{kap_testovani}
+Cílem této práce bylo vytvoření funkčního prototypu protokolové brány v jazyze C++. Proto
+veškeré testování bude zaměřeno na ověření funkce a prověření reakceschopnosti na jednotlivé
+manažerské požadavky.
+
+\subsection*{Testovací systém}
+Síť agentů spojená s bránou, na které byl program testován, se sestává ze dvou autonomních systémů.
+Prvním je notebook, na kterém je nainstalován SNMP agent. Druhým systémem je zařízení brány, na kterém
+kromě samotné protokolové aplikace běží též SNMP agent.
+
+Testy se sestávají z ověření funkce pomocí odeslání jednotlivých požadavků dle navrženého protokolu a obdržení odpovědí.
+V každé zprávě je nejprve uvedeno, co manažer odeslal a následuje výpis, co brána odpověděla.
+
+\subsection*{Test zprávy Discovery}
+Dotaz:
+\begin{verbatim}
+<message password="zapis">
+  <discovery protocolVersion="1"  msgid="1"  />
+</message>
+\end{verbatim}
+
+Zpráva má vyvolat odpověď obecného popisu a seznamu všech zařízení, které brána spravuje. Schéma
+jednotlivých zařízení je natolik obsáhlé, že jej není možné do této práce vložit.
+
+\newpage
+Odpověď (výstup zkrácen kvůli lepší čitelnosti):
+\begin{verbatim}
+<message>
+  <publication msgid="1">
+    <info> <xpath>1.0</xpath> </info>
+    <dataModel>
+      <xsd:schema attributeFromDefault="unqualified" ...>
+	  ...
+      <xsd:element name="devices">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element id="0" name="device">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="name">SNMP Gate</xsd:element>
+                  <xsd:element name="description">
+                  Popis brany
+                  </xsd:element>
+                  <xsd:element name="data"/>
+                  <xsd:element name="notifications"/>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element id="1" name="device">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="name">notebook</xsd:element>
+                  <xsd:element name="description">
+                  Domaci notebook
+                  </xsd:element>
+                  <xsd:element name="data"/>
+                  <xsd:element name="notifications"/>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    ...
+    </xsd:schema>
+  </datamodel>
+  </publication>
+</message>
+\end{verbatim}
+\newpage
+
+\subsection*{Test zprávy Get}
+Dotážeme se na popis systému jednotlivých zařízení.
+\begin{verbatim}
+<message password="zapis">
+  <get  msgid="1"  objectId="0"  > 
+    <xpath>/iso/org/dod/internet/mgmt/mib-2/system/sysDescr</xpath>
+  </get>
+
+  <get  msgid="2"  objectId="1"  > 
+    <xpath>/iso/org/dod/internet/mgmt/mib-2/system/sysDescr</xpath>
+  </get>
+</message>
+\end{verbatim}
+
+Odpověď:
+\begin{verbatim}
+<message>
+  <response msgid="1">
+    <value>
+      Linux zoo 2.6.26-1-amd64 #1 SMP Sat Jan 10 19:55:48 UTC 2009 x86_64
+    </value>
+  </response>
+
+  <response msgid="2">
+    <value>
+      Linux zoo 2.6.26-hrosi-jadro #4 SMP Fri Nov 21 19:19:38 CET 2008 i686
+    </value>
+  </response>
+</message>
+\end{verbatim}
+
+\subsection*{Test zprávy Subscribe}
+V intervalech 5 vteřin se chceme dotazovat na počet TCP paketů, které přišly na vstup zařízení číslo 1 (domácí notebook).
+\begin{verbatim}
+<message password="zapis">
+  <subscribe  msgid="1"  objectId="1"  frequency="5"  >
+    <xpath>/iso/org/dod/internet/mgmt/mib-2/tcp/tcpInSegs</xpath>
+  </subscribe>
+</message>
+\end{verbatim}
+
+Odpovědí nám jsou data, čímž brána potvrzuje přijetí a bezchybnost zápisu. Ihned manažer zapíná HTTP server,
+který poslouchá na definovaném portu a čeká na došlé informace (v našem případě jsme nechali přijmout
+5 zpráv).
+\begin{verbatim}
+<!-- Prvni odpoved od serveru -->
+<message>
+  <distribution msgid="1" distrid ="1">
+    <value>
+      Counter32: 6114
+    </value>
+  </distribution>
+</message>
+
+------------------
+Starting server for distributions
+-----------------
+Data received: 
+<message context="">
+  <distribution msgid="1" distrid ="1">
+    <value>
+      Counter32: 6114
+    </value>
+  </distribution>
+</message>
+-----------------------------
+------------------------------
+Data received: 
+<message context="">
+  <distribution msgid="2" distrid ="1">
+    <value>
+      Counter32: 6114
+    </value>
+  </distribution>
+</message>
+-----------------------------
+------------------------------
+Data received: 
+<message context="">
+  <distribution msgid="3" distrid ="1">
+    <value>
+      Counter32: 6114
+    </value>
+  </distribution>
+</message>
+-----------------------------
+------------------------------
+Data received: 
+<message context="">
+  <distribution msgid="4" distrid ="1">
+    <value>
+      Counter32: 6114
+    </value>
+  </distribution>
+</message>
+-----------------------------
+------------------------------
+Data received: 
+<message context="">
+  <distribution msgid="5" distrid ="1">
+    <value>
+      Counter32: 6114
+    </value>
+  </distribution>
+</message>
+-----------------------------
+\end{verbatim}
+
+\subsection*{Test zprávy Event}
+V této fázi je manažer nastartován pouze s HTTP serverem poslouchajícím na definovaném portu.
+Očekává se přijetí zprávy Event, nebo ukončení programu. V našem případě simulujeme
+nastalou událost pomocí aplikace \verb|snmptrap|. Simulujeme výpadek jednoho síťového spojení (linkDown), což
+je jedna ze standardních událostí (generic trap).
+
+Přijatá zpráva manažerem:
+\begin{verbatim}
+------------------
+Starting server for notifications
+------------------------------
+Data received:
+<message>
+  <event msgid="1"
+    senderid="0" 
+    eventSpec="device/notifications/linkDown">
+      <data>
+      </data>
+  </event>
+</message>
+-----------------------------
+\end{verbatim}
+
