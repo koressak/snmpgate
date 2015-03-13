@@ -1,0 +1,1 @@
+For a theoreticaly designed XML managing protocol create a gate, that would be able to manage SNMP devices (e.g. transparently convert XML requests to SNMP requests)
